@@ -21,16 +21,17 @@ fi
 
 kubectl create namespace games --dry-run=client -o yaml | kubectl apply -f -
 
-if [ -f "monitoring/exporter/Dockerfile" ] && command -v docker >/dev/null 2>&1; then
+if [ -f "monitoring/exporter/Dockerfile" ] && command -v podman >/dev/null 2>&1; then
   echo "Building lgsm-exporter image..."
-  docker build -t k3s-linuxgsm/lgsm-exporter:latest monitoring/exporter
-  # k3s uses containerd, not the docker daemon's store; hand the image
-  # across directly instead of requiring a registry.
+  podman build -t k3s-linuxgsm/lgsm-exporter:latest monitoring/exporter
+  # k3s uses containerd, not a podman/docker daemon's store; hand the
+  # image across directly (as an OCI archive, which `ctr images import`
+  # understands) instead of requiring a registry.
   if command -v k3s >/dev/null 2>&1; then
-    docker save k3s-linuxgsm/lgsm-exporter:latest | sudo k3s ctr images import -
+    podman save --format oci-archive k3s-linuxgsm/lgsm-exporter:latest | sudo k3s ctr images import -
   fi
 else
-  echo "docker not found or exporter Dockerfile missing; assuming k3s-linuxgsm/lgsm-exporter:latest is already available to the cluster." >&2
+  echo "podman not found or exporter Dockerfile missing; assuming k3s-linuxgsm/lgsm-exporter:latest is already available to the cluster." >&2
 fi
 
 helm upgrade --install "${game}" charts/linuxgsm-game \

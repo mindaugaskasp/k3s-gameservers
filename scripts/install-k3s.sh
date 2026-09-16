@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-# Installs a single-node k3s server plus Helm. Idempotent-ish: safe to
-# re-run, but does NOT uninstall or reset an existing cluster.
+# Installs podman, a single-node k3s server, and Helm. Idempotent-ish:
+# safe to re-run, but does NOT uninstall or reset an existing cluster.
 #
 # Requires sudo. Not run automatically by anything in this repo -- review
 # it, then run by hand:
 #   ./scripts/install-k3s.sh
 set -euo pipefail
+
+if command -v podman >/dev/null 2>&1; then
+  echo "podman already installed: $(podman --version)"
+else
+  echo "Installing podman..."
+  sudo apt-get update
+  sudo apt-get install -y podman
+fi
 
 if command -v k3s >/dev/null 2>&1; then
   echo "k3s already installed: $(k3s --version | head -1)"
