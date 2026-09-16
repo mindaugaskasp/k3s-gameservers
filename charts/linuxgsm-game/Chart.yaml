@@ -1,0 +1,17 @@
+apiVersion: v2
+name: linuxgsm-game
+description: >
+  Generic Helm chart that runs a single LinuxGSM game server instance as a
+  Kubernetes StatefulSet, one release per game/world. Each game gets its own
+  pod, its own PersistentVolumeClaim, and its own metrics endpoint so it can
+  be tracked in Grafana and right-sized independently of the others.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - linuxgsm
+  - game-server
+  - k3s
+home: https://github.com/GameServerManagers/LinuxGSM
+maintainers:
+  - name: vhserver

@@ -1,0 +1,85 @@
+# Values for the prometheus-community/kube-prometheus-stack chart, sized
+# down for a small single-node box. See scripts/install-monitoring.sh.
+#
+# IMPORTANT: the original host this project was designed on has ~5.7GB RAM
+# total and was already running with <200MB free alongside the bare-metal
+# Valheim server. The defaults below trade retention/HA for a small
+# footprint; on a box that tight you may still need to run this stack on
+# a separate/bigger node, or skip Alertmanager and long retention entirely.
+# See docs/architecture.md.
+
+prometheus:
+  prometheusSpec:
+    retention: 3d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    # Discover ServiceMonitors from every namespace (so games/* is picked
+    # up without extra wiring) rather than only the release namespace.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+alertmanager:
+  enabled: false
+
+grafana:
+  enabled: true
+  adminPassword: "" # override with --set grafana.adminPassword=... at install time
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 2Gi
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+# k3s already schedules everything on the single node; drop the operator's
+# default resource requests a bit too.
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

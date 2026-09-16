@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.env
+.env.*
+secrets*.yaml
+*.kubeconfig
+kubeconfig
+.DS_Store

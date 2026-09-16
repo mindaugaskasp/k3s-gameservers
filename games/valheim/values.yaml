@@ -1,0 +1,65 @@
+# Helm values for the Valheim instance, layered on top of
+# charts/linuxgsm-game/values.yaml:
+#
+#   helm upgrade --install valheim ../../charts/linuxgsm-game \
+#     -f values.yaml -n games --create-namespace \
+#     --set-string secrets.serverpassword="$VALHEIM_SERVER_PASSWORD" \
+#     --set-string secrets.discordwebhook="$VALHEIM_DISCORD_WEBHOOK"
+#
+# Mirrors the bare-metal LGSM instance this replaces
+# (lgsm/config-lgsm/vhserver/vhserver.cfg on the original host) minus
+# anything sensitive (server password, public IP), which is supplied via
+# --set-string / a pre-created Secret instead of being committed here.
+
+game:
+  shortname: vh
+  name: Valheim
+
+image:
+  tag: vh
+
+ports:
+  - name: game
+    containerPort: 2456
+    protocol: UDP
+    nodePort: 32456
+  - name: query
+    containerPort: 2457
+    protocol: UDP
+    nodePort: 32457
+  - name: extra
+    containerPort: 2458
+    protocol: UDP
+    nodePort: 32458
+
+# Small single-world server: 2 CPU / 4GB is generous headroom for Valheim,
+# trim down if the node is tight on memory (see docs/architecture.md - the
+# original box only has ~5.7GB RAM total).
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+persistence:
+  storageClassName: local-path
+  size: 15Gi
+
+instanceConfig:
+  public: "1"
+  servername: "Valheim Server"
+  worldname: "Dedicated"
+  worldmodifiers: "-modifier resources more -modifier raids more -modifier deathPenalty casual"
+  statusalert: "on"
+  discordalert: "on"
+
+metricsExporter:
+  enabled: true
+  gamediggame: valheim
+  queryPort: "2457"
+
+verticalPodAutoscaler:
+  enabled: true
+  updateMode: "Off"

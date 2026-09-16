@@ -1,0 +1,9 @@
+{{ .Values.game.name }} ({{ .Values.game.shortname }}) deployed as StatefulSet "{{ include "linuxgsm-game.fullname" . }}".
+
+Check status:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs -f {{ include "linuxgsm-game.fullname" . }}-0 -c gameserver
+
+Metrics:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "linuxgsm-game.fullname" . }}-metrics {{ .Values.metricsExporter.port }}:{{ .Values.metricsExporter.port }}
+  curl localhost:{{ .Values.metricsExporter.port }}/metrics
