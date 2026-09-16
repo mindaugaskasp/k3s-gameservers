@@ -92,6 +92,73 @@ header) or by pointing `secretRef` at a Secret created out of band.
   labelled ConfigMap, which the Grafana Helm chart's dashboard sidecar
   auto-imports.
 
+## Logs ship to the existing Grafana on the webserver VM, not a local stack
+
+There's already a Grafana+Loki+Alloy stack running on a separate
+webserver VM (192.168.0.200, `grafana.lan`). Rather than standing up a
+second Loki locally (more RAM pressure on an already-tight box, and a
+second place to look for logs), `games` namespace pod logs ship there:
+
+- `external/webserver-vm/loki-ingress.yaml` — applied on the **webserver
+  VM's cluster**, not this one. Loki (`Service loki.logging:3100`) had no
+  Ingress, so nothing outside that cluster could reach it; this adds one,
+  restricted to the LAN via the existing `logging-lan-only` Traefik
+  middleware, since Loki runs with `auth_enabled: false` (no login of its
+  own) and Traefik's port 80 is otherwise open to the internet.
+- `monitoring/alloy-logs-values.yaml` + `scripts/install-log-shipping.sh`
+  — installs Grafana Alloy on **this** cluster, in logs-only mode
+  (`controller.type: deployment`, not the chart's default `daemonset` —
+  a single k3s node doesn't need one per node). It discovers pods via the
+  Kubernetes API (no hostPath log mounts needed), keeps only the `games`
+  namespace, and pushes to `http://loki.192.168.0.200.nip.io/loki/api/v1/push`
+  — the nip.io form so no `/etc/hosts` edit is needed on this box.
+- The Alloy config (`alloy.configMap.content` in that values file) is
+  written but not yet syntax-checked against a running Alloy binary —
+  verify with `kubectl -n monitoring logs -l app.kubernetes.io/name=alloy`
+  after install.
+
+Order matters: apply the Ingress on the webserver VM's cluster *first*,
+then run `./scripts/install-log-shipping.sh` here (it curls the nip.io
+URL first and warns if it's not up yet).
+
+Metrics (Prometheus/Grafana dashboards, `kube-prometheus-values.yaml`)
+still default to a local stack for now — worth revisiting the same way
+once there's a remote-write-capable metrics backend on the webserver VM,
+since that would remove the RAM-constrained local Prometheus/Grafana
+entirely rather than just trimming it (see below).
+
+## Scheduled maintenance (update/restart), replacing crontab
+
+Bare-metal LGSM instances typically run their own maintenance crontab —
+this host's `vhserver` had:
+
+```
+0 1 * * *  vhserver update
+0 2 * * *  vhserver restart
+0 3 * * 0  vhserver update-lgsm
+*/5 * * * *  vhserver monitor
+@reboot    vhserver start
+```
+
+In the pod, `@reboot` and `monitor` (crash detection) are subsumed by k8s
+itself: the StatefulSet always brings the pod back up, and an optional
+`livenessProbe` (see `games/valheim/values.yaml` — a `pgrep` check) gets
+kubelet to restart the container the same way `monitor` restarts the
+process, without needing a player-count check (a crashed server isn't
+serving anyone regardless of how many were connected).
+
+`update` and `restart` are different: firing them mid-session boots
+whoever's online. `charts/linuxgsm-game`'s `maintenance.*Schedule` values
+create CronJobs (RBAC-scoped to `exec` into exactly this release's pod,
+nothing else) that `kubectl exec` into the `metrics-exporter` container,
+read `lgsm_game_players` off its `/metrics`, and only proceed with
+`kubectl exec ... ./<shortname>server <action>` in the `gameserver`
+container if the count is exactly `0`; otherwise that run is skipped and
+the next scheduled run tries again (`maintenance.waitForEmptyMinutes` can
+make a single run retry-and-wait instead, off by default). `update-lgsm`
+(LGSM's own self-update) is a plain unguarded CronJob since it only
+touches `lgsm/modules`, never the running game process.
+
 ## Resource constraints on this box
 
 The original host (`vhserver`/Ubuntu 24.04) has **~5.7GB RAM total**, and

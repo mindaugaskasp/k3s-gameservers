@@ -1,0 +1,39 @@
+{{- if .Values.maintenance.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "linuxgsm-game.fullname" . }}-cron
+  labels:
+    {{- include "linuxgsm-game.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "linuxgsm-game.fullname" . }}-cron
+  labels:
+    {{- include "linuxgsm-game.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get"]
+    resourceNames: ["{{ include "linuxgsm-game.fullname" . }}-0"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+    resourceNames: ["{{ include "linuxgsm-game.fullname" . }}-0"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "linuxgsm-game.fullname" . }}-cron
+  labels:
+    {{- include "linuxgsm-game.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "linuxgsm-game.fullname" . }}-cron
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "linuxgsm-game.fullname" . }}-cron
+    namespace: {{ .Release.Namespace }}
+{{- end }}

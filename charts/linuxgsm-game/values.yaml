@@ -102,6 +102,48 @@ verticalPodAutoscaler:
   enabled: true
   updateMode: "Off" # Off | Initial | Recreate | Auto
 
+# Optional container command/args override. Most games should leave this
+# empty and rely on the image's own entrypoint; useful for smoke-testing
+# the chart with a placeholder image, or for images with no sensible
+# default command.
+command: []
+args: []
+
+# Optional liveness probe for the gameserver container, replacing LGSM's
+# bare-metal `*/5 * * * * vhserver monitor` cron entry with k8s-native
+# crash detection: kubelet restarts the container itself on failure,
+# same as `monitor` restarting the process, without needing a gate on
+# player count (a crashed server isn't serving anyone regardless).
+# Left empty by default since the right check is game specific (see
+# games/valheim/values.yaml for a pgrep-based example).
+livenessProbe: {}
+
+# Scheduled maintenance (update/restart), replacing the bare-metal
+# crontab entries LGSM instances normally run
+# (`vhserver update` / `vhserver restart` / `vhserver update-lgsm`).
+# Runs as CronJobs that `kubectl exec` into the running pod rather than
+# duplicating LGSM's update logic. `updateSchedule`/`restartSchedule` are
+# gated on the exporter's player-count metric being exactly 0 before
+# acting, so a scheduled maintenance window never boots active players;
+# `lgsmUpdateSchedule` (LGSM's own self-update, e.g. weekly) is not gated
+# since it only touches lgsm/modules, never the running game process.
+# Any schedule left empty ("") is disabled entirely.
+maintenance:
+  enabled: true
+  image:
+    repository: rancher/kubectl
+    tag: v1.30.3
+    pullPolicy: IfNotPresent
+  updateSchedule: ""
+  restartSchedule: ""
+  lgsmUpdateSchedule: ""
+  playersMetric: lgsm_game_players
+  # How many minutes a guarded job waits/retries in 30s steps for the
+  # player count to hit 0 before giving up for that run (next scheduled
+  # run will just try again).
+  waitForEmptyMinutes: 0
+  historyLimit: 3
+
 podAnnotations: {}
 nodeSelector: {}
 tolerations: []

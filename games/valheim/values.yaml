@@ -63,3 +63,27 @@ metricsExporter:
 verticalPodAutoscaler:
   enabled: true
   updateMode: "Off"
+
+# Replaces the bare-metal `*/5 * * * * vhserver monitor` crontab entry:
+# kubelet restarts the container itself if valheim_server.x86_64 isn't
+# running. Needs `pgrep` in the image (present on the Debian-based
+# gameservermanagers/gameserver images at last check -- verify if you
+# swap images).
+livenessProbe:
+  exec:
+    command: ["pgrep", "-f", "valheim_server"]
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  failureThreshold: 3
+
+# Mirrors the bare-metal crontab (see `crontab -l` on the original host):
+#   0 1 * * *  vhserver update
+#   0 2 * * *  vhserver restart
+#   0 3 * * 0  vhserver update-lgsm
+# update/restart only fire once the exporter reports 0 players; if the
+# server's occupied at the scheduled time, that run is skipped outright
+# (waitForEmptyMinutes: 0) and the next day's run tries again.
+maintenance:
+  updateSchedule: "0 1 * * *"
+  restartSchedule: "0 2 * * *"
+  lgsmUpdateSchedule: "0 3 * * 0"

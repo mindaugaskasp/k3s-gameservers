@@ -1,0 +1,42 @@
+{{- if and .Values.maintenance.enabled (or .Values.maintenance.updateSchedule .Values.maintenance.restartSchedule) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "linuxgsm-game.fullname" . }}-cron-script
+  labels:
+    {{- include "linuxgsm-game.labels" . | nindent 4 }}
+data:
+  guarded-action.sh: |
+    #!/bin/sh
+    # Runs `./<shortname>server <action>` inside the gameserver container,
+    # but only once the exporter reports 0 players online -- mirrors the
+    # bare-metal crontab's update/restart entries without ever booting
+    # active players. See charts/linuxgsm-game/values.yaml `maintenance`.
+    set -eu
+
+    action="$1"
+    attempts=$(( WAIT_MINUTES * 2 ))
+    i=0
+
+    get_players() {
+      kubectl exec -n "${NAMESPACE}" "${POD_NAME}" -c metrics-exporter -- \
+        wget -qO- "http://127.0.0.1:${METRICS_PORT}/metrics" 2>/dev/null \
+        | awk -v m="${PLAYERS_METRIC}{" '$0 ~ "^"m { print $NF; found=1 } END { if (!found) print "unknown" }'
+    }
+
+    while :; do
+      players=$(get_players)
+      if [ "${players}" = "0" ]; then
+        echo "0 players online, running ${SHORTNAME}server ${action}"
+        exec kubectl exec -n "${NAMESPACE}" "${POD_NAME}" -c gameserver -- \
+          sh -c "cd /data && ./${SHORTNAME}server ${action}"
+      fi
+      if [ "${i}" -ge "${attempts}" ]; then
+        echo "players=${players} after waiting ${WAIT_MINUTES}m; skipping scheduled ${action} this run"
+        exit 0
+      fi
+      echo "players=${players}, waiting for an empty server before ${action} (attempt $((i + 1))/${attempts})"
+      i=$((i + 1))
+      sleep 30
+    done
+{{- end }}

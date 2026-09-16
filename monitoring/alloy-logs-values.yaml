@@ -1,0 +1,73 @@
+# Values for the grafana/alloy Helm chart, run in log-shipping-only mode:
+# tails k8s pod logs via the Kubernetes API (no hostPath/DaemonSet needed)
+# and forwards them to the Loki instance on the webserver VM
+# (192.168.0.200) via the Ingress in ../external/webserver-vm/loki-ingress.yaml.
+#
+# Only ships logs for the `games` namespace by default -- see the
+# discovery.relabel `keep` rule below -- to keep this small on a
+# RAM-constrained box; widen it if you want cluster/system logs there too.
+#
+# See scripts/install-log-shipping.sh.
+
+alloy:
+  configMap:
+    create: true
+    content: |
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "games_pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          regex         = "games"
+          action        = "keep"
+        }
+      }
+
+      loki.source.kubernetes "games_pods" {
+        targets    = discovery.relabel.games_pods.output
+        forward_to = [loki.write.webserver_vm.receiver]
+      }
+
+      loki.write "webserver_vm" {
+        endpoint {
+          url = "http://loki.192.168.0.200.nip.io/loki/api/v1/push"
+        }
+        external_labels = {
+          cluster = "k3s-linuxgsm",
+        }
+      }
+
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+controller:
+  type: deployment
+  replicas: 1
+
+rbac:
+  create: true

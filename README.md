@@ -17,14 +17,21 @@ manual procedure to move the live Valheim world into the cluster.
 
 ```
 charts/linuxgsm-game/    Generic Helm chart: one release = one game pod
-                          (StatefulSet + PVC + Service + ServiceMonitor + VPA)
-games/valheim/            Per-game Helm values + Grafana dashboard
+                          (StatefulSet + PVC + Service + ServiceMonitor + VPA
+                          + player-gated update/restart CronJobs, replacing
+                          the bare-metal LGSM maintenance crontab)
+games/valheim/            Per-game Helm values, Grafana dashboard, Makefile
 monitoring/
-  kube-prometheus-values.yaml  Sized-down kube-prometheus-stack values
+  kube-prometheus-values.yaml  Sized-down kube-prometheus-stack values (metrics)
+  alloy-logs-values.yaml   Grafana Alloy values: ships games/* pod logs to the
+                          existing Loki on the webserver VM (192.168.0.200)
   exporter/                Node.js Prometheus exporter (gamedig-based)
+external/webserver-vm/    Manifests for the *other* cluster (webserver VM),
+                          not this one -- e.g. the Loki Ingress it needs
 scripts/
-  install-k3s.sh           Install k3s + helm (requires sudo)
+  install-k3s.sh           Install podman + k3s + helm (requires sudo)
   install-monitoring.sh    Install kube-prometheus-stack + VPA components
+  install-log-shipping.sh  Install Alloy to ship logs to the webserver VM's Loki
   deploy-game.sh           Build exporter image + helm upgrade --install a game
 docs/
   architecture.md
@@ -35,7 +42,10 @@ docs/
 
 ```sh
 ./scripts/install-k3s.sh
-./scripts/install-monitoring.sh
+./scripts/install-monitoring.sh          # local Prometheus/Grafana for metrics
+./scripts/install-log-shipping.sh        # ships games/* logs to the webserver VM's Loki
+                                          # (apply external/webserver-vm/loki-ingress.yaml
+                                          # on that cluster first)
 ./scripts/deploy-game.sh valheim \
   --set-string secrets.serverpassword="$VALHEIM_SERVER_PASSWORD" \
   --set-string secrets.discordwebhook="$VALHEIM_DISCORD_WEBHOOK"
@@ -43,6 +53,9 @@ docs/
 kubectl -n games get pods
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
 ```
+
+Or, once deployed, use `games/valheim/Makefile` for day-to-day operations
+(`make -C games/valheim help`).
 
 None of this runs automatically — every script requires `sudo`/cluster
 access and is meant to be reviewed and run by hand. Nothing here has been

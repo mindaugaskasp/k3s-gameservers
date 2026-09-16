@@ -1,0 +1,47 @@
+# NOT part of the k3s-linuxgsm cluster. Apply this against the webserver
+# VM's cluster (192.168.0.200), the one already running Grafana/Loki/Alloy
+# behind Traefik at grafana.lan -- e.g.:
+#   kubectl --context <webserver-vm-context> apply -f loki-ingress.yaml
+#
+# Today that cluster's `grafana.lan` Ingress only routes to Grafana; Loki
+# itself (Service `loki` in namespace `logging`, port 3100) has no
+# Ingress, so nothing outside the cluster can push logs to it. This adds
+# one, scoped to the LAN via the existing `logging-lan-only` Traefik
+# middleware so it isn't an open, unauthenticated (auth_enabled: false)
+# write endpoint on the public internet.
+#
+# Two host rules on purpose: `loki.lan` to match the `grafana.lan` naming
+# convention (needs a DNS/hosts entry pointing at 192.168.0.200 on
+# whatever's pushing to it), and `loki.192.168.0.200.nip.io`, which
+# resolves to 192.168.0.200 via public DNS with no hosts entry needed --
+# that's what monitoring/alloy-logs-values.yaml uses by default.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: loki
+  namespace: logging
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: logging-lan-only@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: loki.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: loki
+                port:
+                  number: 3100
+    - host: loki.192.168.0.200.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: loki
+                port:
+                  number: 3100
