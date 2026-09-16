@@ -99,12 +99,10 @@ webserver VM (192.168.0.200, `grafana.lan`). Rather than standing up a
 second Loki locally (more RAM pressure on an already-tight box, and a
 second place to look for logs), `games` namespace pod logs ship there:
 
-- `external/webserver-vm/loki-ingress.yaml` — applied on the **webserver
-  VM's cluster**, not this one. Loki (`Service loki.logging:3100`) had no
-  Ingress, so nothing outside that cluster could reach it; this adds one,
-  restricted to the LAN via the existing `logging-lan-only` Traefik
-  middleware, since Loki runs with `auth_enabled: false` (no login of its
-  own) and Traefik's port 80 is otherwise open to the internet.
+- Exposing Loki over the LAN (an Ingress on the **webserver VM's
+  cluster**, restricted via its existing `logging-lan-only` Traefik
+  middleware since Loki runs with `auth_enabled: false`) is owned and
+  managed on that side, not in this repo — out of scope here.
 - `monitoring/alloy-logs-values.yaml` + `scripts/install-log-shipping.sh`
   — installs Grafana Alloy on **this** cluster, in logs-only mode
   (`controller.type: deployment`, not the chart's default `daemonset` —
@@ -117,9 +115,9 @@ second place to look for logs), `games` namespace pod logs ship there:
   verify with `kubectl -n monitoring logs -l app.kubernetes.io/name=alloy`
   after install.
 
-Order matters: apply the Ingress on the webserver VM's cluster *first*,
-then run `./scripts/install-log-shipping.sh` here (it curls the nip.io
-URL first and warns if it's not up yet).
+The webserver VM's Loki Ingress needs to exist before
+`./scripts/install-log-shipping.sh` here is useful — it curls the nip.io
+URL first and warns if it's not up yet, but installs Alloy either way.
 
 Metrics (Prometheus/Grafana dashboards, `kube-prometheus-values.yaml`)
 still default to a local stack for now — worth revisiting the same way

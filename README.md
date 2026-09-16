@@ -26,8 +26,6 @@ monitoring/
   alloy-logs-values.yaml   Grafana Alloy values: ships games/* pod logs to the
                           existing Loki on the webserver VM (192.168.0.200)
   exporter/                Node.js Prometheus exporter (gamedig-based)
-external/webserver-vm/    Manifests for the *other* cluster (webserver VM),
-                          not this one -- e.g. the Loki Ingress it needs
 scripts/
   install-k3s.sh           Install podman + k3s + helm (requires sudo)
   install-monitoring.sh    Install kube-prometheus-stack + VPA components
@@ -44,8 +42,7 @@ docs/
 ./scripts/install-k3s.sh
 ./scripts/install-monitoring.sh          # local Prometheus/Grafana for metrics
 ./scripts/install-log-shipping.sh        # ships games/* logs to the webserver VM's Loki
-                                          # (apply external/webserver-vm/loki-ingress.yaml
-                                          # on that cluster first)
+                                          # (Loki must already be exposed on that side)
 ./scripts/deploy-game.sh valheim \
   --set-string secrets.serverpassword="$VALHEIM_SERVER_PASSWORD" \
   --set-string secrets.discordwebhook="$VALHEIM_DISCORD_WEBHOOK"

@@ -8,10 +8,6 @@ metadata:
 data:
   guarded-action.sh: |
     #!/bin/sh
-    # Runs `./<shortname>server <action>` inside the gameserver container,
-    # but only once the exporter reports 0 players online -- mirrors the
-    # bare-metal crontab's update/restart entries without ever booting
-    # active players. See charts/linuxgsm-game/values.yaml `maintenance`.
     set -eu
 
     action="$1"

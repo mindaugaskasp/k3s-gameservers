@@ -1,14 +1,3 @@
-# Values for the grafana/alloy Helm chart, run in log-shipping-only mode:
-# tails k8s pod logs via the Kubernetes API (no hostPath/DaemonSet needed)
-# and forwards them to the Loki instance on the webserver VM
-# (192.168.0.200) via the Ingress in ../external/webserver-vm/loki-ingress.yaml.
-#
-# Only ships logs for the `games` namespace by default -- see the
-# discovery.relabel `keep` rule below -- to keep this small on a
-# RAM-constrained box; widen it if you want cluster/system logs there too.
-#
-# See scripts/install-log-shipping.sh.
-
 alloy:
   configMap:
     create: true

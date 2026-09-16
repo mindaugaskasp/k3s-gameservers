@@ -1,7 +1,5 @@
 {{- if .Values.verticalPodAutoscaler.enabled }}
-# Requires the Kubernetes autoscaler VPA CRDs + recommender/updater/admission
-# controller to be installed first (they don't ship with k3s or
-# kube-prometheus-stack). See scripts/install-monitoring.sh.
+# Requires VPA CRDs (scripts/install-monitoring.sh installs them).
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:

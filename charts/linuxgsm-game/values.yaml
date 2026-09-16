@@ -1,37 +1,18 @@
-# Default values for the linuxgsm-game chart.
-# Every real game (see ../../games/<name>/values.yaml) overrides the fields
-# it needs on top of this file: helm upgrade --install <name> \
-#   ./charts/linuxgsm-game -f games/<name>/values.yaml -n games
-
 game:
-  # LinuxGSM short name, e.g. "vh" for Valheim. Used only for labels/notes.
   shortname: ""
-  # Human readable name, used in labels and the Grafana dashboard.
   name: ""
 
 image:
-  # LinuxGSM publishes ready-to-run per-game images on Docker Hub, built
-  # from the same install scripts as the bare-metal `linuxgsm.sh`.
-  # https://github.com/GameServerManagers/docker-gameserver
   repository: gameservermanagers/gameserver
-  # Defaults to game.shortname when empty.
-  tag: ""
+  tag: "" # defaults to game.shortname
   pullPolicy: IfNotPresent
 
 replicaCount: 1
 
-# LGSM instance config written into /data/lgsm/config-lgsm/<shortname>server/<shortname>server.cfg
-# via a ConfigMap. Keys/values are game specific, see games/<name>/values.yaml.
 instanceConfig: {}
 
-# Values that must not land in the ConfigMap/git history (server password,
-# Discord webhook, etc). Populate at deploy time, e.g.:
-#   helm upgrade --install valheim ./charts/linuxgsm-game -f games/valheim/values.yaml \
-#     --set-string secrets.serverpassword="$VALHEIM_PASSWORD" \
-#     --set-string secrets.discordwebhook="$VALHEIM_DISCORD_WEBHOOK"
-# or point secretRef at an already-existing Secret (e.g. created by
-# `kubectl create secret` or an external-secrets operator) and leave
-# `secrets` empty.
+# Never commit real values here; pass via --set-string at deploy time,
+# or set secretRef to an existing Secret instead.
 secrets: {}
 secretRef: ""
 
@@ -50,32 +31,21 @@ resources:
     cpu: "2"
     memory: 2Gi
 
-# Game ports to expose. `containerPort`/`protocol` go on the Pod+Service.
-# `nodePort` is optional; set it to publish the port on every node's IP
-# (k3s has no cloud LoadBalancer by default, so game UDP/TCP traffic is
-# normally reached via NodePort or a host network / MetalLB setup).
 ports: []
 # - name: game
 #   containerPort: 2456
 #   protocol: UDP
 #   nodePort: 30456
 
-# Enables a `hostNetwork: true` pod instead of NodePort/ClusterIP services.
-# Simpler for UDP-heavy game servers on a single-node k3s box, at the cost
-# of losing per-pod network isolation. Off by default.
 hostNetwork: false
 
 metricsExporter:
-  # Runs the Node.js exporter in ../../monitoring/exporter as a sidecar,
-  # querying the game's query port with `gamedig` and exposing Prometheus
-  # metrics on :9101/metrics.
   enabled: true
   image:
     repository: k3s-linuxgsm/lgsm-exporter
     tag: latest
     pullPolicy: IfNotPresent
   port: 9101
-  # gamedig game id, e.g. "valheim". See https://github.com/gamedig/node-gamedig#games-list
   gamediggame: ""
   queryPort: ""
   resources:
@@ -87,47 +57,19 @@ metricsExporter:
       memory: 64Mi
 
 serviceMonitor:
-  # Requires the Prometheus Operator CRDs (installed by kube-prometheus-stack,
-  # see monitoring/kube-prometheus-values.yaml).
   enabled: true
   interval: 30s
   labels: {}
 
-# VerticalPodAutoscaler: game worlds are single-replica and stateful, so
-# horizontal scaling doesn't apply. We track real usage and right-size
-# requests/limits instead. Defaults to recommendation-only so it never
-# evicts/restarts the pod on its own; flip updateMode to "Auto" once you
-# trust the recommendations.
 verticalPodAutoscaler:
   enabled: true
   updateMode: "Off" # Off | Initial | Recreate | Auto
 
-# Optional container command/args override. Most games should leave this
-# empty and rely on the image's own entrypoint; useful for smoke-testing
-# the chart with a placeholder image, or for images with no sensible
-# default command.
 command: []
 args: []
 
-# Optional liveness probe for the gameserver container, replacing LGSM's
-# bare-metal `*/5 * * * * vhserver monitor` cron entry with k8s-native
-# crash detection: kubelet restarts the container itself on failure,
-# same as `monitor` restarting the process, without needing a gate on
-# player count (a crashed server isn't serving anyone regardless).
-# Left empty by default since the right check is game specific (see
-# games/valheim/values.yaml for a pgrep-based example).
 livenessProbe: {}
 
-# Scheduled maintenance (update/restart), replacing the bare-metal
-# crontab entries LGSM instances normally run
-# (`vhserver update` / `vhserver restart` / `vhserver update-lgsm`).
-# Runs as CronJobs that `kubectl exec` into the running pod rather than
-# duplicating LGSM's update logic. `updateSchedule`/`restartSchedule` are
-# gated on the exporter's player-count metric being exactly 0 before
-# acting, so a scheduled maintenance window never boots active players;
-# `lgsmUpdateSchedule` (LGSM's own self-update, e.g. weekly) is not gated
-# since it only touches lgsm/modules, never the running game process.
-# Any schedule left empty ("") is disabled entirely.
 maintenance:
   enabled: true
   image:
@@ -138,9 +80,6 @@ maintenance:
   restartSchedule: ""
   lgsmUpdateSchedule: ""
   playersMetric: lgsm_game_players
-  # How many minutes a guarded job waits/retries in 30s steps for the
-  # player count to hit 0 before giving up for that run (next scheduled
-  # run will just try again).
   waitForEmptyMinutes: 0
   historyLimit: 3
 
