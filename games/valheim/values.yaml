@@ -52,9 +52,17 @@ verticalPodAutoscaler:
 livenessProbe:
   exec:
     command: ["pgrep", "-f", "valheim_server"]
-  initialDelaySeconds: 60
   periodSeconds: 30
   failureThreshold: 3
+
+# First install (steamcmd download) can take a long time; livenessProbe
+# only starts counting failures after this succeeds once, so a slow
+# install doesn't get killed mid-download.
+startupProbe:
+  exec:
+    command: ["pgrep", "-f", "valheim_server"]
+  periodSeconds: 10
+  failureThreshold: 180
 
 maintenance:
   updateSchedule: "0 1 * * *"

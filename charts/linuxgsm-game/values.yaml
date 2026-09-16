@@ -42,7 +42,10 @@ hostNetwork: false
 metricsExporter:
   enabled: true
   image:
-    repository: k3s-linuxgsm/lgsm-exporter
+    # podman namespaces locally-built images as localhost/... -- match
+    # that so containerd resolves the locally-imported image instead of
+    # trying Docker Hub.
+    repository: localhost/k3s-linuxgsm/lgsm-exporter
     tag: latest
     pullPolicy: IfNotPresent
   port: 9101
@@ -69,6 +72,7 @@ command: []
 args: []
 
 livenessProbe: {}
+startupProbe: {}
 
 maintenance:
   enabled: true
