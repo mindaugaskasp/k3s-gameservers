@@ -1,25 +1,33 @@
-# k3s-linuxgsm
+# k3s-gameservers
 
-Wraps [LinuxGSM](https://linuxgsm.com/) game servers so each game/world
-runs as its own pod in a local single-node [k3s](https://k3s.io/) cluster,
-with per-pod resource tracking in Grafana and a path to right-size
-CPU/memory per game instead of hand-tuning bare-metal instances one by
-one. First candidate: **Valheim** (`vhserver`, currently running on this
-host outside Kubernetes).
+Runs game servers as pods in a local single-node [k3s](https://k3s.io/)
+cluster, with per-pod resource tracking in Grafana and a path to
+right-size CPU/memory per game instead of hand-tuning bare-metal
+instances one by one. Two chart shapes are supported:
+
+- `charts/linuxgsm-game/` — generic [LinuxGSM](https://linuxgsm.com/)
+  wrapper, config via LGSM's own `.cfg` files.
+- `charts/valheim-server/` — for games better served by a purpose-built
+  community Docker image (env-var configured). Valheim moved here after
+  LGSM's own Valheim install crashed reproducibly in this cluster's
+  containers; see `docs/architecture.md`.
 
 See [`docs/architecture.md`](docs/architecture.md) for the design
-rationale (why StatefulSet, why VPA not HPA, image choice, secrets
-handling, and — important — the RAM constraints on this box). See
+rationale (why StatefulSet, why VPA not HPA, secrets handling, and —
+important — the RAM/disk constraints on this box). See
 [`docs/migrating-valheim.md`](docs/migrating-valheim.md) for the checked,
 manual procedure to move the live Valheim world into the cluster.
 
 ## Layout
 
 ```
-charts/linuxgsm-game/    Generic Helm chart: one release = one game pod
+charts/linuxgsm-game/    Generic LGSM chart: one release = one game pod
                           (StatefulSet + PVC + Service + ServiceMonitor + VPA
                           + player-gated update/restart CronJobs, replacing
                           the bare-metal LGSM maintenance crontab)
+charts/valheim-server/   Valheim via the community valheim-server-docker
+                          image (built-in update/restart/backup scheduling,
+                          env-var config, no LGSM)
 games/valheim/            Per-game Helm values, Grafana dashboard, Makefile
 monitoring/
   kube-prometheus-values.yaml  Sized-down kube-prometheus-stack values (metrics)
@@ -43,9 +51,9 @@ docs/
 ./scripts/install-monitoring.sh          # local Prometheus/Grafana for metrics
 ./scripts/install-log-shipping.sh        # ships games/* logs to the webserver VM's Loki
                                           # (Loki must already be exposed on that side)
-./scripts/deploy-game.sh valheim \
-  --set-string secrets.serverpassword="$VALHEIM_SERVER_PASSWORD" \
-  --set-string secrets.discordwebhook="$VALHEIM_DISCORD_WEBHOOK"
+
+helm upgrade --install valheim charts/valheim-server -n games \
+  --set-string secrets.serverPassword="$VALHEIM_SERVER_PASSWORD"
 
 kubectl -n games get pods
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
@@ -55,16 +63,18 @@ Or, once deployed, use `games/valheim/Makefile` for day-to-day operations
 (`make -C games/valheim help`).
 
 None of this runs automatically — every script requires `sudo`/cluster
-access and is meant to be reviewed and run by hand. Nothing here has been
-applied against the live `vhserver` bare-metal instance; see
-`docs/migrating-valheim.md` before doing that.
+access and is meant to be reviewed and run by hand.
 
 ## Adding another game
 
-1. `mkdir games/<name>` and copy `games/valheim/values.yaml` as a
-   starting point.
-2. Set `game.shortname`/`game.name` to LGSM's short name for it, `ports`,
-   `metricsExporter.gamediggame` (must match a
-   [gamedig](https://github.com/gamedig/node-gamedig#games-list) game id),
-   and `instanceConfig`.
-3. `./scripts/deploy-game.sh <name>`
+**Via LGSM** (`charts/linuxgsm-game`): `mkdir games/<name>`, copy
+`games/valheim/values.yaml`'s shape as a starting point, set
+`game.shortname`/`game.name` to LGSM's short name for it, `ports`,
+`metricsExporter.gamediggame` (must match a
+[gamedig](https://github.com/gamedig/node-gamedig#games-list) game id),
+and `instanceConfig`.
+
+**Via a dedicated community image** (like `charts/valheim-server`): only
+worth a new chart if LGSM's install for that game turns out broken in a
+container too. Copy `charts/valheim-server` as a starting point, swap the
+image and its env vars.

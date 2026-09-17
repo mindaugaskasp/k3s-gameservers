@@ -1,0 +1,81 @@
+image:
+  repository: ghcr.io/community-valheim-tools/valheim-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+server:
+  name: "Valheim Server"
+  worldName: "Dedicated"
+  public: true
+  crossplay: false
+  port: 2456
+  args: "" # SERVER_ARGS passthrough, e.g. world modifiers
+
+# Valheim needs port, port+1 (query) and port+2 (RPC, mods only) as UDP.
+service:
+  nodePorts:
+    game: 32456
+    query: 32457
+    rpc: 32458
+
+# Never commit the real password here; pass via --set-string at deploy
+# time, or set secretRef to an existing Secret's key "SERVER_PASS" instead.
+secrets:
+  serverPassword: ""
+secretRef: ""
+
+updates:
+  cron: "*/15 * * * *"
+  ifIdle: true
+
+restart:
+  cron: "10 5 * * *"
+  ifIdle: true
+
+backups:
+  enabled: true
+  cron: "5 * * * *"
+  maxAge: 3
+  maxCount: 0
+  ifIdle: true
+  zip: true
+
+status:
+  enabled: true
+  port: 80
+
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    memory: 4Gi
+
+metricsExporter:
+  enabled: true
+  image:
+    repository: localhost/k3s-linuxgsm/lgsm-exporter
+    tag: latest
+    pullPolicy: IfNotPresent
+  port: 9101
+  queryPort: "2457"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  labels: {}
+
+verticalPodAutoscaler:
+  enabled: true
+  updateMode: "Off"

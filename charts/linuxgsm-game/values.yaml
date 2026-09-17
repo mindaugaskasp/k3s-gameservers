@@ -23,6 +23,12 @@ persistence:
   accessModes:
     - ReadWriteOnce
 
+# Container default /dev/shm (64Mi) is too small for some Unity-based
+# servers (Valheim in particular) and causes silent native alloc failures.
+dshm:
+  enabled: true
+  sizeLimit: 256Mi
+
 resources:
   requests:
     cpu: 500m
@@ -30,6 +36,8 @@ resources:
   limits:
     cpu: "2"
     memory: 2Gi
+
+securityContext: {}
 
 ports: []
 # - name: game

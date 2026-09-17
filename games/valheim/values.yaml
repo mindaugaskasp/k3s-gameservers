@@ -24,7 +24,8 @@ resources:
     cpu: 500m
     memory: 1Gi
   limits:
-    cpu: "2"
+    # No CPU limit: caused a startup crash on this 128-core host, see docs/architecture.md.
+    cpu: null
     memory: 4Gi
 
 persistence:

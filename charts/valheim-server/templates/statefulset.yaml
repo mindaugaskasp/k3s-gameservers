@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "valheim-server.fullname" . }}
+  labels:
+    {{- include "valheim-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "valheim-server.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "valheim-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "valheim-server.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: gameserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: game
+              containerPort: {{ .Values.server.port }}
+              protocol: UDP
+            - name: query
+              containerPort: {{ add .Values.server.port 1 }}
+              protocol: UDP
+            - name: rpc
+              containerPort: {{ add .Values.server.port 2 }}
+              protocol: UDP
+            {{- if .Values.status.enabled }}
+            - name: status
+              containerPort: {{ .Values.status.port }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: SERVER_NAME
+              value: {{ .Values.server.name | quote }}
+            - name: WORLD_NAME
+              value: {{ .Values.server.worldName | quote }}
+            - name: SERVER_PORT
+              value: {{ .Values.server.port | quote }}
+            - name: SERVER_PUBLIC
+              value: {{ .Values.server.public | quote }}
+            - name: CROSSPLAY
+              value: {{ .Values.server.crossplay | quote }}
+            {{- if .Values.server.args }}
+            - name: SERVER_ARGS
+              value: {{ .Values.server.args | quote }}
+            {{- end }}
+            - name: SERVER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "valheim-server.secretName" . }}
+                  key: SERVER_PASS
+            - name: UPDATE_CRON
+              value: {{ .Values.updates.cron | quote }}
+            - name: UPDATE_IF_IDLE
+              value: {{ .Values.updates.ifIdle | quote }}
+            - name: RESTART_CRON
+              value: {{ .Values.restart.cron | quote }}
+            - name: RESTART_IF_IDLE
+              value: {{ .Values.restart.ifIdle | quote }}
+            - name: BACKUPS
+              value: {{ .Values.backups.enabled | quote }}
+            - name: BACKUPS_CRON
+              value: {{ .Values.backups.cron | quote }}
+            - name: BACKUPS_MAX_AGE
+              value: {{ .Values.backups.maxAge | quote }}
+            - name: BACKUPS_MAX_COUNT
+              value: {{ .Values.backups.maxCount | quote }}
+            - name: BACKUPS_IF_IDLE
+              value: {{ .Values.backups.ifIdle | quote }}
+            - name: BACKUPS_ZIP
+              value: {{ .Values.backups.zip | quote }}
+            - name: STATUS_HTTP
+              value: {{ .Values.status.enabled | quote }}
+            - name: STATUS_HTTP_PORT
+              value: {{ .Values.status.port | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.status.enabled }}
+          startupProbe:
+            httpGet:
+              path: /status.json
+              port: {{ .Values.status.port }}
+            periodSeconds: 10
+            failureThreshold: 180
+          livenessProbe:
+            httpGet:
+              path: /status.json
+              port: {{ .Values.status.port }}
+            periodSeconds: 30
+            failureThreshold: 3
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /config
+              subPath: config
+            - name: data
+              mountPath: /opt/valheim
+              subPath: valheim
+        {{- if .Values.metricsExporter.enabled }}
+        - name: metrics-exporter
+          image: "{{ .Values.metricsExporter.image.repository }}:{{ .Values.metricsExporter.image.tag }}"
+          imagePullPolicy: {{ .Values.metricsExporter.image.pullPolicy }}
+          env:
+            - name: GAMEDIG_GAME
+              value: "valheim"
+            - name: QUERY_HOST
+              value: "127.0.0.1"
+            - name: QUERY_PORT
+              value: {{ .Values.metricsExporter.queryPort | quote }}
+            - name: EXPORTER_PORT
+              value: {{ .Values.metricsExporter.port | quote }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metricsExporter.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.metricsExporter.resources | nindent 12 }}
+        {{- end }}
+      {{- if not .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

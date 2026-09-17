@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs Grafana Alloy into the k3s-linuxgsm cluster to ship game pod
+# Installs Grafana Alloy into the k3s-gameservers cluster to ship game pod
 # logs to the Loki instance on the webserver VM (192.168.0.200). Requires:
 #   1. ./scripts/install-k3s.sh already run.
 #   2. Loki already exposed over the LAN on the webserver VM's own

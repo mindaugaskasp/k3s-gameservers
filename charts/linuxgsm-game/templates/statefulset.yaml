@@ -57,6 +57,10 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -68,6 +72,10 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            {{- if .Values.dshm.enabled }}
+            - name: dshm
+              mountPath: /dev/shm
+            {{- end }}
             {{- if .Values.instanceConfig }}
             - name: config
               mountPath: /data/lgsm/config-lgsm/{{ .Values.game.shortname }}server/{{ .Values.game.shortname }}server.cfg
@@ -99,6 +107,12 @@ spec:
             {{- toYaml .Values.metricsExporter.resources | nindent 12 }}
         {{- end }}
       volumes:
+        {{- if .Values.dshm.enabled }}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ .Values.dshm.sizeLimit }}
+        {{- end }}
         {{- if .Values.instanceConfig }}
         - name: config
           configMap:

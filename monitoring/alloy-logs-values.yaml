@@ -42,7 +42,7 @@ alloy:
           url = "http://loki.192.168.0.200.nip.io/loki/api/v1/push"
         }
         external_labels = {
-          cluster = "k3s-linuxgsm",
+          cluster = "k3s-gameservers",
         }
       }
 
