@@ -11,7 +11,7 @@ persistence:
 
 resources:
   requests:
-    cpu: 500m
+    cpu: "1" # idle measured at ~130m post-CPU-topology-fix; 1 core covers real play, see docs/architecture.md
     memory: 1Gi
   limits:
     memory: 4Gi
