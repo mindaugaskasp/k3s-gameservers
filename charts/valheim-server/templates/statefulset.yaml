@@ -93,10 +93,8 @@ spec:
               value: "/etc/valheim-hooks/notify.sh started"
             - name: POST_SERVER_SHUTDOWN_HOOK
               value: "/etc/valheim-hooks/notify.sh down"
-            - name: POST_START_HOOK
-              value: "/etc/valheim-hooks/notify.sh updated-start"
             - name: POST_RESTART_HOOK
-              value: "/etc/valheim-hooks/notify.sh updated-restart"
+              value: "/etc/valheim-hooks/notify.sh updated"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.status.enabled }}

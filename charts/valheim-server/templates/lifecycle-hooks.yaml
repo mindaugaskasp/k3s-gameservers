@@ -22,8 +22,13 @@ data:
   notify.sh: |
     #!/bin/sh
     # Invoked by this image's POST_SERVER_LISTENING_HOOK / POST_SERVER_SHUTDOWN_HOOK /
-    # POST_START_HOOK / POST_RESTART_HOOK env vars (see
+    # POST_RESTART_HOOK env vars (see
     # github.com/lloesche/valheim-server-docker#environment-variables).
+    # NOT POST_START_HOOK: valheim-updater's write_restart_file() sets
+    # mode=start specifically when files are already current (i.e. a plain
+    # container (re)start, no update) and mode=restart only when it just
+    # applied a real Steam update -- so POST_START_HOOK firing does NOT
+    # mean an update happened, only POST_RESTART_HOOK does.
     # Always records last-started/last-updated timestamps for the metrics
     # exporter to read off the shared status-share volume; posts a Discord
     # embed too if DISCORD_WEBHOOK_URL is set.
@@ -46,17 +51,10 @@ data:
         title="Server down"; color=15548997
         desc="**${SERVER_NAME}** is shutting down."
         ;;
-      updated-start)
-        date +%s > "$status_dir/last-started.timestamp"
+      updated)
         date +%s > "$status_dir/last-updated.timestamp"
-        title="Server updated"; color=5793266; show_join=1
-        desc="**${SERVER_NAME}** was updated and started."
-        ;;
-      updated-restart)
-        date +%s > "$status_dir/last-started.timestamp"
-        date +%s > "$status_dir/last-updated.timestamp"
-        title="Server updated"; color=5793266; show_join=1
-        desc="**${SERVER_NAME}** was updated and restarted."
+        title="Server updating"; color=5793266
+        desc="**${SERVER_NAME}** was updated and is restarting."
         ;;
       *)
         title="Server event"; color=9807270
