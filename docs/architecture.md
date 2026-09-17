@@ -170,6 +170,33 @@ but this is still worth treating as a real constraint: either free up RAM
 on this box before installing the monitoring stack, or plan to run k3s on
 different/bigger hardware and treat this host as just a data source.
 
+## VM disk was resized once; k3s TLS certs came up invalid afterward
+
+The VM's root disk was originally a 15GB zvol, fully partitioned. Growing
+a Valheim install (~2GB) alongside the existing bare-metal copy hit
+`DiskPressure` and then `Not enough disk space to download server files`.
+Fix: grow the zvol on the TrueNAS host, restart the VM, then from inside
+it `growpart /dev/sda 3` -> `pvresize /dev/sda3` -> `lvextend -l +100%FREE
+-r /dev/ubuntu-vg/ubuntu-lv`.
+
+That VM restart surfaced a second, unrelated problem: k3s failed with
+`x509: certificate ... is not yet valid`. Root cause: the VM's RTC was
+stale/wrong right after power-on, and `k3s.service` (which only waited on
+`network-online.target`) started and minted its serving cert before NTP
+corrected the clock. k3s persists that cert in its embedded datastore, so
+even once the clock was fixed, every restart just reloaded the same
+bad-`notBefore` cert -- deleting the local cert file on disk didn't help,
+it just got regenerated from the same stored (bad) value. Fix required
+finding and deleting the `kube-system/k3s-serving` row directly from the
+sqlite-backed datastore (`/var/lib/rancher/k3s/server/db/state.db`, table
+`kine`) with k3s stopped, then restarting.
+
+`scripts/install-k3s.sh` now makes `k3s.service` wait on
+`time-sync.target` (via a systemd drop-in + enabling
+`systemd-time-wait-sync.service`) so this can't recur on a future boot --
+the underlying `network-online.target` dependency k3s ships with does not
+imply the clock has actually been verified synced.
+
 ## Adding a new game
 
 1. `mkdir games/<name>`

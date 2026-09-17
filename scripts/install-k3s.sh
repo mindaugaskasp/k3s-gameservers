@@ -9,6 +9,21 @@ else
   sudo apt-get install -y podman
 fi
 
+# systemd-timesyncd only marks time-set.target (clock set, not verified
+# synced) before k3s's default network-online.target dependency. If the
+# VM's RTC is stale/wrong at boot (e.g. after being powered off for a
+# host-side disk resize), k3s can start and mint its TLS certs before NTP
+# has actually corrected the clock -- and since k3s persists those certs
+# in its datastore, a bad timestamp baked in at boot keeps getting reused
+# across restarts until real time catches up to it. Forcing k3s to wait
+# on time-sync.target (only reached once NTP sync is confirmed) prevents
+# this class of bug outright. See docs/architecture.md for the incident
+# this was found from.
+sudo systemctl enable systemd-time-wait-sync.service
+sudo mkdir -p /etc/systemd/system/k3s.service.d
+printf '[Unit]\nWants=time-sync.target\nAfter=time-sync.target\n' | sudo tee /etc/systemd/system/k3s.service.d/wait-for-time-sync.conf >/dev/null
+sudo systemctl daemon-reload
+
 if command -v k3s >/dev/null 2>&1; then
   echo "k3s already installed: $(k3s --version | head -1)"
 else
