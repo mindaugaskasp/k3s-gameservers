@@ -17,6 +17,7 @@ let last = {
   up: 0,
   players: 0,
   maxplayers: 0,
+  playerNames: [],
   queryDurationSeconds: 0,
   scrapeUnixTime: 0,
 };
@@ -29,6 +30,7 @@ async function scrape() {
       up: 1,
       players: state.players.length,
       maxplayers: state.maxplayers || 0,
+      playerNames: state.players.map((p) => p.name).filter(Boolean),
       queryDurationSeconds: (Date.now() - start) / 1000,
       scrapeUnixTime: Math.floor(Date.now() / 1000),
     };
@@ -37,14 +39,28 @@ async function scrape() {
       up: 0,
       players: 0,
       maxplayers: last.maxplayers,
+      playerNames: [],
       queryDurationSeconds: (Date.now() - start) / 1000,
       scrapeUnixTime: Math.floor(Date.now() / 1000),
     };
   }
 }
 
+function escapeLabel(s) {
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function render() {
   const g = GAME;
+  const playerLines = last.playerNames.length
+    ? [
+        `# HELP lgsm_game_player_online A currently-connected player (value always 1).`,
+        `# TYPE lgsm_game_player_online gauge`,
+        ...last.playerNames.map(
+          (name) => `lgsm_game_player_online{game="${g}",name="${escapeLabel(name)}"} 1`
+        ),
+      ]
+    : [];
   return [
     `# HELP lgsm_game_up Whether the last gamedig query against this instance succeeded.`,
     `# TYPE lgsm_game_up gauge`,
@@ -61,6 +77,7 @@ function render() {
     `# HELP lgsm_game_last_scrape_timestamp_seconds Unix time of the last scrape attempt.`,
     `# TYPE lgsm_game_last_scrape_timestamp_seconds gauge`,
     `lgsm_game_last_scrape_timestamp_seconds{game="${g}"} ${last.scrapeUnixTime}`,
+    ...playerLines,
     "",
   ].join("\n");
 }

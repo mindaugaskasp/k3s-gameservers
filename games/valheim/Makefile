@@ -11,7 +11,7 @@ EXPORTER_IMAGE := k3s-linuxgsm/lgsm-exporter:latest
 
 .PHONY: help lint template deploy status logs logs-exporter \
 	restart shell port-forward-metrics port-forward-game \
-	dashboard secrets-check uninstall build-exporter import-exporter \
+	dashboards secrets-check uninstall build-exporter import-exporter \
 	players backups
 
 help:
@@ -29,7 +29,7 @@ help:
 	@echo "make backups               list backups under /config/backups in the running pod"
 	@echo "make port-forward-metrics  forward :9101 to the exporter's /metrics"
 	@echo "make port-forward-game     forward :2456-2458 udp is not supported by kubectl port-forward; use NodePort instead (see status)"
-	@echo "make dashboard             (re)apply the Grafana dashboard ConfigMap"
+	@echo "make dashboards            push both dashboard JSONs to Grafana (requires GRAFANA_TOKEN, GRAFANA_URL)"
 	@echo "make uninstall             helm uninstall this release (PVC is kept; delete manually if you want data gone)"
 
 lint:
@@ -79,12 +79,20 @@ backups:
 port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
-dashboard:
-	kubectl -n $(NAMESPACE) create configmap $(RELEASE)-grafana-dashboard \
-		--from-file=dashboard.json=grafana-dashboard.json \
-		--dry-run=client -o yaml \
-		| kubectl label -f - --local -o yaml grafana_dashboard="1" \
-		| kubectl apply -f -
+# Pushed to the remote Grafana (webserver VM), not a local one -- no
+# kube-prometheus-stack/sidecar here. Needs a Grafana service account
+# token with dashboard-write access (GRAFANA_TOKEN) and GRAFANA_URL
+# (e.g. http://grafana.192.168.0.200.nip.io), and a "valheim" folder to
+# already exist there.
+dashboards:
+	@test -n "$$GRAFANA_TOKEN" || (echo "GRAFANA_TOKEN is not set" >&2; exit 1)
+	@test -n "$$GRAFANA_URL" || (echo "GRAFANA_URL is not set" >&2; exit 1)
+	@for f in grafana-dashboard-process-health.json grafana-dashboard-game-stats-logs.json; do \
+		python3 -c "import json; d=json.load(open('$$f')); print(json.dumps({'dashboard': d, 'folderUid': 'valheim', 'overwrite': True}))" \
+		| curl -sf -X POST "$$GRAFANA_URL/api/dashboards/db" \
+			-H "Authorization: Bearer $$GRAFANA_TOKEN" -H "Content-Type: application/json" -d @- ; \
+		echo ; \
+	done
 
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)
