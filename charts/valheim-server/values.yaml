@@ -10,6 +10,7 @@ server:
   crossplay: false
   port: 2456
   args: "" # SERVER_ARGS passthrough, e.g. world modifiers
+  connectHost: "" # public join address shown in Discord alerts, e.g. a DDNS hostname
 
 # port, port+1 (query), port+2 (RPC) as UDP; see docs/architecture.md for the NodePort range change these need.
 service:
@@ -23,6 +24,15 @@ service:
 secrets:
   serverPassword: ""
 secretRef: ""
+
+# Discord notifications on server started/down/updated, via this image's
+# eval-a-shell-command hooks (no built-in webhook feature like LGSM had).
+# Pass the URL with --set-string alerts.discordWebhook=..., or point
+# secretRef at an existing Secret with key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
 
 updates:
   cron: "*/15 * * * *"

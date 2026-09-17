@@ -1,0 +1,83 @@
+{{- if .Values.alerts.enabled }}
+{{- if not .Values.alerts.secretRef }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "valheim-server.fullname" . }}-discord
+  labels:
+    {{- include "valheim-server.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  DISCORD_WEBHOOK_URL: {{ .Values.alerts.discordWebhook | quote }}
+{{- end }}
+---
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "valheim-server.fullname" . }}-hooks
+  labels:
+    {{- include "valheim-server.labels" . | nindent 4 }}
+data:
+  notify.sh: |
+    #!/bin/sh
+    # Invoked by this image's POST_SERVER_LISTENING_HOOK / POST_SERVER_SHUTDOWN_HOOK /
+    # POST_START_HOOK / POST_RESTART_HOOK env vars (see
+    # github.com/lloesche/valheim-server-docker#environment-variables).
+    # Always records last-started/last-updated timestamps for the metrics
+    # exporter to read off the shared status-share volume; posts a Discord
+    # embed too if DISCORD_WEBHOOK_URL is set.
+    set -eu
+    status_dir="/var/run/valheim-status"
+    connect="${CONNECT_HOST:-}${CONNECT_HOST:+:${SERVER_PORT:-2456}}"
+
+    json_escape() {
+      printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+    }
+
+    show_join=0
+    case "$1" in
+      started)
+        date +%s > "$status_dir/last-started.timestamp"
+        title="Server online"; color=3066993; show_join=1
+        desc="**${SERVER_NAME}** is up and accepting connections."
+        ;;
+      down)
+        title="Server down"; color=15548997
+        desc="**${SERVER_NAME}** is shutting down."
+        ;;
+      updated-start)
+        date +%s > "$status_dir/last-started.timestamp"
+        date +%s > "$status_dir/last-updated.timestamp"
+        title="Server updated"; color=5793266; show_join=1
+        desc="**${SERVER_NAME}** was updated and started."
+        ;;
+      updated-restart)
+        date +%s > "$status_dir/last-started.timestamp"
+        date +%s > "$status_dir/last-updated.timestamp"
+        title="Server updated"; color=5793266; show_join=1
+        desc="**${SERVER_NAME}** was updated and restarted."
+        ;;
+      *)
+        title="Server event"; color=9807270
+        desc="**${SERVER_NAME}**: $1"
+        ;;
+    esac
+
+    if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
+      fields="[]"
+      if [ -n "$connect" ]; then
+        connect_field="{\"name\":\"Connect\",\"value\":\"$(json_escape "$connect")\",\"inline\":true},{\"name\":\"World\",\"value\":\"$(json_escape "${WORLD_NAME:-}")\",\"inline\":true}"
+        join_field=""
+        # steam:// direct-connect deep link -- desktop Discord only, mobile
+        # blocks custom URI schemes, which is fine since Valheim isn't mobile.
+        if [ "$show_join" = 1 ]; then
+          join_field=",{\"name\":\"Join\",\"value\":\"[Click to join](steam://connect/$(json_escape "$connect"))\",\"inline\":true}"
+        fi
+        fields="[${connect_field}${join_field}]"
+      fi
+      ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+      payload="{\"embeds\":[{\"title\":\"$(json_escape "$title")\",\"description\":\"$(json_escape "$desc")\",\"color\":$color,\"fields\":$fields,\"timestamp\":\"$ts\"}]}"
+      curl -fsS -X POST -H "Content-Type: application/json" \
+        -d "$payload" "${DISCORD_WEBHOOK_URL}" >/dev/null 2>&1 || true
+    fi

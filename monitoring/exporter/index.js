@@ -1,12 +1,31 @@
 "use strict";
 
 const http = require("http");
+const fs = require("fs");
 const { GameDig } = require("gamedig");
 
 const GAME = process.env.GAMEDIG_GAME;
 const HOST = process.env.QUERY_HOST || "127.0.0.1";
 const PORT = Number(process.env.QUERY_PORT);
 const EXPORTER_PORT = Number(process.env.EXPORTER_PORT || 9101);
+const STATUS_DIR = process.env.STATUS_DIR || "/var/run/valheim-status";
+
+// Written by the gameserver's lifecycle hooks (shared emptyDir volume) --
+// gamedig has no notion of "when did the process last (re)start".
+function readTimestampFile(name) {
+  try {
+    return parseInt(fs.readFileSync(`${STATUS_DIR}/${name}`, "utf8").trim(), 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Valheim's A2S "keywords"/tags carry the real game version as "g=1.0.14";
+// gamedig's own `version` field is just the query protocol version, always "1.0.0.0".
+function parseGameVersion(state) {
+  const tag = (state.raw?.tags || []).find((t) => t.startsWith("g="));
+  return tag ? tag.slice(2) : state.version || "";
+}
 
 if (!GAME || !PORT) {
   console.error("GAMEDIG_GAME and QUERY_PORT env vars are required");
@@ -19,6 +38,10 @@ let last = {
   maxplayers: 0,
   playerSessions: [], // [{name, seconds}] -- Valheim's query protocol never
   queryDurationSeconds: 0, // reports player name, only session duration
+  pingSeconds: 0, // protocol-level RTT, distinct from queryDurationSeconds
+  serverName: "",
+  version: "",
+  password: false,
   scrapeUnixTime: 0,
 };
 
@@ -35,6 +58,10 @@ async function scrape() {
         seconds: p.raw?.time ?? 0,
       })),
       queryDurationSeconds: (Date.now() - start) / 1000,
+      pingSeconds: (state.ping ?? 0) / 1000,
+      serverName: state.name || "",
+      version: parseGameVersion(state),
+      password: Boolean(state.password),
       scrapeUnixTime: Math.floor(Date.now() / 1000),
     };
   } catch (err) {
@@ -44,6 +71,10 @@ async function scrape() {
       maxplayers: last.maxplayers,
       playerSessions: [],
       queryDurationSeconds: (Date.now() - start) / 1000,
+      pingSeconds: 0,
+      serverName: last.serverName,
+      version: last.version,
+      password: last.password,
       scrapeUnixTime: Math.floor(Date.now() / 1000),
     };
   }
@@ -80,6 +111,18 @@ function render() {
     `# HELP lgsm_game_last_scrape_timestamp_seconds Unix time of the last scrape attempt.`,
     `# TYPE lgsm_game_last_scrape_timestamp_seconds gauge`,
     `lgsm_game_last_scrape_timestamp_seconds{game="${g}"} ${last.scrapeUnixTime}`,
+    `# HELP lgsm_game_ping_seconds Protocol-level round-trip time to the query port.`,
+    `# TYPE lgsm_game_ping_seconds gauge`,
+    `lgsm_game_ping_seconds{game="${g}"} ${last.pingSeconds}`,
+    `# HELP lgsm_game_info Static server info (value always 1); read the labels.`,
+    `# TYPE lgsm_game_info gauge`,
+    `lgsm_game_info{game="${g}",name="${escapeLabel(last.serverName)}",version="${escapeLabel(last.version)}",password="${last.password}"} 1`,
+    `# HELP lgsm_game_last_started_timestamp_seconds Unix time the gameserver process last (re)started, from its lifecycle hook.`,
+    `# TYPE lgsm_game_last_started_timestamp_seconds gauge`,
+    `lgsm_game_last_started_timestamp_seconds{game="${g}"} ${readTimestampFile("last-started.timestamp")}`,
+    `# HELP lgsm_game_last_updated_timestamp_seconds Unix time the gameserver was last updated to a new version, from its lifecycle hook.`,
+    `# TYPE lgsm_game_last_updated_timestamp_seconds gauge`,
+    `lgsm_game_last_updated_timestamp_seconds{game="${g}"} ${readTimestampFile("last-updated.timestamp")}`,
     ...playerLines,
     "",
   ].join("\n");
