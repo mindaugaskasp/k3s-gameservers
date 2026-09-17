@@ -159,16 +159,24 @@ touches `lgsm/modules`, never the running game process.
 
 ## Resource constraints on this box
 
-The original host (`vhserver`/Ubuntu 24.04) has **~5.7GB RAM total**, and
-was observed with under 200MB free while running the bare-metal Valheim
-server plus its own tooling. `kube-prometheus-stack` (Prometheus +
-Grafana + kube-state-metrics + node-exporter) plus k3s itself plus one or
-more game pods will not comfortably fit in what's left. The values files
-here (`monitoring/kube-prometheus-values.yaml`) are trimmed down
-(Alertmanager disabled, 3-day retention, low resource requests/limits),
-but this is still worth treating as a real constraint: either free up RAM
-on this box before installing the monitoring stack, or plan to run k3s on
-different/bigger hardware and treat this host as just a data source.
+`vhserver` (Ubuntu 24.04, TrueNAS SCALE VM) currently has 7.7GB RAM and 4
+vCPUs (host is a single i7-9700K, 8 real threads, shared with TrueNAS
+itself). `kube-prometheus-stack` (Prometheus + Grafana +
+kube-state-metrics + node-exporter) plus k3s itself plus one or more game
+pods may still not comfortably fit; the values files here
+(`monitoring/kube-prometheus-values.yaml`) are trimmed down (Alertmanager
+disabled, 3-day retention, low resource requests/limits), but treat this
+as a real constraint before installing the monitoring stack.
+
+## VM's vCPU topology was misconfigured (128 apparent cores, 4 real)
+
+TrueNAS's VM CPU config had Sockets=4, Cores=4, Threads=8 (multiplies to
+128), not the intended 4 vCPUs -- the "Virtual CPUs" field there is a
+socket-count multiplier, not a total. The guest saw `nproc`=128 against 4
+real vCPUs, which inflated Valheim's idle CPU usage to ~3.7 cores (Unity's
+job system sizing its thread pool for the phantom core count). Fixed to
+Sockets=1, Cores=4, Threads=1 (needs a VM restart); idle usage dropped to
+~130m afterward, matching community baselines.
 
 ## NodePort range widened to include 2456-2458
 
