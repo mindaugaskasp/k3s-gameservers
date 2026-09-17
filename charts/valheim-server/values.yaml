@@ -11,9 +11,7 @@ server:
   port: 2456
   args: "" # SERVER_ARGS passthrough, e.g. world modifiers
 
-# Valheim needs port, port+1 (query) and port+2 (RPC, mods only) as UDP.
-# Matches the host's original 2456-2458 (outside k8s's default NodePort
-# range) -- see docs/architecture.md for the k3s config change this needs.
+# port, port+1 (query), port+2 (RPC) as UDP; see docs/architecture.md for the NodePort range change these need.
 service:
   nodePorts:
     game: 2456

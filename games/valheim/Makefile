@@ -1,15 +1,5 @@
-# Common k3s/helm operations for the Valheim instance. Run from this
-# directory (games/valheim/) or via `make -C games/valheim <target>`.
-#
-# Not LGSM: this uses charts/valheim-server (community valheim-server-docker
-# image), not charts/linuxgsm-game -- LGSM's Valheim install crashed
-# reproducibly in this cluster's containers, see docs/architecture.md.
-# Update/restart/backups are handled inside the container itself via
-# cron-format env vars in values.yaml, not k8s CronJobs.
-#
-# Secrets are never read from this Makefile or from values.yaml -- export
-# it in your shell first:
-#   export VALHEIM_SERVER_PASSWORD=...
+# Uses charts/valheim-server, not charts/linuxgsm-game -- see docs/architecture.md.
+# Export VALHEIM_SERVER_PASSWORD in your shell before `make deploy`.
 
 SHELL := /bin/bash
 CHART := ../../charts/valheim-server
