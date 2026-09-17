@@ -17,8 +17,8 @@ let last = {
   up: 0,
   players: 0,
   maxplayers: 0,
-  playerNames: [],
-  queryDurationSeconds: 0,
+  playerSessions: [], // [{name, seconds}] -- Valheim's query protocol never
+  queryDurationSeconds: 0, // reports player name, only session duration
   scrapeUnixTime: 0,
 };
 
@@ -30,7 +30,10 @@ async function scrape() {
       up: 1,
       players: state.players.length,
       maxplayers: state.maxplayers || 0,
-      playerNames: state.players.map((p) => p.name).filter(Boolean),
+      playerSessions: state.players.map((p, i) => ({
+        name: p.name || `player${i}`,
+        seconds: p.raw?.time ?? 0,
+      })),
       queryDurationSeconds: (Date.now() - start) / 1000,
       scrapeUnixTime: Math.floor(Date.now() / 1000),
     };
@@ -39,7 +42,7 @@ async function scrape() {
       up: 0,
       players: 0,
       maxplayers: last.maxplayers,
-      playerNames: [],
+      playerSessions: [],
       queryDurationSeconds: (Date.now() - start) / 1000,
       scrapeUnixTime: Math.floor(Date.now() / 1000),
     };
@@ -52,12 +55,12 @@ function escapeLabel(s) {
 
 function render() {
   const g = GAME;
-  const playerLines = last.playerNames.length
+  const playerLines = last.playerSessions.length
     ? [
-        `# HELP lgsm_game_player_online A currently-connected player (value always 1).`,
-        `# TYPE lgsm_game_player_online gauge`,
-        ...last.playerNames.map(
-          (name) => `lgsm_game_player_online{game="${g}",name="${escapeLabel(name)}"} 1`
+        `# HELP lgsm_game_player_session_seconds Session duration of a currently-connected player (name is a placeholder if the game's query protocol doesn't report one, e.g. Valheim).`,
+        `# TYPE lgsm_game_player_session_seconds gauge`,
+        ...last.playerSessions.map(
+          (p) => `lgsm_game_player_session_seconds{game="${g}",name="${escapeLabel(p.name)}"} ${p.seconds}`
         ),
       ]
     : [];

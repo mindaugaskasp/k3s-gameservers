@@ -120,7 +120,7 @@
     },
     {
       "id": 5,
-      "title": "Currently online (names)",
+      "title": "Currently online (session duration)",
       "type": "table",
       "gridPos": {
         "h": 6,
@@ -130,7 +130,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_player_online{game=\"valheim\"}",
+          "expr": "lgsm_game_player_session_seconds{game=\"valheim\"}",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -145,7 +145,6 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Value": true,
               "game": true,
               "instance": true,
               "job": true
@@ -156,6 +155,11 @@
       "datasource": {
         "type": "prometheus",
         "uid": "ffyierrb4yl8gd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
       }
     },
     {
