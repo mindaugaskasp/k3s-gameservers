@@ -16,6 +16,10 @@ resources:
   limits:
     memory: 4Gi
 
+# Off until scripts/install-monitoring.sh is run (CRDs not installed yet).
 verticalPodAutoscaler:
-  enabled: true
+  enabled: false
   updateMode: "Off"
+
+serviceMonitor:
+  enabled: false

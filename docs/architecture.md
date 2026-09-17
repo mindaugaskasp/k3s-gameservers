@@ -170,6 +170,14 @@ but this is still worth treating as a real constraint: either free up RAM
 on this box before installing the monitoring stack, or plan to run k3s on
 different/bigger hardware and treat this host as just a data source.
 
+## NodePort range widened to include 2456-2458
+
+k8s's default NodePort range (30000-32767) doesn't cover Valheim's
+2456-2458, which the router already forwards from bare-metal days. Fixed
+via `/etc/rancher/k3s/config.yaml`: `kube-apiserver-arg:
+["service-node-port-range=2456-32767"]`, then `systemctl restart k3s`
+(control-plane only -- running pods are untouched).
+
 ## VM disk was resized once; k3s TLS certs came up invalid afterward
 
 The VM's root disk was originally a 15GB zvol, fully partitioned. Growing

@@ -12,11 +12,13 @@ server:
   args: "" # SERVER_ARGS passthrough, e.g. world modifiers
 
 # Valheim needs port, port+1 (query) and port+2 (RPC, mods only) as UDP.
+# Matches the host's original 2456-2458 (outside k8s's default NodePort
+# range) -- see docs/architecture.md for the k3s config change this needs.
 service:
   nodePorts:
-    game: 32456
-    query: 32457
-    rpc: 32458
+    game: 2456
+    query: 2457
+    rpc: 2458
 
 # Never commit the real password here; pass via --set-string at deploy
 # time, or set secretRef to an existing Secret's key "SERVER_PASS" instead.
