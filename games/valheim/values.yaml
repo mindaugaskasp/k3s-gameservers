@@ -1,71 +1,21 @@
-game:
-  shortname: vh
-  name: Valheim
+server:
+  name: "Valheim Kaunas"
+  worldName: "Kaunas"
+  public: true
+  crossplay: false
+  args: "-modifier resources more -modifier raids more -modifier deathPenalty casual"
 
-image:
-  tag: vh
-
-ports:
-  - name: game
-    containerPort: 2456
-    protocol: UDP
-    nodePort: 32456
-  - name: query
-    containerPort: 2457
-    protocol: UDP
-    nodePort: 32457
-  - name: extra
-    containerPort: 2458
-    protocol: UDP
-    nodePort: 32458
+persistence:
+  storageClassName: local-path
+  size: 5Gi
 
 resources:
   requests:
     cpu: 500m
     memory: 1Gi
   limits:
-    # No CPU limit: caused a startup crash on this 128-core host, see docs/architecture.md.
-    cpu: null
     memory: 4Gi
-
-persistence:
-  storageClassName: local-path
-  size: 5Gi
-
-instanceConfig:
-  public: "1"
-  servername: "Valheim Server"
-  worldname: "Dedicated"
-  worldmodifiers: "-modifier resources more -modifier raids more -modifier deathPenalty casual"
-  statusalert: "on"
-  discordalert: "on"
-
-metricsExporter:
-  enabled: true
-  gamediggame: valheim
-  queryPort: "2457"
 
 verticalPodAutoscaler:
   enabled: true
   updateMode: "Off"
-
-# Needs `pgrep` in the image; verify if you swap images.
-livenessProbe:
-  exec:
-    command: ["pgrep", "-f", "valheim_server"]
-  periodSeconds: 30
-  failureThreshold: 3
-
-# First install (steamcmd download) can take a long time; livenessProbe
-# only starts counting failures after this succeeds once, so a slow
-# install doesn't get killed mid-download.
-startupProbe:
-  exec:
-    command: ["pgrep", "-f", "valheim_server"]
-  periodSeconds: 10
-  failureThreshold: 180
-
-maintenance:
-  updateSchedule: "0 1 * * *"
-  restartSchedule: "0 2 * * *"
-  lgsmUpdateSchedule: "0 3 * * 0"
