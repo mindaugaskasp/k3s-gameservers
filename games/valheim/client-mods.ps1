@@ -125,11 +125,16 @@ switch ($Action) {
 
   'status' {
     $s = Get-Status $dir
+    # "Active" means mods will actually load: the loader is present AND switched on.
+    # The doorstop 'enabled' flag alone is not enough - a half-install can have the
+    # flag set with no loader on disk, which cannot load anything.
+    $active = $s.BepInEx -and $s.Loader -and $s.Enabled
     Write-Host "    BepInEx installed : $($s.BepInEx)"
     Write-Host "    Loader (winhttp)  : $($s.Loader)"
-    Write-Host "    Mods active       : $($s.Enabled)"
+    Write-Host "    Mods active       : $active"
     Write-Host "    Plugins           : $(if ($s.Plugins) { $s.Plugins -join ', ' } else { '(none)' })"
-    if ($s.BepInEx -and -not $s.Enabled) { Write-Warn "Mods are installed but disabled; run -Action enable." }
+    if ($s.BepInEx -and $s.Loader -and -not $s.Enabled) { Write-Warn "Mods are installed but disabled; run -Action enable." }
+    if ($s.Enabled -and (-not $s.BepInEx -or -not $s.Loader)) { Write-Warn "Doorstop is switched on but BepInEx/loader files are missing - mods will NOT load. Run -Action install to repair." }
   }
 
   'disable' {
