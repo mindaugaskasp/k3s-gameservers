@@ -17,7 +17,7 @@ BACKUP_RETENTION_DAYS := 5
 	restart shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image import-metrics-image players backups \
 	sync sync-data sync-backups install-sync-timer restore \
-	mods-status approve-mods
+	mods-status approve-mods download-backups
 
 help:
 	@echo "make lint                  helm lint this chart+values"
@@ -36,6 +36,8 @@ help:
 	@echo "make backups               list backups under /config/backups"
 	@echo "make sync                  pull world, config and backups into $(DATA_DIR)/ + $(BACKUP_DIR)/"
 	@echo "make install-sync-timer    run that sync hourly via systemd (on the k3s host)"
+	@echo "make download-backups      scp every synced backup to your machine's $(BACKUP_DIR)/"
+	@echo "                           (run from your machine, not the VM; needs VM_HOST -- see root Makefile)"
 	@echo "make restore BACKUP=<f>    stop server, restore a backup archive, start it again"
 	@echo "make mods-status           whether mods loaded, why not, and which plugins exist"
 	@echo "make approve-mods          confirm mods work on the running game build,"
@@ -134,6 +136,16 @@ sync-backups:
 		tar cf - -C /config/backups . | tar xf - -C $(BACKUP_DIR)
 	@find $(BACKUP_DIR) -type f -mtime +$(BACKUP_RETENTION_DAYS) -print -delete
 	@echo "Synced /config/backups -> $(BACKUP_DIR)/ (keeping $(BACKUP_RETENTION_DAYS) days)"
+
+# Extends the root Makefile's copy-to-host: pulls every backup this box
+# already has (synced by sync-backups/install-sync-timer) down to your
+# machine in one go, instead of one file at a time. Run this from your own
+# machine, same as copy-to-host -- needs VM_HOST set (see the root Makefile).
+VM_REPO_DIR := k3s-gameservers
+download-backups:
+	@mkdir -p $(BACKUP_DIR)
+	$(MAKE) -C $(REPO_ROOT) copy-to-host \
+		FILE=$(VM_REPO_DIR)/games/valheim/$(BACKUP_DIR)/. DEST=$(BACKUP_DIR)
 
 install-sync-timer:
 	@test -d /run/systemd/system || { echo "systemd not found; run this on the k3s host" >&2; exit 1; }

@@ -34,7 +34,7 @@ and is meant to be read before it is run.
 ```sh
 ./install/k3s.sh
 ./install/monitoring.sh
-LOKI_URL=http://loki.192.168.0.200.nip.io ./install/log-shipping.sh
+LOKI_URL=http://loki.<webserver-vm-ip>.nip.io ./install/log-shipping.sh
 
 cd games/valheim
 make import-metrics-image                 # build + load the sidecar image
@@ -114,8 +114,12 @@ make copy-to-vm   FILE=<local path>   DEST=<path on the VM>
 make copy-to-host FILE=<path on VM>   DEST=<local path>
 ```
 
-`VM_HOST` defaults to `vhserver@192.168.0.129`; override it if that changes
-(`VM_HOST=user@host make copy-to-vm ...`).
+`VM_HOST` (`user@host`) isn't committed — set it in a local, gitignored
+`.env` at the repo root, or pass it directly: `VM_HOST=user@host make
+copy-to-vm ...`.
+
+From `games/valheim/`, `make download-backups` extends `copy-to-host` to
+pull every backup this box has already synced (see below) in one go.
 
 ## Mods
 
