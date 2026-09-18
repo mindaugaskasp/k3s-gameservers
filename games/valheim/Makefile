@@ -135,8 +135,17 @@ restore:
 	kubectl -n $(NAMESPACE) apply -f restore-helper-pod.yaml
 	kubectl -n $(NAMESPACE) wait --for=condition=Ready pod/$(RELEASE)-restore-helper --timeout=180s
 	kubectl -n $(NAMESPACE) cp "$(BACKUP)" $(RELEASE)-restore-helper:/tmp/restore.zip
-	kubectl -n $(NAMESPACE) exec $(RELEASE)-restore-helper -- \
-		sh -c 'mkdir -p /data/config && cd /data/config && unzip -o /tmp/restore.zip'
+	@echo "Archive paths are config/worlds_local/..., so it unpacks at the PVC root."
+	kubectl -n $(NAMESPACE) exec $(RELEASE)-restore-helper -- sh -c 'set -e; \
+		cd /data; \
+		rm -rf .restore-tmp; mkdir -p .restore-tmp; \
+		unzip -q -o /tmp/restore.zip -d .restore-tmp; \
+		test -d .restore-tmp/config/worlds_local; \
+		ts=$$(date +%Y%m%d-%H%M%S); \
+		if [ -d config/worlds_local ]; then mv config/worlds_local config/worlds_local.replaced-$$ts; fi; \
+		mv .restore-tmp/config/worlds_local config/worlds_local; \
+		rm -rf .restore-tmp; \
+		echo "previous world kept at config/worlds_local.replaced-$$ts"'
 	kubectl -n $(NAMESPACE) delete -f restore-helper-pod.yaml --wait
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
 	@echo "Restored $(BACKUP). Watch it come up with: make logs"
