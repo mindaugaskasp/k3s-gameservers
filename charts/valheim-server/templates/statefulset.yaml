@@ -137,6 +137,8 @@ spec:
               value: {{ .Values.metricsExporter.port | quote }}
             - name: STATUS_DIR
               value: "/var/run/valheim-status"
+            - name: PERSIST_DIR
+              value: "/config"
           ports:
             - name: metrics
               containerPort: {{ .Values.metricsExporter.port }}
@@ -146,6 +148,10 @@ spec:
           volumeMounts:
             - name: status-share
               mountPath: /var/run/valheim-status
+            - name: data
+              mountPath: /config
+              subPath: config
+              readOnly: true
         {{- end }}
       volumes:
         {{- if not .Values.persistence.enabled }}

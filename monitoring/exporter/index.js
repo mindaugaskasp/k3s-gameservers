@@ -9,6 +9,7 @@ const HOST = process.env.QUERY_HOST || "127.0.0.1";
 const PORT = Number(process.env.QUERY_PORT);
 const EXPORTER_PORT = Number(process.env.EXPORTER_PORT || 9101);
 const STATUS_DIR = process.env.STATUS_DIR || "/var/run/valheim-status";
+const PERSIST_DIR = process.env.PERSIST_DIR || "/config"; // PVC-backed, survives restarts (unlike STATUS_DIR)
 
 // Written by the gameserver's lifecycle hooks (shared emptyDir volume) --
 // gamedig has no notion of "when did the process last (re)start".
@@ -18,6 +19,35 @@ function readTimestampFile(name) {
   } catch {
     return 0;
   }
+}
+
+// Steam build ID, written by the "started" hook from the app manifest --
+// not exposed via gamedig/A2S at all, only readable from inside the
+// gameserver container's own install.
+function readBuildId() {
+  try {
+    return fs.readFileSync(`${STATUS_DIR}/build-id`, "utf8").trim();
+  } catch {
+    return "";
+  }
+}
+
+// Sum of every past completed session's duration, written by the "down"
+// hook -- PERSIST_DIR is PVC-backed so this survives pod restarts, unlike
+// STATUS_DIR (an emptyDir). Prometheus's own history can't answer "total
+// lifetime uptime" since it only retains 7 days.
+function readUptimeBaseline() {
+  try {
+    return parseInt(fs.readFileSync(`${PERSIST_DIR}/uptime-accumulator.seconds`, "utf8").trim(), 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function currentSessionSeconds() {
+  const startedAt = readTimestampFile("last-started.timestamp");
+  if (!last.up || !startedAt) return 0;
+  return Math.max(0, Math.floor(Date.now() / 1000) - startedAt);
 }
 
 // Valheim's A2S "keywords"/tags carry the real game version as "g=1.0.14";
@@ -116,13 +146,19 @@ function render() {
     `lgsm_game_ping_seconds{game="${g}"} ${last.pingSeconds}`,
     `# HELP lgsm_game_info Static server info (value always 1); read the labels.`,
     `# TYPE lgsm_game_info gauge`,
-    `lgsm_game_info{game="${g}",name="${escapeLabel(last.serverName)}",version="${escapeLabel(last.version)}",password="${last.password}"} 1`,
+    `lgsm_game_info{game="${g}",name="${escapeLabel(last.serverName)}",version="${escapeLabel(last.version)}",build="${escapeLabel(readBuildId())}",password="${last.password}"} 1`,
     `# HELP lgsm_game_last_started_timestamp_seconds Unix time the gameserver process last (re)started, from its lifecycle hook.`,
     `# TYPE lgsm_game_last_started_timestamp_seconds gauge`,
     `lgsm_game_last_started_timestamp_seconds{game="${g}"} ${readTimestampFile("last-started.timestamp")}`,
     `# HELP lgsm_game_last_updated_timestamp_seconds Unix time the gameserver was last updated to a new version, from its lifecycle hook.`,
     `# TYPE lgsm_game_last_updated_timestamp_seconds gauge`,
     `lgsm_game_last_updated_timestamp_seconds{game="${g}"} ${readTimestampFile("last-updated.timestamp")}`,
+    `# HELP lgsm_game_uptime_current_seconds How long the current session has been running -- resets to ~0 on every restart.`,
+    `# TYPE lgsm_game_uptime_current_seconds gauge`,
+    `lgsm_game_uptime_current_seconds{game="${g}"} ${currentSessionSeconds()}`,
+    `# HELP lgsm_game_uptime_total_seconds Total time the server has been up across its whole lifetime, unaffected by restarts/updates.`,
+    `# TYPE lgsm_game_uptime_total_seconds gauge`,
+    `lgsm_game_uptime_total_seconds{game="${g}"} ${readUptimeBaseline() + currentSessionSeconds()}`,
     ...playerLines,
     "",
   ].join("\n");

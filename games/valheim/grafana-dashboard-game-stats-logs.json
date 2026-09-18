@@ -338,6 +338,68 @@
         "type": "prometheus",
         "uid": "ffyierrb4yl8gd"
       }
+    },
+    {
+      "id": 11,
+      "title": "Uptime -- current session (excludes restarts)",
+      "type": "timeseries",
+      "description": "Resets to 0 on every restart/update -- how long the currently-running process has been up.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "lgsm_game_uptime_current_seconds{game=\"valheim\"}",
+          "legendFormat": "current session",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 12,
+      "title": "Uptime -- lifetime total (includes restarts)",
+      "type": "timeseries",
+      "description": "Sum of every session's duration across all restarts/updates -- never resets, only ever grows while the server has run.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "lgsm_game_uptime_total_seconds{game=\"valheim\"}",
+          "legendFormat": "lifetime total",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
     }
   ]
 }

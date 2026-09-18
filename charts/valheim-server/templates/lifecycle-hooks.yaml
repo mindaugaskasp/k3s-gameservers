@@ -34,6 +34,7 @@ data:
     # embed too if DISCORD_WEBHOOK_URL is set.
     set -eu
     status_dir="/var/run/valheim-status"
+    persist_dir="/config"
     connect="${CONNECT_HOST:-}${CONNECT_HOST:+:${SERVER_PORT:-2456}}"
 
     json_escape() {
@@ -44,10 +45,29 @@ data:
     case "$1" in
       started)
         date +%s > "$status_dir/last-started.timestamp"
+        # Steam build ID (not the human "1.0.14" version string) -- only
+        # readable from inside this container's install, gamedig has no
+        # access to it.
+        manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
+        if [ -n "$manifest" ]; then
+          grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1 > "$status_dir/build-id" || true
+        fi
         title="Server online"; color=3066993; show_join=1
         desc="**${SERVER_NAME}** is up and accepting connections."
         ;;
       down)
+        # Checkpoint this session's duration into the PVC-backed cumulative
+        # total (persist_dir survives restarts, status_dir doesn't) --
+        # Prometheus's own history can't answer "lifetime total uptime"
+        # since it only retains 7 days.
+        started_at=$(cat "$status_dir/last-started.timestamp" 2>/dev/null || echo 0)
+        case "$started_at" in ''|*[!0-9]*) started_at=0 ;; esac
+        elapsed=0
+        [ "$started_at" -gt 0 ] && elapsed=$(( $(date +%s) - started_at ))
+        [ "$elapsed" -lt 0 ] && elapsed=0
+        prior=$(cat "$persist_dir/uptime-accumulator.seconds" 2>/dev/null || echo 0)
+        case "$prior" in ''|*[!0-9]*) prior=0 ;; esac
+        echo $((prior + elapsed)) > "$persist_dir/uptime-accumulator.seconds"
         title="Server down"; color=15548997
         desc="**${SERVER_NAME}** is shutting down."
         ;;
