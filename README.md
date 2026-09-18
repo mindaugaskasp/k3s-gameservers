@@ -7,6 +7,8 @@ hand-tuned on bare metal. Currently one server: Valheim.
 ## Layout
 
 ```
+Makefile                 copy-to-vm / copy-to-host -- run from your own
+                         machine, not the VM (see below)
 charts/valheim-server/   Helm chart -- the deployable unit
 games/valheim/           This server's config and day-to-day ops
   values.override.yaml     overrides charts/valheim-server/values.yaml
@@ -97,6 +99,23 @@ Grafana, which queries this Prometheus. Push dashboard changes with
 `make dashboards` (needs `GRAFANA_URL` and `GRAFANA_TOKEN`).
 
 Pod logs ship to that same VM's Loki via Alloy.
+
+## Copying files to/from the VM
+
+The root `Makefile` wraps `scp` for moving a file (or directory) between your
+own machine and the k3s box — e.g. dropping a mod DLL on the VM before
+`kubectl cp`-ing it into a pod, or grabbing a backup archive without setting
+up anything game-specific. Run these from your machine, not the VM itself:
+SSH only reliably works in that direction, since the VM has a stable LAN
+address and a laptop usually doesn't.
+
+```sh
+make copy-to-vm   FILE=<local path>   DEST=<path on the VM>
+make copy-to-host FILE=<path on VM>   DEST=<local path>
+```
+
+`VM_HOST` defaults to `vhserver@192.168.0.129`; override it if that changes
+(`VM_HOST=user@host make copy-to-vm ...`).
 
 ## Mods
 
