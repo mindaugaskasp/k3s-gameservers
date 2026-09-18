@@ -39,7 +39,7 @@ alloy:
 
       loki.write "webserver_vm" {
         endpoint {
-          // Substituted by install/log-shipping.sh from $LOKI_URL.
+          // Substituted by install/logging.sh from $LOKI_URL.
           url = "__LOKI_PUSH_URL__"
         }
         external_labels = {

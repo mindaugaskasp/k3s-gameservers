@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
 # Ships games/* pod logs to the webserver VM's Loki via Grafana Alloy.
-# Needs install/k3s.sh first; override the endpoint with $LOKI_URL.
+# Needs install/k3s.sh first.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-LOKI_URL="${LOKI_URL:-http://loki.192.168.0.200.nip.io}"
+# Local, gitignored -- put LOKI_URL=http://loki.<host> here so it isn't
+# committed (same pattern as VM_HOST/GRAFANA_TOKEN in the root Makefile).
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
+if [ -z "${LOKI_URL:-}" ]; then
+  echo "LOKI_URL is not set -- add LOKI_URL=http://loki.<host> to a local .env" >&2
+  echo "(gitignored), or pass it directly: LOKI_URL=http://loki.<host> $0" >&2
+  exit 1
+fi
 LOKI_URL="${LOKI_URL%/}"
 
 if ! curl -sf --max-time 3 -o /dev/null "${LOKI_URL}/ready"; then

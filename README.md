@@ -17,7 +17,7 @@ games/valheim/           This server's config and day-to-day ops
 install/                 Run-once setup scripts, in this order
   k3s.sh                      podman + k3s + helm
   monitoring.sh               in-cluster Prometheus (+ VPA)
-  log-shipping.sh             Grafana Alloy -> Loki on the webserver VM
+  logging.sh                  Grafana Alloy -> Loki on the webserver VM
 monitoring-config/       Config the install scripts apply
   prometheus-manifests.yaml   applied with kubectl, not Helm
   alloy-helm-values.yaml      values for the upstream grafana/alloy chart
@@ -34,7 +34,7 @@ and is meant to be read before it is run.
 ```sh
 ./install/k3s.sh
 ./install/monitoring.sh
-LOKI_URL=http://loki.<webserver-vm-ip>.nip.io ./install/log-shipping.sh
+./install/logging.sh   # needs LOKI_URL=http://loki.<host> in a local, gitignored .env
 
 cd games/valheim
 make import-metrics-image                 # build + load the sidecar image
