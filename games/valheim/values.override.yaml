@@ -10,6 +10,11 @@ server:
 mods:
   enabled: true
 
+# updateMode stays "Off" (chart default) -- recommendations only, never
+# evictions. See docs/architecture.md and install/vpa.sh.
+verticalPodAutoscaler:
+  enabled: true
+
 persistence:
   storageClassName: local-path
   size: 5Gi

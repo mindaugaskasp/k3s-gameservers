@@ -126,9 +126,10 @@ Helm) on NodePort 30090. Grafana is deliberately not deployed here — the webse
 already runs one, and it queries this Prometheus and receives pod logs via
 Loki. That keeps this box spending its RAM on the game.
 
-VPA is installed by `install/monitoring.sh` but left disabled in
-values; enable it in `updateMode: "Off"` to get sizing recommendations
-without evictions.
+VPA is installed separately via `install/vpa.sh` (cluster-wide admission
+webhook, so it's opt-in rather than bundled into `monitoring.sh`) and runs
+in `updateMode: "Off"` -- recommendations only, via `kubectl describe vpa
+valheim`, never evictions.
 
 ## Resources
 

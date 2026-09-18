@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
-# Installs in-cluster Prometheus and, unless INSTALL_VPA=0, the VPA
-# components. No Grafana here; see docs/architecture.md.
+# Installs in-cluster Prometheus. No Grafana here; see docs/architecture.md.
+# For the Vertical Pod Autoscaler, see install/vpa.sh (separate: it clones
+# third-party code and installs a cluster-wide admission webhook).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 kubectl apply -f monitoring-config/prometheus-manifests.yaml
-
-if [ "${INSTALL_VPA:-1}" = "1" ] && ! kubectl get crd verticalpodautoscalers.autoscaling.k8s.io >/dev/null 2>&1; then
-  echo "Installing Vertical Pod Autoscaler components..."
-  tmpdir=$(mktemp -d)
-  trap 'rm -rf "${tmpdir}"' EXIT
-  git clone --depth 1 https://github.com/kubernetes/autoscaler.git "${tmpdir}/autoscaler"
-  # vpa-up.sh defaults to `git switch --detach` onto a release tag that a
-  # --depth 1 clone doesn't have; TAG=latest (anything other than its
-  # DEFAULT_TAG) skips that switch and applies whatever the clone gave us.
-  TAG=latest "${tmpdir}/autoscaler/vertical-pod-autoscaler/hack/vpa-up.sh"
-fi
 
 echo "Done. Prometheus is on NodePort 30090:"
 echo "  curl http://localhost:30090/api/v1/targets"

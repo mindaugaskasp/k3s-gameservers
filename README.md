@@ -16,7 +16,8 @@ games/valheim/           This server's config and day-to-day ops
   grafana/dashboards/      Grafana dashboard JSON
 install/                 Run-once setup scripts, in this order
   k3s.sh                      podman + k3s + helm
-  monitoring.sh               in-cluster Prometheus (+ VPA)
+  monitoring.sh               in-cluster Prometheus
+  vpa.sh                      Vertical Pod Autoscaler (optional; see below)
   logging.sh                  Grafana Alloy -> Loki on the webserver VM
 monitoring-config/       Config the install scripts apply
   prometheus-manifests.yaml   applied with kubectl, not Helm
@@ -34,6 +35,7 @@ and is meant to be read before it is run.
 ```sh
 ./install/k3s.sh
 ./install/monitoring.sh
+./install/vpa.sh       # optional: see "Vertical Pod Autoscaler" below before running
 ./install/logging.sh   # needs LOKI_URL=http://loki.<host> in a local, gitignored .env
 
 cd games/valheim
@@ -99,6 +101,25 @@ Grafana, which queries this Prometheus. Push dashboard changes with
 `make dashboards` (needs `GRAFANA_URL` and `GRAFANA_TOKEN`).
 
 Pod logs ship to that same VM's Loki via Alloy.
+
+## Vertical Pod Autoscaler
+
+Optional, and separate from `monitoring.sh` on purpose: `install/vpa.sh`
+clones a pinned tag of `kubernetes/autoscaler` and runs its own installer,
+which sets up a **cluster-wide** admission webhook (not scoped to `games`).
+Skip it entirely if you'd rather not run that.
+
+With it installed, set `verticalPodAutoscaler.enabled: true` in
+`values.override.yaml` and redeploy. Leave `updateMode: "Off"` (the chart
+default) — that mode only ever writes a recommendation to the VPA object's
+status; it never evicts or resizes the running pod. `Auto`/`Recreate` would,
+and on a single-node box with no spare capacity to reschedule onto, a
+recommendation the node can't satisfy would take the server down with no
+automatic recovery. Read it with:
+
+```sh
+kubectl -n games describe vpa valheim
+```
 
 ## Copying files to/from the VM
 
