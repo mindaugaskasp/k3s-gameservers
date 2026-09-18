@@ -839,6 +839,117 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 21,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      },
+      "title": "Mods",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 45
+      },
+      "panels": []
+    },
+    {
+      "id": 22,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      },
+      "title": "Mods active",
+      "description": "Whether BepInEx actually loaded on the running server, or the fail-safe dropped it -- see 'Mods status reason' for why.",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 46
+      },
+      "targets": [
+        {
+          "expr": "game_server_mods_active{game=\"valheim\"}",
+          "legendFormat": "mods active",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Fail-safe (unmodded)", "color": "red" }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "1": { "text": "Active", "color": "green" }
+              }
+            }
+          ],
+          "noValue": "Not enabled"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 23,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      },
+      "title": "Mods status reason",
+      "description": "mod-guard's own explanation for the current state -- 'mods active' when everything loaded normally.",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 18,
+        "x": 6,
+        "y": 46
+      },
+      "targets": [
+        {
+          "expr": "game_server_mods_info{game=\"valheim\"}",
+          "legendFormat": "{{reason}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Not enabled"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "colorMode": "none"
+      }
     }
   ]
 }

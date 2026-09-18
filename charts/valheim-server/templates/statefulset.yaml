@@ -161,6 +161,18 @@ spec:
             - name: metrics
               containerPort: {{ .Values.statusMetrics.port }}
               protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.statusMetrics.port }}
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.statusMetrics.port }}
+            periodSeconds: 10
+            failureThreshold: 3
           resources:
             {{- toYaml .Values.statusMetrics.resources | nindent 12 }}
           volumeMounts:
