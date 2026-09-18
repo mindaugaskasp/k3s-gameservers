@@ -13,7 +13,7 @@ charts/valheim-server/   Helm chart -- the deployable unit
 games/valheim/           This server's config and day-to-day ops
   values.override.yaml     overrides charts/valheim-server/values.yaml
   Makefile                 deploy, logs, restart, backups, dashboards
-  dashboards/              Grafana dashboard JSON
+  grafana/dashboards/      Grafana dashboard JSON
 install/                 Run-once setup scripts, in this order
   k3s.sh                      podman + k3s + helm
   monitoring.sh               in-cluster Prometheus (+ VPA)

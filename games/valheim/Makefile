@@ -43,7 +43,7 @@ help:
 	@echo "make approve-mods          confirm mods work on the running game build,"
 	@echo "                           so the fail-safe stops holding them back"
 	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
-	@echo "make dashboards            push dashboards/*.json to Grafana (needs GRAFANA_TOKEN, GRAFANA_URL)"
+	@echo "make dashboards            push grafana/dashboards/*.json to Grafana (needs GRAFANA_TOKEN, GRAFANA_URL)"
 	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
 
 lint:
@@ -194,7 +194,7 @@ dashboards:
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	test -n "$$GRAFANA_TOKEN" || { echo "GRAFANA_TOKEN is not set" >&2; exit 1; }; \
 	test -n "$$GRAFANA_URL" || { echo "GRAFANA_URL is not set" >&2; exit 1; }; \
-	for f in dashboards/*.json; do \
+	for f in grafana/dashboards/*.json; do \
 		python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps({'dashboard': d, 'folderUid': 'valheim', 'overwrite': True}))" "$$f" \
 		| curl -sf -X POST "$$GRAFANA_URL/api/dashboards/db" \
 			-H "Authorization: Bearer $$GRAFANA_TOKEN" -H "Content-Type: application/json" -d @- ; \
