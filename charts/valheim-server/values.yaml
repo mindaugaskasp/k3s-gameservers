@@ -53,6 +53,17 @@ status:
   enabled: true
   port: 80
 
+# BepInEx is installed and re-merged after game updates by the image itself;
+# put plugin DLLs in /config/bepinex/plugins on the PVC.
+mods:
+  enabled: false
+  # Start the server unmodded instead of crash-looping when BepInEx cannot
+  # load. Costs nothing when mods are off.
+  failSafe: true
+  # BepInEx is pulled unpinned, so a game update can outrun it: drop mods
+  # after an update until `make bless-mods` confirms they still work.
+  requireBlessedBuild: true
+
 persistence:
   enabled: true
   storageClassName: local-path

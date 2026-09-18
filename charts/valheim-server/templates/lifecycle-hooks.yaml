@@ -19,6 +19,66 @@ metadata:
   labels:
     {{- include "valheim-server.labels" . | nindent 4 }}
 data:
+  # SOURCED by valheim-server's PRE_SERVER_RUN_HOOK, never executed: only a
+  # same-shell run can clear DOORSTOP_ENABLED before the server launches.
+  mod-guard.sh: |
+    # No set -e and no exit in here -- both would take down the caller's shell.
+    mod_guard() {
+      [ "${BEPINEX:-false}" = true ] || return 0
+      [ "${MOD_FAIL_SAFE:-false}" = true ] || return 0
+
+      status_dir="/var/run/valheim-status"
+      doorstop_lib="/opt/valheim/bepinex/doorstop_libs/libdoorstop_x64.so"
+      reason=""
+
+      # The loader breaking is the failure that crash-loops the server, e.g.
+      # a BepInEx build needing a newer GLIBC than this image has.
+      if [ ! -f "$doorstop_lib" ]; then
+        reason="libdoorstop is missing"
+      elif ldd "$doorstop_lib" 2>&1 | grep -q "not found"; then
+        reason="libdoorstop has unresolved libraries: $(ldd "$doorstop_lib" 2>&1 | grep 'not found' | awk '{print $1}' | tr '\n' ' ')"
+      fi
+
+      if [ -z "$reason" ] && [ "${MOD_REQUIRE_BLESSED_BUILD:-false}" = true ]; then
+        manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
+        current=""
+        [ -n "$manifest" ] && current=$(grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1)
+        blessed=$(cat /config/mods-blessed-build 2>/dev/null || true)
+        if [ -z "$blessed" ]; then
+          reason="no game build has been blessed for the installed mods"
+        elif [ "$current" != "$blessed" ]; then
+          reason="game build $current is not the blessed build $blessed"
+        fi
+      fi
+
+      mkdir -p "$status_dir"
+      if [ -n "$reason" ]; then
+        # Clear both: with only DOORSTOP_ENABLED=0 an unloadable libdoorstop
+        # would still be LD_PRELOADed and still kill the server.
+        export DOORSTOP_ENABLED=0
+        SERVER_LD_PRELOAD=""
+        echo 0 > "$status_dir/mods-active"
+        printf '%s' "$reason" > "$status_dir/mods-status"
+        echo "mod-guard: starting WITHOUT mods -- $reason" >&2
+        [ -x /etc/valheim-hooks/notify.sh ] && \
+          /etc/valheim-hooks/notify.sh mods-disabled "$reason" || true
+      else
+        echo 1 > "$status_dir/mods-active"
+        printf 'mods active' > "$status_dir/mods-status"
+      fi
+    }
+    mod_guard
+  bless-mods.sh: |
+    #!/bin/sh
+    # Records the running game build as validated, re-enabling mods on the
+    # next start. Run via `make bless-mods` after testing the server modded.
+    set -eu
+    manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
+    [ -n "$manifest" ] || { echo "no appmanifest found" >&2; exit 1; }
+    build=$(grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1)
+    [ -n "$build" ] || { echo "could not read buildid" >&2; exit 1; }
+    printf '%s' "$build" > /config/mods-blessed-build
+    echo "blessed build $build; mods will load on next start"
   notify.sh: |
     #!/bin/sh
     # Records lifecycle timestamps for status-metrics and posts a Discord embed.
@@ -63,6 +123,10 @@ data:
         date +%s > "$status_dir/last-updated.timestamp"
         title="Server updating"; color=5793266
         desc="**${SERVER_NAME}** was updated and is restarting."
+        ;;
+      mods-disabled)
+        title="Mods disabled"; color=16705372
+        desc="**${SERVER_NAME}** is starting without mods: ${2:-unknown reason}. The server is up; run \`make bless-mods\` once mods are verified."
         ;;
       *)
         title="Server event"; color=9807270

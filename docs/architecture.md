@@ -72,6 +72,37 @@ Backup retention is the server's own (`backups.cron`, `maxAge`,
 and reports count, per-file size and timestamp, total bytes and the
 oldest archive's expiry as `game_server_backup_*` metrics.
 
+## Mods (BepInEx)
+
+Off by default (`mods.enabled`). When on, the image installs BepInEx itself
+and re-merges it over vanilla after every Steam update; plugin DLLs go in
+`/config/bepinex/plugins` on the PVC. For admin cheat commands the mod is
+[Server Devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/),
+which gates on `/config/adminlist.txt` — note the admin's *client* needs it
+installed too, not just the server.
+
+The image pulls BepInEx from Thunderstore unpinned, so a Valheim update can
+land before a compatible BepInEx does. `mod-guard.sh` runs as
+`PRE_SERVER_RUN_HOOK` and starts the server unmodded rather than letting it
+crash-loop, when either:
+
+- `libdoorstop` is missing or has unresolved libraries (this is what a
+  BepInEx build needing a newer GLIBC than the image looks like), or
+- the Steam build ID differs from `/config/mods-blessed-build`, i.e. the
+  game updated and nobody has confirmed the mods still work.
+
+Degrading clears both `DOORSTOP_ENABLED` and `SERVER_LD_PRELOAD`. Clearing
+only the first would still `LD_PRELOAD` an unloadable library and still kill
+the server. It posts a Discord alert and exports
+`game_server_mods_active` so a silent fallback is visible.
+
+The hook is **sourced, not executed** (`. /etc/valheim-hooks/mod-guard.sh`).
+It has to mutate variables in the server script's own shell; run as a child
+process it would report success and change nothing.
+
+Re-enable with `make bless-mods` after verifying a modded start, then
+`make restart`.
+
 ## Maintenance
 
 Updates, restarts and backups are scheduled **inside the container** by

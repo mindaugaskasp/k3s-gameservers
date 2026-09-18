@@ -43,6 +43,22 @@ function readUptimeBaseline() {
   }
 }
 
+// Written by mod-guard.sh before the server starts. Absent = mods not in use.
+function readModState() {
+  try {
+    const active = fs.readFileSync(`${STATUS_DIR}/mods-active`, "utf8").trim();
+    let status = "";
+    try {
+      status = fs.readFileSync(`${STATUS_DIR}/mods-status`, "utf8").trim();
+    } catch {
+      status = "";
+    }
+    return { active: active === "1" ? 1 : 0, status };
+  } catch {
+    return null;
+  }
+}
+
 // Oldest first, so [0] is the next one the server's retention will delete.
 // Per-file guard: retention may delete a backup between readdir and stat.
 function readBackups() {
@@ -130,8 +146,23 @@ async function scrape() {
   }
 }
 
+// A raw newline in a label value corrupts the whole exposition, so a server
+// name or failure reason containing one would break every metric.
 function escapeLabel(s) {
-  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+}
+
+function renderMods(g) {
+  const mods = readModState();
+  if (!mods) return [];
+  return [
+    `# HELP game_server_mods_active Whether the server started with mods loaded (0 = fail-safe dropped them).`,
+    `# TYPE game_server_mods_active gauge`,
+    `game_server_mods_active{game="${g}"} ${mods.active}`,
+    `# HELP game_server_mods_info Why mods are or are not loaded; read the reason label.`,
+    `# TYPE game_server_mods_info gauge`,
+    `game_server_mods_info{game="${g}",reason="${escapeLabel(mods.status)}"} 1`,
+  ];
 }
 
 function renderBackups(g) {
@@ -228,6 +259,7 @@ function render() {
     `# TYPE game_server_uptime_total_seconds gauge`,
     `game_server_uptime_total_seconds{game="${g}"} ${readUptimeBaseline() + currentSessionSeconds()}`,
     ...playerLines,
+    ...renderMods(g),
     ...renderBackups(g),
     "",
   ].join("\n");

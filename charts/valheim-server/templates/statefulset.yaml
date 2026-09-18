@@ -89,6 +89,18 @@ spec:
                   name: {{ if .Values.alerts.secretRef }}{{ .Values.alerts.secretRef }}{{ else }}{{ include "valheim-server.fullname" . }}-discord{{ end }}
                   key: DISCORD_WEBHOOK_URL
             {{- end }}
+            - name: BEPINEX
+              value: {{ .Values.mods.enabled | quote }}
+            {{- if and .Values.mods.enabled .Values.mods.failSafe }}
+            - name: MOD_FAIL_SAFE
+              value: "true"
+            - name: MOD_REQUIRE_BLESSED_BUILD
+              value: {{ .Values.mods.requireBlessedBuild | quote }}
+            # Sourced, not executed: it must clear DOORSTOP_ENABLED in the
+            # server script's own shell to fall back to an unmodded start.
+            - name: PRE_SERVER_RUN_HOOK
+              value: ". /etc/valheim-hooks/mod-guard.sh"
+            {{- end }}
             - name: POST_SERVER_LISTENING_HOOK
               value: "/etc/valheim-hooks/notify.sh started"
             - name: POST_SERVER_SHUTDOWN_HOOK

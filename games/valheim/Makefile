@@ -16,7 +16,8 @@ BACKUP_RETENTION_DAYS := 5
 .PHONY: help lint template deploy status logs logs-metrics \
 	restart shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image import-metrics-image players backups \
-	sync sync-data sync-backups install-sync-timer restore
+	sync sync-data sync-backups install-sync-timer restore \
+	mods-status bless-mods
 
 help:
 	@echo "make lint                  helm lint this chart+values"
@@ -35,6 +36,8 @@ help:
 	@echo "make sync                  pull world, config and backups into $(DATA_DIR)/ + $(BACKUP_DIR)/"
 	@echo "make install-sync-timer    run that sync hourly via systemd (on the k3s host)"
 	@echo "make restore BACKUP=<f>    stop server, restore a backup archive, start it again"
+	@echo "make mods-status           whether mods loaded, why not, and which plugins exist"
+	@echo "make bless-mods            mark the running game build as mod-verified"
 	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
 	@echo "make dashboards            push dashboards/*.json to Grafana (needs GRAFANA_TOKEN, GRAFANA_URL)"
 	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
@@ -94,6 +97,18 @@ players:
 
 backups:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- ls -la /config/backups
+
+mods-status:
+	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- sh -c '\
+		printf "mods active: "; cat /var/run/valheim-status/mods-active 2>/dev/null || echo "(fail-safe not in use)"; \
+		printf "reason:      "; cat /var/run/valheim-status/mods-status 2>/dev/null; echo; \
+		printf "blessed:     "; cat /config/mods-blessed-build 2>/dev/null || echo "(none)"; echo; \
+		printf "plugins:     "; ls -1 /config/bepinex/plugins 2>/dev/null | tr "\n" " " || echo "(none)"; echo'
+
+# Marks the running game build as verified, so mods load again next start.
+bless-mods:
+	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- /etc/valheim-hooks/bless-mods.sh
+	@echo "Restart to load mods: make restart"
 
 # Read-only pull from the running pod. `restore` is the only path that
 # writes back, and it stops the server first.

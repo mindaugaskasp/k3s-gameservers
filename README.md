@@ -98,6 +98,21 @@ Grafana, which queries this Prometheus. Push dashboard changes with
 
 Pod logs ship to that same VM's Loki via Alloy.
 
+## Mods
+
+Off by default. To enable BepInEx, set `mods.enabled=true` in
+`games/valheim/values.override.yaml`, put plugin DLLs in
+`/config/bepinex/plugins` on the PVC, and redeploy.
+
+```sh
+make mods-status    # did mods load, and if not why
+make bless-mods     # mark the running game build as verified, then: make restart
+```
+
+A Valheim update can arrive before a compatible BepInEx does. When that
+happens the server starts **unmodded** and alerts, rather than crash-looping
+— see `docs/architecture.md` for how the guard decides.
+
 ## Adding another game
 
 Copy `charts/valheim-server` and swap the image and its env vars, then add
