@@ -204,10 +204,10 @@ function renderBackups(g) {
     lines.push(
       `# HELP game_server_backup_file_timestamp_seconds Modification time of each backup archive.`,
       `# TYPE game_server_backup_file_timestamp_seconds gauge`,
-      ...backups.map((b) => `game_server_backup_file_timestamp_seconds{game="${g}",file="${escapeLabel(b.name)}"} ${b.mtime}`),
+      ...backups.map((b) => `game_server_backup_file_timestamp_seconds{game="${g}",file="${escapeLabel(`${BACKUP_DIR}/${b.name}`)}"} ${b.mtime}`),
       `# HELP game_server_backup_file_bytes Size of each backup archive.`,
       `# TYPE game_server_backup_file_bytes gauge`,
-      ...backups.map((b) => `game_server_backup_file_bytes{game="${g}",file="${escapeLabel(b.name)}"} ${b.bytes}`)
+      ...backups.map((b) => `game_server_backup_file_bytes{game="${g}",file="${escapeLabel(`${BACKUP_DIR}/${b.name}`)}"} ${b.bytes}`)
     );
   }
   return lines;

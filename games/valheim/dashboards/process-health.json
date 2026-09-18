@@ -75,7 +75,15 @@
       "targets": [
         {
           "expr": "kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-valheim.*\"}",
-          "legendFormat": "used",
+          "legendFormat": "Used",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        },
+        {
+          "expr": "kubelet_volume_stats_available_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-valheim.*\"}",
+          "legendFormat": "Free",
           "datasource": {
             "type": "prometheus",
             "uid": "ffyierrb4yl8gd"
@@ -85,6 +93,47 @@
       "fieldConfig": {
         "defaults": {
           "unit": "bytes"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 18,
+      "title": "PVC used %",
+      "description": "local-path PVCs aren't quota-enforced, so capacity/used here reflect the host disk itself -- this is the number that says when to grow VM storage.",
+      "type": "gauge",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "100 * kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-valheim.*\"} / kubelet_volume_stats_capacity_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-valheim.*\"}",
+          "legendFormat": "used %",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          }
         }
       },
       "datasource": {
@@ -186,6 +235,14 @@
         {
           "expr": "kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-valheim.*\"}",
           "legendFormat": "used bytes",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        },
+        {
+          "expr": "kubelet_volume_stats_available_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-valheim.*\"}",
+          "legendFormat": "free bytes",
           "datasource": {
             "type": "prometheus",
             "uid": "ffyierrb4yl8gd"
