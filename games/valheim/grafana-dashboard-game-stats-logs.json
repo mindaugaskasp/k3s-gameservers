@@ -254,7 +254,15 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "dateTimeFromNow"
+          "unit": "dateTimeFromNow",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Never" }
+              }
+            }
+          ]
         }
       },
       "datasource": {
@@ -285,7 +293,15 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "dateTimeFromNow"
+          "unit": "dateTimeFromNow",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Never" }
+              }
+            }
+          ]
         }
       },
       "datasource": {
