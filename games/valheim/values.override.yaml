@@ -7,6 +7,9 @@ server:
   crossplay: false
   extraArgs: "-modifier resources more -modifier raids more -modifier deathPenalty casual"
 
+mods:
+  enabled: true
+
 persistence:
   storageClassName: local-path
   size: 5Gi

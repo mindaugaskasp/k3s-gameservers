@@ -25,7 +25,8 @@ help:
 	@echo "make build-metrics-image   podman build the status-metrics image"
 	@echo "make import-metrics-image  load that image into k3s's containerd (needs sudo)"
 	@echo "make deploy                helm upgrade --install (needs VALHEIM_SERVER_PASSWORD;"
-	@echo "                           set VALHEIM_DISCORD_WEBHOOK too for alerts)"
+	@echo "                           set VALHEIM_DISCORD_WEBHOOK too for alerts, and"
+	@echo "                           VALHEIM_CONNECT_HOST for the public DDNS hostname)"
 	@echo "make status                pods/pvc/svc for this release"
 	@echo "make logs                  tail the gameserver container"
 	@echo "make logs-metrics          tail the status-metrics sidecar"
@@ -62,6 +63,8 @@ import-metrics-image: build-metrics-image
 	podman save --format oci-archive $(STATUS_METRICS_IMAGE) | sudo k3s ctr images import -
 
 # Discord alerts stay off unless VALHEIM_DISCORD_WEBHOOK is exported.
+# connectHost is set the same way, via VALHEIM_CONNECT_HOST, so the public
+# DDNS hostname never has to be committed to values.override.yaml.
 deploy: secrets-check
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@extra=(); \
@@ -70,6 +73,9 @@ deploy: secrets-check
 			--set-string alerts.discordWebhook="$$VALHEIM_DISCORD_WEBHOOK"); \
 	else \
 		echo "note: VALHEIM_DISCORD_WEBHOOK unset, deploying without Discord alerts" >&2; \
+	fi; \
+	if [ -n "$$VALHEIM_CONNECT_HOST" ]; then \
+		extra+=(--set-string server.connectHost="$$VALHEIM_CONNECT_HOST"); \
 	fi; \
 	helm upgrade --install $(RELEASE) $(CHART) \
 		-f $(VALUES) \
