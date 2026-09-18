@@ -94,8 +94,8 @@ spec:
             {{- if and .Values.mods.enabled .Values.mods.failSafe }}
             - name: MOD_FAIL_SAFE
               value: "true"
-            - name: MOD_REQUIRE_BLESSED_BUILD
-              value: {{ .Values.mods.requireBlessedBuild | quote }}
+            - name: MOD_REQUIRE_APPROVED_BUILD
+              value: {{ .Values.mods.requireApprovedBuild | quote }}
             # Sourced, not executed: it must clear DOORSTOP_ENABLED in the
             # server script's own shell to fall back to an unmodded start.
             - name: PRE_SERVER_RUN_HOOK

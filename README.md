@@ -106,7 +106,7 @@ Off by default. To enable BepInEx, set `mods.enabled=true` in
 
 ```sh
 make mods-status    # did mods load, and if not why
-make bless-mods     # mark the running game build as verified, then: make restart
+make approve-mods     # mark the running game build as verified, then: make restart
 ```
 
 A Valheim update can arrive before a compatible BepInEx does. When that

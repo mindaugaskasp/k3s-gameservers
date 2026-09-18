@@ -39,15 +39,15 @@ data:
         reason="libdoorstop has unresolved libraries: $(ldd "$doorstop_lib" 2>&1 | grep 'not found' | awk '{print $1}' | tr '\n' ' ')"
       fi
 
-      if [ -z "$reason" ] && [ "${MOD_REQUIRE_BLESSED_BUILD:-false}" = true ]; then
+      if [ -z "$reason" ] && [ "${MOD_REQUIRE_APPROVED_BUILD:-false}" = true ]; then
         manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
         current=""
         [ -n "$manifest" ] && current=$(grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1)
-        blessed=$(cat /config/mods-blessed-build 2>/dev/null || true)
-        if [ -z "$blessed" ]; then
-          reason="no game build has been blessed for the installed mods"
-        elif [ "$current" != "$blessed" ]; then
-          reason="game build $current is not the blessed build $blessed"
+        approved=$(cat /config/mods-approved-build 2>/dev/null || true)
+        if [ -z "$approved" ]; then
+          reason="no game build has been approved for the installed mods"
+        elif [ "$current" != "$approved" ]; then
+          reason="game build $current is not the approved build $approved"
         fi
       fi
 
@@ -68,17 +68,17 @@ data:
       fi
     }
     mod_guard
-  bless-mods.sh: |
+  approve-mods.sh: |
     #!/bin/sh
     # Records the running game build as validated, re-enabling mods on the
-    # next start. Run via `make bless-mods` after testing the server modded.
+    # next start. Run via `make approve-mods` after testing the server modded.
     set -eu
     manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
     [ -n "$manifest" ] || { echo "no appmanifest found" >&2; exit 1; }
     build=$(grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1)
     [ -n "$build" ] || { echo "could not read buildid" >&2; exit 1; }
-    printf '%s' "$build" > /config/mods-blessed-build
-    echo "blessed build $build; mods will load on next start"
+    printf '%s' "$build" > /config/mods-approved-build
+    echo "approved build $build; mods will load on next start"
   notify.sh: |
     #!/bin/sh
     # Records lifecycle timestamps for status-metrics and posts a Discord embed.
@@ -126,7 +126,7 @@ data:
         ;;
       mods-disabled)
         title="Mods disabled"; color=16705372
-        desc="**${SERVER_NAME}** is starting without mods: ${2:-unknown reason}. The server is up; run \`make bless-mods\` once mods are verified."
+        desc="**${SERVER_NAME}** is starting without mods: ${2:-unknown reason}. The server is up; run \`make approve-mods\` once mods are verified."
         ;;
       *)
         title="Server event"; color=9807270

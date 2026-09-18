@@ -61,8 +61,8 @@ mods:
   # load. Costs nothing when mods are off.
   failSafe: true
   # BepInEx is pulled unpinned, so a game update can outrun it: drop mods
-  # after an update until `make bless-mods` confirms they still work.
-  requireBlessedBuild: true
+  # after an update until `make approve-mods` confirms they still work.
+  requireApprovedBuild: true
 
 persistence:
   enabled: true

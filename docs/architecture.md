@@ -88,7 +88,7 @@ crash-loop, when either:
 
 - `libdoorstop` is missing or has unresolved libraries (this is what a
   BepInEx build needing a newer GLIBC than the image looks like), or
-- the Steam build ID differs from `/config/mods-blessed-build`, i.e. the
+- the Steam build ID differs from `/config/mods-approved-build`, i.e. the
   game updated and nobody has confirmed the mods still work.
 
 Degrading clears both `DOORSTOP_ENABLED` and `SERVER_LD_PRELOAD`. Clearing
@@ -100,7 +100,7 @@ The hook is **sourced, not executed** (`. /etc/valheim-hooks/mod-guard.sh`).
 It has to mutate variables in the server script's own shell; run as a child
 process it would report success and change nothing.
 
-Re-enable with `make bless-mods` after verifying a modded start, then
+Re-enable with `make approve-mods` after verifying a modded start, then
 `make restart`.
 
 ## Maintenance
