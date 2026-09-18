@@ -93,6 +93,7 @@ data:
     }
 
     show_join=0
+    build_field=""
     case "$1" in
       started)
         date +%s > "$status_dir/last-started.timestamp"
@@ -121,8 +122,22 @@ data:
         ;;
       updated)
         date +%s > "$status_dir/last-updated.timestamp"
+        # build-id here is still the PREVIOUS build: it's only overwritten by
+        # the "started" hook, which fires after this one on the restart.
+        previous_build=$(cat "$status_dir/build-id" 2>/dev/null || true)
+        manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
+        new_build=""
+        [ -n "$manifest" ] && new_build=$(grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1)
         title="Server updating"; color=5793266
-        desc="**${SERVER_NAME}** was updated and is restarting."
+        if [ -n "$previous_build" ] && [ -n "$new_build" ] && [ "$previous_build" != "$new_build" ]; then
+          desc="**${SERVER_NAME}** was updated from build ${previous_build} to ${new_build} and is restarting."
+          build_field=",{\"name\":\"Build\",\"value\":\"$(json_escape "$previous_build -> $new_build")\",\"inline\":true}"
+        elif [ -n "$new_build" ]; then
+          desc="**${SERVER_NAME}** was updated to build ${new_build} and is restarting."
+          build_field=",{\"name\":\"Build\",\"value\":\"$(json_escape "$new_build")\",\"inline\":true}"
+        else
+          desc="**${SERVER_NAME}** was updated and is restarting."
+        fi
         ;;
       mods-disabled)
         title="Mods disabled"; color=16705372
@@ -144,7 +159,9 @@ data:
         if [ "$show_join" = 1 ]; then
           join_field=",{\"name\":\"Join\",\"value\":\"\`steam://connect/$(json_escape "$connect")\`\",\"inline\":true}"
         fi
-        fields="[${connect_field}${join_field}]"
+        fields="[${connect_field}${join_field}${build_field}]"
+      elif [ -n "$build_field" ]; then
+        fields="[${build_field#,}]"
       fi
       ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
       payload="{\"embeds\":[{\"title\":\"$(json_escape "$title")\",\"description\":\"$(json_escape "$desc")\",\"color\":$color,\"fields\":$fields,\"timestamp\":\"$ts\"}]}"
