@@ -11,7 +11,10 @@ if [ "${INSTALL_VPA:-1}" = "1" ] && ! kubectl get crd verticalpodautoscalers.aut
   tmpdir=$(mktemp -d)
   trap 'rm -rf "${tmpdir}"' EXIT
   git clone --depth 1 https://github.com/kubernetes/autoscaler.git "${tmpdir}/autoscaler"
-  "${tmpdir}/autoscaler/vertical-pod-autoscaler/hack/vpa-up.sh"
+  # vpa-up.sh defaults to `git switch --detach` onto a release tag that a
+  # --depth 1 clone doesn't have; TAG=latest (anything other than its
+  # DEFAULT_TAG) skips that switch and applies whatever the clone gave us.
+  TAG=latest "${tmpdir}/autoscaler/vertical-pod-autoscaler/hack/vpa-up.sh"
 fi
 
 echo "Done. Prometheus is on NodePort 30090:"
