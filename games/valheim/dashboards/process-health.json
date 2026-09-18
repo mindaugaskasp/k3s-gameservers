@@ -757,6 +757,88 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 19,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      },
+      "title": "Backup date range",
+      "description": "The oldest and newest backup currently on disk -- what calendar range the backups on disk span.",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "targets": [
+        {
+          "expr": "game_server_backup_oldest_timestamp_seconds{game=\"valheim\"} * 1000",
+          "legendFormat": "Oldest",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        },
+        {
+          "expr": "game_server_backup_newest_timestamp_seconds{game=\"valheim\"} * 1000",
+          "legendFormat": "Newest",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "none",
+        "orientation": "horizontal"
+      }
+    },
+    {
+      "id": 20,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      },
+      "title": "Backup coverage span",
+      "description": "Newest minus oldest backup timestamp -- how far back your current backups actually reach.",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "targets": [
+        {
+          "expr": "game_server_backup_newest_timestamp_seconds{game=\"valheim\"} - game_server_backup_oldest_timestamp_seconds{game=\"valheim\"}",
+          "legendFormat": "span",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dtdurations"
+        },
+        "overrides": []
+      }
     }
   ]
 }
