@@ -176,10 +176,13 @@ port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
 # Targets the Grafana on the webserver VM; a "valheim" folder must exist there.
+# Picks up GRAFANA_URL/GRAFANA_TOKEN from a gitignored .env here if not
+# already exported, so the token doesn't need re-pasting every session.
 dashboards:
-	@test -n "$$GRAFANA_TOKEN" || (echo "GRAFANA_TOKEN is not set" >&2; exit 1)
-	@test -n "$$GRAFANA_URL" || (echo "GRAFANA_URL is not set" >&2; exit 1)
-	@for f in dashboards/*.json; do \
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	test -n "$$GRAFANA_TOKEN" || { echo "GRAFANA_TOKEN is not set" >&2; exit 1; }; \
+	test -n "$$GRAFANA_URL" || { echo "GRAFANA_URL is not set" >&2; exit 1; }; \
+	for f in dashboards/*.json; do \
 		python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps({'dashboard': d, 'folderUid': 'valheim', 'overwrite': True}))" "$$f" \
 		| curl -sf -X POST "$$GRAFANA_URL/api/dashboards/db" \
 			-H "Authorization: Bearer $$GRAFANA_TOKEN" -H "Content-Type: application/json" -d @- ; \
