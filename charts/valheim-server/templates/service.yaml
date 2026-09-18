@@ -25,7 +25,7 @@ spec:
       protocol: UDP
       nodePort: {{ .Values.service.nodePorts.rpc }}
 ---
-{{- if .Values.metricsExporter.enabled }}
+{{- if .Values.statusMetrics.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -38,7 +38,7 @@ spec:
     {{- include "valheim-server.selectorLabels" . | nindent 4 }}
   ports:
     - name: metrics
-      port: {{ .Values.metricsExporter.port }}
-      targetPort: {{ .Values.metricsExporter.port }}
+      port: {{ .Values.statusMetrics.port }}
+      targetPort: {{ .Values.statusMetrics.port }}
       protocol: TCP
 {{- end }}

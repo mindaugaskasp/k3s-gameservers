@@ -1,19 +1,13 @@
 apiVersion: v2
 name: valheim-server
-description: >
-  Valheim dedicated server as a Kubernetes StatefulSet, using the
-  community-maintained valheim-server-docker image (env-var configured,
-  built-in update/restart/backup scheduling) instead of the generic
-  linuxgsm-game chart -- LGSM's own Valheim install crashed reproducibly
-  in this cluster's containers even with known-working binaries copied in
-  verbatim from a working bare-metal install; see docs/architecture.md.
+description: Valheim dedicated server as a single-replica StatefulSet, backed by the community valheim-server-docker image.
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
+# Tracks the image tag in values.yaml, which is itself "latest" -- the
+# image self-updates the game via its own UPDATE_CRON.
+appVersion: "latest"
 keywords:
   - valheim
   - game-server
   - k3s
 home: https://github.com/community-valheim-tools/valheim-server-docker
-maintainers:
-  - name: vhserver

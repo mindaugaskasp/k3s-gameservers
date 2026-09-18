@@ -21,17 +21,8 @@ metadata:
 data:
   notify.sh: |
     #!/bin/sh
-    # Invoked by this image's POST_SERVER_LISTENING_HOOK / POST_SERVER_SHUTDOWN_HOOK /
-    # POST_RESTART_HOOK env vars (see
-    # github.com/lloesche/valheim-server-docker#environment-variables).
-    # NOT POST_START_HOOK: valheim-updater's write_restart_file() sets
-    # mode=start specifically when files are already current (i.e. a plain
-    # container (re)start, no update) and mode=restart only when it just
-    # applied a real Steam update -- so POST_START_HOOK firing does NOT
-    # mean an update happened, only POST_RESTART_HOOK does.
-    # Always records last-started/last-updated timestamps for the metrics
-    # exporter to read off the shared status-share volume; posts a Discord
-    # embed too if DISCORD_WEBHOOK_URL is set.
+    # Records lifecycle timestamps for status-metrics and posts a Discord embed.
+    # Not POST_START_HOOK: it fires on plain restarts, faking updates.
     set -eu
     status_dir="/var/run/valheim-status"
     persist_dir="/config"
@@ -45,9 +36,8 @@ data:
     case "$1" in
       started)
         date +%s > "$status_dir/last-started.timestamp"
-        # Steam build ID (not the human "1.0.14" version string) -- only
-        # readable from inside this container's install, gamedig has no
-        # access to it.
+        # Steam build ID, not the human "1.0.14" version -- only readable
+        # from inside the container's install, gamedig cannot see it.
         manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
         if [ -n "$manifest" ]; then
           grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1 > "$status_dir/build-id" || true
@@ -56,10 +46,8 @@ data:
         desc="**${SERVER_NAME}** is up and accepting connections."
         ;;
       down)
-        # Checkpoint this session's duration into the PVC-backed cumulative
-        # total (persist_dir survives restarts, status_dir doesn't) --
-        # Prometheus's own history can't answer "lifetime total uptime"
-        # since it only retains 7 days.
+        # Checkpoint this session into the PVC-backed running total;
+        # Prometheus only retains 7d so it cannot answer lifetime uptime.
         started_at=$(cat "$status_dir/last-started.timestamp" 2>/dev/null || echo 0)
         case "$started_at" in ''|*[!0-9]*) started_at=0 ;; esac
         elapsed=0
@@ -87,11 +75,8 @@ data:
       if [ -n "$connect" ]; then
         connect_field="{\"name\":\"Connect\",\"value\":\"$(json_escape "$connect")\",\"inline\":true},{\"name\":\"World\",\"value\":\"$(json_escape "${WORLD_NAME:-}")\",\"inline\":true}"
         join_field=""
-        # steam:// direct-connect URI -- Discord only auto-links http(s),
-        # so a markdown [text](steam://...) link renders as dead plain text.
-        # Show it as inline code instead: not clickable, but one tap to
-        # copy on desktop, then paste into Run/the browser bar to launch
-        # Steam and connect -- fine since Valheim isn't mobile-playable.
+        # Inline code, not a markdown link: Discord only auto-links
+        # http(s), so [text](steam://...) renders as dead plain text.
         if [ "$show_join" = 1 ]; then
           join_field=",{\"name\":\"Join\",\"value\":\"\`steam://connect/$(json_escape "$connect")\`\",\"inline\":true}"
         fi

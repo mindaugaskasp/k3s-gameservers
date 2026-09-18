@@ -5,5 +5,5 @@ Check status:
   kubectl -n {{ .Release.Namespace }} logs -f {{ include "valheim-server.fullname" . }}-0 -c gameserver
 
 Metrics:
-  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "valheim-server.fullname" . }}-metrics {{ .Values.metricsExporter.port }}:{{ .Values.metricsExporter.port }}
-  curl localhost:{{ .Values.metricsExporter.port }}/metrics
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "valheim-server.fullname" . }}-metrics {{ .Values.statusMetrics.port }}:{{ .Values.statusMetrics.port }}
+  curl localhost:{{ .Values.statusMetrics.port }}/metrics

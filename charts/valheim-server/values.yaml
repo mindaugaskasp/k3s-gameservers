@@ -4,31 +4,28 @@ image:
   pullPolicy: IfNotPresent
 
 server:
-  name: "Valheim Server"
-  worldName: "Dedicated"
-  public: true
+  displayName: "Valheim Server" # name shown in the in-game server browser
+  worldName: "Dedicated" # save-file name on disk; changing it starts a NEW world
+  public: true # list in the public server browser
   crossplay: false
-  port: 2456
-  args: "" # SERVER_ARGS passthrough, e.g. world modifiers
+  port: 2456 # query is port+1, RPC is port+2
+  extraArgs: "" # appended to the server command line, e.g. world modifiers
   connectHost: "" # public join address shown in Discord alerts, e.g. a DDNS hostname
 
-# port, port+1 (query), port+2 (RPC) as UDP; see docs/architecture.md for the NodePort range change these need.
+# UDP. Outside the default NodePort range; see docs/architecture.md.
 service:
   nodePorts:
     game: 2456
     query: 2457
     rpc: 2458
 
-# Never commit the real password here; pass via --set-string at deploy
-# time, or set secretRef to an existing Secret's key "SERVER_PASS" instead.
+# Pass at deploy time with --set-string, or point secretRef at an existing
+# Secret with key SERVER_PASS. Never commit a real password.
 secrets:
   serverPassword: ""
 secretRef: ""
 
-# Discord notifications on server started/down/updated, via this image's
-# eval-a-shell-command hooks (no built-in webhook feature like LGSM had).
-# Pass the URL with --set-string alerts.discordWebhook=..., or point
-# secretRef at an existing Secret with key DISCORD_WEBHOOK_URL.
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
 alerts:
   enabled: false
   discordWebhook: ""
@@ -42,11 +39,13 @@ restart:
   cron: "10 5 * * *"
   ifIdle: true
 
+# Retention is whichever limit bites first. Surfaced as game_server_backup_*
+# metrics, so the Grafana "Backups" row shows the effect of changes here.
 backups:
   enabled: true
-  cron: "5 * * * *"
-  maxAge: 3
-  maxCount: 0
+  cron: "5 * * * *" # how often a backup is taken
+  maxAge: 5 # delete backups older than this many days (0 = no age limit)
+  maxCount: 0 # keep at most this many backups (0 = no count limit)
   ifIdle: true
   zip: true
 
@@ -66,10 +65,12 @@ resources:
   limits:
     memory: 4Gi
 
-metricsExporter:
+statusMetrics:
   enabled: true
   image:
-    repository: localhost/k3s-linuxgsm/lgsm-exporter
+    # localhost/ prefix is required: podman namespaces locally-built images
+    # that way, and it stops containerd trying to pull from Docker Hub.
+    repository: localhost/k3s-gameservers/game-status-metrics
     tag: latest
     pullPolicy: IfNotPresent
   port: 9101
@@ -81,11 +82,7 @@ metricsExporter:
     limits:
       memory: 64Mi
 
-serviceMonitor:
-  enabled: true
-  interval: 30s
-  labels: {}
-
+# Requires the VPA CRDs; install/monitoring.sh installs them.
 verticalPodAutoscaler:
-  enabled: true
-  updateMode: "Off"
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto

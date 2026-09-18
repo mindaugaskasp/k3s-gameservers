@@ -1,5 +1,10 @@
 node_modules/
+*.local.md
 *.log
+
+# World saves and server config pulled down by `make sync-data`
+games/*/data/
+games/*/data-backups/
 .env
 .env.*
 secrets*.yaml

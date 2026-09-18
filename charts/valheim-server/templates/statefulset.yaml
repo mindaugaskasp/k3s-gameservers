@@ -36,7 +36,7 @@ spec:
             {{- end }}
           env:
             - name: SERVER_NAME
-              value: {{ .Values.server.name | quote }}
+              value: {{ .Values.server.displayName | quote }}
             - name: WORLD_NAME
               value: {{ .Values.server.worldName | quote }}
             - name: SERVER_PORT
@@ -45,9 +45,9 @@ spec:
               value: {{ .Values.server.public | quote }}
             - name: CROSSPLAY
               value: {{ .Values.server.crossplay | quote }}
-            {{- if .Values.server.args }}
+            {{- if .Values.server.extraArgs }}
             - name: SERVER_ARGS
-              value: {{ .Values.server.args | quote }}
+              value: {{ .Values.server.extraArgs | quote }}
             {{- end }}
             {{- if .Values.server.connectHost }}
             - name: CONNECT_HOST
@@ -122,29 +122,35 @@ spec:
               mountPath: /etc/valheim-hooks
             - name: status-share
               mountPath: /var/run/valheim-status
-        {{- if .Values.metricsExporter.enabled }}
-        - name: metrics-exporter
-          image: "{{ .Values.metricsExporter.image.repository }}:{{ .Values.metricsExporter.image.tag }}"
-          imagePullPolicy: {{ .Values.metricsExporter.image.pullPolicy }}
+        {{- if .Values.statusMetrics.enabled }}
+        - name: status-metrics
+          image: "{{ .Values.statusMetrics.image.repository }}:{{ .Values.statusMetrics.image.tag }}"
+          imagePullPolicy: {{ .Values.statusMetrics.image.pullPolicy }}
           env:
             - name: GAMEDIG_GAME
               value: "valheim"
             - name: QUERY_HOST
               value: "127.0.0.1"
             - name: QUERY_PORT
-              value: {{ .Values.metricsExporter.queryPort | quote }}
-            - name: EXPORTER_PORT
-              value: {{ .Values.metricsExporter.port | quote }}
+              value: {{ .Values.statusMetrics.queryPort | quote }}
+            - name: METRICS_PORT
+              value: {{ .Values.statusMetrics.port | quote }}
             - name: STATUS_DIR
               value: "/var/run/valheim-status"
             - name: PERSIST_DIR
               value: "/config"
+            - name: BACKUP_DIR
+              value: "/config/backups"
+            - name: BACKUP_MAX_AGE_DAYS
+              value: {{ .Values.backups.maxAge | quote }}
+            - name: BACKUP_MAX_COUNT
+              value: {{ .Values.backups.maxCount | quote }}
           ports:
             - name: metrics
-              containerPort: {{ .Values.metricsExporter.port }}
+              containerPort: {{ .Values.statusMetrics.port }}
               protocol: TCP
           resources:
-            {{- toYaml .Values.metricsExporter.resources | nindent 12 }}
+            {{- toYaml .Values.statusMetrics.resources | nindent 12 }}
           volumeMounts:
             - name: status-share
               mountPath: /var/run/valheim-status

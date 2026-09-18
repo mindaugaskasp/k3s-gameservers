@@ -1,5 +1,4 @@
 {{- if .Values.verticalPodAutoscaler.enabled }}
-# Requires VPA CRDs (scripts/install-monitoring.sh installs them).
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
@@ -22,6 +21,6 @@ spec:
         maxAllowed:
           cpu: "4"
           memory: 4Gi
-      - containerName: metrics-exporter
+      - containerName: status-metrics
         mode: "Off"
 {{- end }}

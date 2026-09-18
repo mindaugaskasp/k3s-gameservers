@@ -1,7 +1,5 @@
-# Minimal standalone Prometheus (no operator, no kube-state-metrics, no
-# node-exporter, no Alertmanager) -- just enough to give the external
-# Grafana (webserver VM) a metrics history to query. See
-# docs/architecture.md.
+# Standalone Prometheus: no operator, no kube-state-metrics, no
+# Alertmanager. Queried by the Grafana on the webserver VM.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -98,13 +96,15 @@ spec:
         app: prometheus
     spec:
       serviceAccountName: prometheus
+      # Numeric UIDs, not "nobody": runc fails to resolve symbolic
+      # usernames against nsswitch's systemd passwd source.
       securityContext:
-        runAsUser: 65534 # explicit UID: works around a runc bug resolving
-        runAsGroup: 65534 # symbolic usernames against nsswitch's "systemd" passwd source
-        fsGroup: 65534 # so the PVC mount is writable by that UID
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
       containers:
         - name: prometheus
-          image: prom/prometheus:latest
+          image: prom/prometheus:v3.1.0
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus

@@ -1,80 +1,106 @@
 # k3s-gameservers
 
-Runs game servers as pods in a local single-node [k3s](https://k3s.io/)
-cluster, with per-pod resource tracking in Grafana and a path to
-right-size CPU/memory per game instead of hand-tuning bare-metal
-instances one by one. Two chart shapes are supported:
-
-- `charts/linuxgsm-game/` — generic [LinuxGSM](https://linuxgsm.com/)
-  wrapper, config via LGSM's own `.cfg` files.
-- `charts/valheim-server/` — for games better served by a purpose-built
-  community Docker image (env-var configured). Valheim moved here after
-  LGSM's own Valheim install crashed reproducibly in this cluster's
-  containers; see `docs/architecture.md`.
-
-See [`docs/architecture.md`](docs/architecture.md) for the design
-rationale (why StatefulSet, why VPA not HPA, secrets handling, and —
-important — the RAM/disk constraints on this box). See
-[`docs/migrating-valheim.md`](docs/migrating-valheim.md) for the checked,
-manual procedure to move the live Valheim world into the cluster.
+Runs game servers as pods on a single-node [k3s](https://k3s.io/) cluster,
+with per-pod resource tracking so each game can be right-sized instead of
+hand-tuned on bare metal. Currently one server: Valheim.
 
 ## Layout
 
 ```
-charts/linuxgsm-game/    Generic LGSM chart: one release = one game pod
-                          (StatefulSet + PVC + Service + ServiceMonitor + VPA
-                          + player-gated update/restart CronJobs, replacing
-                          the bare-metal LGSM maintenance crontab)
-charts/valheim-server/   Valheim via the community valheim-server-docker
-                          image (built-in update/restart/backup scheduling,
-                          env-var config, no LGSM)
-games/valheim/            Per-game Helm values, Grafana dashboard, Makefile
-monitoring/
-  kube-prometheus-values.yaml  Sized-down kube-prometheus-stack values (metrics)
-  alloy-logs-values.yaml   Grafana Alloy values: ships games/* pod logs to the
-                          existing Loki on the webserver VM (192.168.0.200)
-  exporter/                Node.js Prometheus exporter (gamedig-based)
-scripts/
-  install-k3s.sh           Install podman + k3s + helm (requires sudo)
-  install-monitoring.sh    Install kube-prometheus-stack + VPA components
-  install-log-shipping.sh  Install Alloy to ship logs to the webserver VM's Loki
-  deploy-game.sh           Build exporter image + helm upgrade --install a game
-docs/
-  architecture.md
-  migrating-valheim.md
+charts/valheim-server/   Helm chart -- the deployable unit
+games/valheim/           This server's config and day-to-day ops
+  values.override.yaml     overrides charts/valheim-server/values.yaml
+  Makefile                 deploy, logs, restart, backups, dashboards
+  dashboards/              Grafana dashboard JSON
+install/                 Run-once setup scripts, in this order
+  k3s.sh                      podman + k3s + helm
+  monitoring.sh               in-cluster Prometheus (+ VPA)
+  log-shipping.sh             Grafana Alloy -> Loki on the webserver VM
+monitoring-config/       Config the install scripts apply
+  prometheus-manifests.yaml   applied with kubectl, not Helm
+  alloy-helm-values.yaml      values for the upstream grafana/alloy chart
+game-status-metrics/     Source for the sidecar image that reports player
+                         counts and server status as Prometheus metrics
+docs/architecture.md     Design rationale and host constraints
 ```
 
-## Quick start
+Nothing here runs automatically. Every script needs `sudo`/cluster access
+and is meant to be read before it is run.
+
+## Setup from scratch
 
 ```sh
-./scripts/install-k3s.sh
-./scripts/install-monitoring.sh          # local Prometheus/Grafana for metrics
-./scripts/install-log-shipping.sh        # ships games/* logs to the webserver VM's Loki
-                                          # (Loki must already be exposed on that side)
+./install/k3s.sh
+./install/monitoring.sh
+LOKI_URL=http://loki.192.168.0.200.nip.io ./install/log-shipping.sh
 
-helm upgrade --install valheim charts/valheim-server -n games \
-  --set-string secrets.serverPassword="$VALHEIM_SERVER_PASSWORD"
-
-kubectl -n games get pods
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+cd games/valheim
+make import-metrics-image                 # build + load the sidecar image
+export VALHEIM_SERVER_PASSWORD=...
+make deploy
+make status
 ```
 
-Or, once deployed, use `games/valheim/Makefile` for day-to-day operations
-(`make -C games/valheim help`).
+## Day-to-day
 
-None of this runs automatically — every script requires `sudo`/cluster
-access and is meant to be reviewed and run by hand.
+Everything runs from `games/valheim/`:
+
+```sh
+make help       # all targets
+make logs       # tail the gameserver
+make players    # current player count
+make restart    # rollout restart
+make backups    # list backups in the PVC
+```
+
+## Backups and restore
+
+The server takes its own backups on `backups.cron` (hourly) and prunes them
+by `backups.maxAge` / `backups.maxCount` — all three are set in
+`charts/valheim-server/values.yaml`, and whichever limit bites first wins.
+
+The world save, config and backups live on a PVC in the cluster, not in
+this repo. Pull a local copy:
+
+```sh
+make sync                 # world + config -> data/, archives -> data-backups/
+make install-sync-timer   # run that hourly via systemd (on the k3s host)
+```
+
+Both directories are gitignored — never commit save data. Local archives
+are pruned to the same window the server keeps.
+
+To restore, pick an archive and let the target handle stopping the server:
+
+```sh
+ls data-backups
+make restore BACKUP=data-backups/<file>.zip
+```
+
+It scales the StatefulSet to 0, unpacks the archive over the PVC through a
+short-lived helper pod, then scales back up. It asks for confirmation
+first, because it replaces the live world.
+
+The Grafana "Backups" row shows how many archives exist, their timestamps
+and sizes, total disk used, and when the oldest becomes eligible for
+deletion.
+
+Game updates, scheduled restarts and backups are handled **inside the
+container** by its own cron settings (`updates`, `restart`, `backups` in
+values) — there are no Kubernetes CronJobs.
+
+## Monitoring
+
+Prometheus runs in-cluster on NodePort 30090 and keeps 7 days of history.
+Grafana is **not** in this cluster — dashboards live on the webserver VM's
+Grafana, which queries this Prometheus. Push dashboard changes with
+`make dashboards` (needs `GRAFANA_URL` and `GRAFANA_TOKEN`).
+
+Pod logs ship to that same VM's Loki via Alloy.
 
 ## Adding another game
 
-**Via LGSM** (`charts/linuxgsm-game`): `mkdir games/<name>`, copy
-`games/valheim/values.yaml`'s shape as a starting point, set
-`game.shortname`/`game.name` to LGSM's short name for it, `ports`,
-`metricsExporter.gamediggame` (must match a
-[gamedig](https://github.com/gamedig/node-gamedig#games-list) game id),
-and `instanceConfig`.
-
-**Via a dedicated community image** (like `charts/valheim-server`): only
-worth a new chart if LGSM's install for that game turns out broken in a
-container too. Copy `charts/valheim-server` as a starting point, swap the
-image and its env vars.
+Copy `charts/valheim-server` and swap the image and its env vars, then add
+a `games/<name>/` with a `values.override.yaml` and a Makefile.
+`game-status-metrics/` works for any game — point `GAMEDIG_GAME` at any
+[gamedig](https://github.com/gamedig/node-gamedig#games-list) game id.

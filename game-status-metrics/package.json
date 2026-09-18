@@ -1,0 +1,13 @@
+{
+  "name": "game-status-metrics",
+  "version": "0.1.0",
+  "description": "Queries a game server's status port with gamedig and serves the result as Prometheus metrics.",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "gamedig": "^5.1.4"
+  }
+}

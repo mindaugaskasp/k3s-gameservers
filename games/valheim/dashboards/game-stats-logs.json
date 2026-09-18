@@ -25,7 +25,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_players{game=\"valheim\"}",
+          "expr": "game_server_players{game=\"valheim\"}",
           "legendFormat": "players",
           "datasource": {
             "type": "prometheus",
@@ -50,7 +50,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_players_max{game=\"valheim\"}",
+          "expr": "game_server_players_max{game=\"valheim\"}",
           "legendFormat": "max",
           "datasource": {
             "type": "prometheus",
@@ -75,7 +75,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_query_duration_seconds{game=\"valheim\"}",
+          "expr": "game_server_query_duration_seconds{game=\"valheim\"}",
           "legendFormat": "seconds",
           "datasource": {
             "type": "prometheus",
@@ -105,7 +105,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_players{game=\"valheim\"}",
+          "expr": "game_server_players{game=\"valheim\"}",
           "legendFormat": "players",
           "datasource": {
             "type": "prometheus",
@@ -130,7 +130,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_player_session_seconds{game=\"valheim\"}",
+          "expr": "game_server_player_session_seconds{game=\"valheim\"}",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -203,7 +203,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_info{game=\"valheim\"}",
+          "expr": "game_server_info{game=\"valheim\"}",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -243,7 +243,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_last_started_timestamp_seconds{game=\"valheim\"} * 1000",
+          "expr": "game_server_last_started_timestamp_seconds{game=\"valheim\"} * 1000",
           "instant": true,
           "legendFormat": "last started",
           "datasource": {
@@ -282,7 +282,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_last_updated_timestamp_seconds{game=\"valheim\"} * 1000",
+          "expr": "game_server_last_updated_timestamp_seconds{game=\"valheim\"} * 1000",
           "instant": true,
           "legendFormat": "last updated",
           "datasource": {
@@ -321,7 +321,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_ping_seconds{game=\"valheim\"}",
+          "expr": "game_server_ping_seconds{game=\"valheim\"}",
           "legendFormat": "ping",
           "datasource": {
             "type": "prometheus",
@@ -352,7 +352,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_uptime_current_seconds{game=\"valheim\"}",
+          "expr": "game_server_uptime_current_seconds{game=\"valheim\"}",
           "legendFormat": "current session",
           "datasource": {
             "type": "prometheus",
@@ -383,7 +383,7 @@
       },
       "targets": [
         {
-          "expr": "lgsm_game_uptime_total_seconds{game=\"valheim\"}",
+          "expr": "game_server_uptime_total_seconds{game=\"valheim\"}",
           "legendFormat": "lifetime total",
           "datasource": {
             "type": "prometheus",

@@ -9,8 +9,8 @@ else
   sudo apt-get install -y podman
 fi
 
-# Make k3s wait for verified time sync, not just network -- prevents bad
-# TLS certs from a stale boot clock. See docs/architecture.md.
+# Wait for verified time sync, not just network: a stale boot clock makes
+# k3s generate TLS certs that are not yet valid.
 sudo systemctl enable systemd-time-wait-sync.service
 sudo mkdir -p /etc/systemd/system/k3s.service.d
 printf '[Unit]\nWants=time-sync.target\nAfter=time-sync.target\n' | sudo tee /etc/systemd/system/k3s.service.d/wait-for-time-sync.conf >/dev/null

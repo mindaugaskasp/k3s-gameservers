@@ -1,0 +1,19 @@
+# Overrides charts/valheim-server/values.yaml. Secrets never go here.
+
+server:
+  displayName: "Valheim Kaunas"
+  worldName: "Kaunas" # changing this starts a NEW world
+  public: true
+  crossplay: false
+  extraArgs: "-modifier resources more -modifier raids more -modifier deathPenalty casual"
+
+persistence:
+  storageClassName: local-path
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    memory: 4Gi

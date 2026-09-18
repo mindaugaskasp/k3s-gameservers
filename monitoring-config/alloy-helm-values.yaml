@@ -39,7 +39,8 @@ alloy:
 
       loki.write "webserver_vm" {
         endpoint {
-          url = "http://loki.192.168.0.200.nip.io/loki/api/v1/push"
+          // Substituted by install/log-shipping.sh from $LOKI_URL.
+          url = "__LOKI_PUSH_URL__"
         }
         external_labels = {
           cluster = "k3s-gameservers",

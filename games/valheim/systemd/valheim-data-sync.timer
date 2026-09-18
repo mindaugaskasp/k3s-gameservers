@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Valheim world data sync
+
+[Timer]
+OnCalendar=hourly
+# Runs after the server's own hourly backup, and catches up after downtime.
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
