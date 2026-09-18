@@ -67,10 +67,13 @@ data:
       if [ -n "$connect" ]; then
         connect_field="{\"name\":\"Connect\",\"value\":\"$(json_escape "$connect")\",\"inline\":true},{\"name\":\"World\",\"value\":\"$(json_escape "${WORLD_NAME:-}")\",\"inline\":true}"
         join_field=""
-        # steam:// direct-connect deep link -- desktop Discord only, mobile
-        # blocks custom URI schemes, which is fine since Valheim isn't mobile.
+        # steam:// direct-connect URI -- Discord only auto-links http(s),
+        # so a markdown [text](steam://...) link renders as dead plain text.
+        # Show it as inline code instead: not clickable, but one tap to
+        # copy on desktop, then paste into Run/the browser bar to launch
+        # Steam and connect -- fine since Valheim isn't mobile-playable.
         if [ "$show_join" = 1 ]; then
-          join_field=",{\"name\":\"Join\",\"value\":\"[Click to join](steam://connect/$(json_escape "$connect"))\",\"inline\":true}"
+          join_field=",{\"name\":\"Join\",\"value\":\"\`steam://connect/$(json_escape "$connect")\`\",\"inline\":true}"
         fi
         fields="[${connect_field}${join_field}]"
       fi
