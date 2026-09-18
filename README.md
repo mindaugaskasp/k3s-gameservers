@@ -113,6 +113,34 @@ A Valheim update can arrive before a compatible BepInEx does. When that
 happens the server starts **unmodded** and alerts, rather than crash-looping
 — see `docs/architecture.md` for how the guard decides.
 
+### On the admin's Windows PC
+
+Server Devcommands only gives you the console if the mod is on your **own
+client** too. `games/valheim/client-mods.ps1` handles that — copy it to the
+Windows machine and run it in PowerShell:
+
+```powershell
+.\client-mods.ps1                    # install BepInEx + Server Devcommands
+.\client-mods.ps1 -Action status     # what is installed, and is it active
+.\client-mods.ps1 -Action disable    # launch vanilla, keep mods on disk
+.\client-mods.ps1 -Action enable     # undo that
+.\client-mods.ps1 -Action uninstall  # back to a clean install
+```
+
+It finds Valheim through the Steam registry keys and library folders; pass
+`-GameDir "D:\...\common\Valheim"` if it can't. If Windows blocks the file,
+run `powershell -ExecutionPolicy Bypass -File .\client-mods.ps1`. Close
+Valheim first for anything except `status`.
+
+Versions are pinned to the pair that were tested together; `-UseLatest`
+takes whatever Thunderstore currently ships. After a Valheim update that
+breaks mods, `-Action disable` gets you playing again in seconds, and
+`uninstall` refuses to run if you have other mods installed unless you pass
+`-Force`.
+
+If you would rather not use the script, [r2modman](https://thunderstore.io/package/ebkr/r2modman/)
+does the same job with a UI and handles updates.
+
 ## Adding another game
 
 Copy `charts/valheim-server` and swap the image and its env vars, then add
