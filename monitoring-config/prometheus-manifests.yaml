@@ -109,6 +109,9 @@ spec:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
             - --storage.tsdb.retention.time=7d
+            # Backstop under the 2Gi PVC below -- whichever limit hits
+            # first wins, same pattern as the game server's own backups.
+            - --storage.tsdb.retention.size=1536MB
           ports:
             - name: http
               containerPort: 9090
