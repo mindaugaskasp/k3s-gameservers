@@ -1,0 +1,79 @@
+# Deletes controller-owned pods stuck on containerd's "failed to reserve container name"
+# (common after a reboot); the controller recreates them under a fresh name.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: maintenance
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stuck-pod-cleanup
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: stuck-pod-cleanup
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: stuck-pod-cleanup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: stuck-pod-cleanup
+subjects:
+  - kind: ServiceAccount
+    name: stuck-pod-cleanup
+    namespace: maintenance
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stuck-pod-cleanup
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 600
+      template:
+        spec:
+          serviceAccountName: stuck-pod-cleanup
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: cleanup
+              image: docker.io/bitnami/kubectl:latest
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  kubectl get pods -A -o go-template='{{range .items}}{{$p := .}}{{if .metadata.ownerReferences}}{{range .status.containerStatuses}}{{if .state.waiting}}{{if eq .state.waiting.reason "CreateContainerError"}}{{$p.metadata.namespace}} {{$p.metadata.name}} {{.state.waiting.message}}{{"\n"}}{{end}}{{end}}{{end}}{{end}}{{end}}' \
+                    | grep 'failed to reserve container name' | cut -d' ' -f1,2 | sort -u \
+                    | while read -r ns pod; do
+                        echo "deleting $ns/$pod"
+                        kubectl -n "$ns" delete pod "$pod" --wait=false
+                      done
+                  echo done
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]

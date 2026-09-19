@@ -10,7 +10,7 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 charts/<game>-server/      Helm chart per game
 games/<game>/              values.override.yaml, Makefile, Grafana dashboards
 install/                   k3s.sh, registry.sh, monitoring.sh, vpa.sh (optional)
-registry/, monitoring/     platform: image registry; Prometheus, Loki, Alloy, Grafana
+registry/ monitoring/ maintenance/   platform, see docs/platform.md
 game-status-metrics/       player/status exporter sidecar (gamedig)
 docs/                      setup-nodes, platform, architecture, valheim, zomboid
 Makefile                   copy-to-vm / copy-to-host (run from your machine)
@@ -20,7 +20,7 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 
 1. Prepare the VM: [docs/setup-nodes.md](docs/setup-nodes.md).
 2. Install k3s, the registry, monitoring and every game's dashboards
-   (steps: `make k3s`, `registry`, `monitoring`, `dashboards`):
+   (steps: `make k3s`, `registry`, `monitoring`, `maintenance`, `dashboards`):
    ```sh
    cp monitoring/site.env.example monitoring/site.env   # then edit
    make setup

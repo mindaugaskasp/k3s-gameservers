@@ -8,6 +8,7 @@ their own namespace and report to it.
 | k3s, Traefik config, registry mirror, clock drop-in | `install/k3s/` | `install/k3s.sh` |
 | Image registry, NodePort 30500 | `registry/` | `install/registry.sh` |
 | Prometheus, Loki, Alloy, Grafana | `monitoring/` | `install/monitoring.sh` |
+| Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
 
 ## k3s
 
@@ -23,6 +24,11 @@ field is immutable ([k3s storage](https://docs.k3s.io/storage)).
 Traefik runs with `externalTrafficPolicy: Local`
 ([HelmChartConfig](https://docs.k3s.io/add-ons/helm#customizing-packaged-components-with-helmchartconfig)),
 so middlewares see real client IPs.
+
+**After a reboot**, containerd can leave pods in `CreateContainerError`
+("failed to reserve container name"). The kubelet's retries reuse the
+reserved name, so they never succeed. `maintenance/` deletes such pods if a
+controller owns them, and the controller recreates them.
 
 ## Monitoring
 
