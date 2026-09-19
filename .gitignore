@@ -7,6 +7,7 @@ games/*/data/
 games/*/data-backups*/
 .env
 .env.*
+!.env.example
 secrets*.yaml
 *.kubeconfig
 kubeconfig

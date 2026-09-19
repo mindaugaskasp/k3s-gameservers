@@ -28,15 +28,16 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 3. Deploy a game (read each script before running it):
    ```sh
    cd games/valheim
+   cp .env.example .env   # then edit: password, Discord webhook, DDNS name
    make push-metrics-image
-   VALHEIM_SERVER_PASSWORD=... make deploy
+   make deploy
    ```
 
 ## Day-to-day
 
 Run `make help` in `games/<game>/` for every target: logs, players,
 restart, scale-up / scale-down-zero, backups, sync, restore-backup, and
-dashboards. Secrets come from env vars or a gitignored `games/<game>/.env`.
+dashboards. Secrets come from env vars or a gitignored `games/<game>/.env` (`.env.example`).
 
 - **One game at a time:** `make scale-down-zero` in one, `make scale-up` in the other.
 - **Backups:** the world lives on the PVC. `make sync` copies it to the

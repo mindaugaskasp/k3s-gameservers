@@ -23,9 +23,9 @@ help:
 	@echo "make template              render manifests locally (no cluster needed)"
 	@echo "make build-metrics-image   podman build the status-metrics image"
 	@echo "make push-metrics-image    build it and push to the in-cluster registry (no sudo)"
-	@echo "make deploy                helm upgrade --install (needs VALHEIM_SERVER_PASSWORD;"
-	@echo "                           set VALHEIM_DISCORD_WEBHOOK too for alerts, and"
-	@echo "                           VALHEIM_CONNECT_HOST for the public DDNS hostname)"
+	@echo "make deploy                helm upgrade --install (reads .env, see .env.example:"
+	@echo "                           VALHEIM_SERVER_PASSWORD, plus VALHEIM_DISCORD_WEBHOOK"
+	@echo "                           for alerts and VALHEIM_CONNECT_HOST for the DDNS name)"
 	@echo "make status                pods/pvc/svc for this release"
 	@echo "make logs                  tail the gameserver container"
 	@echo "make logs-metrics          tail the status-metrics sidecar"
@@ -54,8 +54,10 @@ template:
 	helm template $(RELEASE) $(CHART) -f $(VALUES) -n $(NAMESPACE) \
 		--set-string secrets.serverPassword=REDACTED
 
+# Secrets come from the environment or a gitignored .env here; see .env.example.
 secrets-check:
-	@test -n "$$VALHEIM_SERVER_PASSWORD" || (echo "VALHEIM_SERVER_PASSWORD is not set" >&2; exit 1)
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	test -n "$$VALHEIM_SERVER_PASSWORD" || (echo "VALHEIM_SERVER_PASSWORD is not set (env or .env)" >&2; exit 1)
 
 build-metrics-image:
 	podman build --memory=512m -t $(STATUS_METRICS_IMAGE) $(STATUS_METRICS_DIR)
@@ -69,7 +71,8 @@ push-metrics-image: build-metrics-image
 # DDNS hostname never has to be committed to values.override.yaml.
 deploy: secrets-check
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@extra=(); \
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	extra=(); \
 	if [ -n "$$VALHEIM_DISCORD_WEBHOOK" ]; then \
 		extra+=(--set alerts.enabled=true \
 			--set-string alerts.discordWebhook="$$VALHEIM_DISCORD_WEBHOOK"); \
