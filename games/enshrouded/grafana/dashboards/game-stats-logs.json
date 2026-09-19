@@ -1,0 +1,409 @@
+{
+  "title": "Enshrouded / Game Stats & Logs",
+  "uid": "enshrouded-game-stats-logs",
+  "tags": [
+    "k3s-gameservers"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Players online",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "game_server_players{game=\"enshrouded\"}",
+          "legendFormat": "players",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Max players",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "game_server_players_max{game=\"enshrouded\"}",
+          "legendFormat": "max",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Query latency (gamedig -> server)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "game_server_query_duration_seconds{game=\"enshrouded\"}",
+          "legendFormat": "seconds",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Players online over time",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "game_server_players{game=\"enshrouded\"}",
+          "legendFormat": "players",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Currently online (session duration)",
+      "type": "table",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "expr": "game_server_player_session_seconds{game=\"enshrouded\"}",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "game": true,
+              "instance": true,
+              "job": true
+            }
+          }
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Server logs (gameserver container)",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 16,
+        "x": 8,
+        "y": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{namespace=\"games\", pod=~\"enshrouded-.*\", container=\"gameserver\"}"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Server info",
+      "type": "table",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 26
+      },
+      "targets": [
+        {
+          "expr": "game_server_info{game=\"enshrouded\"}",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "game": true,
+              "instance": true,
+              "job": true,
+              "Value": true
+            }
+          }
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Last started",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 8,
+        "y": 26
+      },
+      "targets": [
+        {
+          "expr": "game_server_last_started_timestamp_seconds{game=\"enshrouded\"} * 1000",
+          "instant": true,
+          "legendFormat": "last started",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Never"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 9,
+      "title": "Last updated",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 13,
+        "y": 26
+      },
+      "targets": [
+        {
+          "expr": "game_server_last_updated_timestamp_seconds{game=\"enshrouded\"} * 1000",
+          "instant": true,
+          "legendFormat": "last updated",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Never"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 10,
+      "title": "Ping",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 26
+      },
+      "targets": [
+        {
+          "expr": "game_server_ping_seconds{game=\"enshrouded\"}",
+          "legendFormat": "ping",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 11,
+      "title": "Uptime -- current session (excludes restarts)",
+      "type": "timeseries",
+      "description": "Resets to 0 on every restart/update -- how long the currently-running process has been up.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "game_server_uptime_current_seconds{game=\"enshrouded\"}",
+          "legendFormat": "current session",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    },
+    {
+      "id": 12,
+      "title": "Uptime -- lifetime total (includes restarts)",
+      "type": "timeseries",
+      "description": "Sum of every session's duration across all restarts/updates -- never resets, only ever grows while the server has run.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "game_server_uptime_total_seconds{game=\"enshrouded\"}",
+          "legendFormat": "lifetime total",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      }
+    }
+  ]
+}

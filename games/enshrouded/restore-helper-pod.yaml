@@ -1,0 +1,21 @@
+# Mounts the game's PVC while the StatefulSet is scaled to 0. Created and
+# deleted by `make restore-backup`.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: enshrouded-restore-helper
+  labels:
+    app.kubernetes.io/part-of: k3s-gameservers
+spec:
+  restartPolicy: Never
+  containers:
+    - name: shell
+      image: alpine:3.20
+      command: ["sleep", "1800"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: data-enshrouded-0

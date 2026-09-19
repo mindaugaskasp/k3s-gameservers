@@ -1,0 +1,47 @@
+# Overrides charts/enshrouded-server/values.yaml. Secrets never go here.
+# Sizing: see the resources comment in games/valheim/values.override.yaml.
+
+server:
+  name: "Enshrouded Kaunas"
+  slotCount: 8
+  textChat: true
+
+roles:
+  - name: "Admins"
+    secretKey: ADMIN_PASS
+    canKickBan: true
+    canAccessInventories: true
+    canEditBase: true
+    canExtendBase: true
+    reservedSlots: 1
+  - name: "Friends"
+    secretKey: FRIEND_PASS
+    canAccessInventories: true
+    canEditBase: true
+    canExtendBase: true
+
+# ENSHROUDED_DIFFICULTY / ENSHROUDED_GAME_SETTINGS in .env override these.
+gameSettings:
+  PRESET: "Default"
+
+persistence:
+  storageClassName: local-path
+  size: 25Gi
+
+# Upstream asks for more RAM than this; check the VPA recommendation before
+# changing it. Sizing rules: docs/architecture.md#sizing.
+resources:
+  requests:
+    cpu: "2"
+    memory: 6Gi
+  limits:
+    memory: 8Gi
+
+# updateMode stays "Off" (chart default) -- recommendations only, never
+# evictions. See docs/architecture.md and install/vpa.sh.
+verticalPodAutoscaler:
+  enabled: true
+
+backups:
+  cron: "0 * * * *"
+  maxCount: 48

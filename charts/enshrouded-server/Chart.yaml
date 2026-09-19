@@ -1,0 +1,13 @@
+apiVersion: v2
+name: enshrouded-server
+description: Enshrouded dedicated server as a single-replica StatefulSet, backed by the mornedhels enshrouded-server image.
+type: application
+version: 0.1.0
+# Tracks the image tag in values.yaml. The image runs its own update, restart
+# and backup crons, so the chart has no update CronJob.
+appVersion: "latest"
+keywords:
+  - enshrouded
+  - game-server
+  - k3s
+home: https://github.com/mornedhels/enshrouded-server
