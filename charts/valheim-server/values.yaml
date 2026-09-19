@@ -45,10 +45,9 @@ backups:
   # Checked on this schedule; a backup is taken only if players were on
   # since the last one (backup-gate.sh), so an idle server makes none.
   cron: "*/10 * * * *"
-  # files/backup-prune.sh, ages counted back from the newest backup with
-  # idle gaps capped at a day, so ages are play history, not calendar: all
-  # within recentDays stay in /config/backups, then the newest and oldest
-  # of each window (recentDays-7, 7-14, ... days) go to backups/archive.
+  # files/backup-prune.sh: backups younger than recentDays stay put, then
+  # the newest and oldest per window (days) go to backups/archive. Ages are
+  # play time, not calendar. See docs/valheim.md.
   recentDays: 3
   backupArchiveWindowDays: [7, 14, 21, 28, 48]
   zip: true

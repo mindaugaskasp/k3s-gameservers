@@ -36,8 +36,8 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 ## Day-to-day
 
 Run `make help` in `games/<game>/` for every target: logs, players,
-restart, scale-up / scale-down-zero, backups, sync, restore-backup, and
-dashboards. Secrets come from env vars or a gitignored `games/<game>/.env` (`.env.example`).
+restart, scale-up / scale-down-zero, backups, sync, restore-backup and
+dashboards. Secrets: gitignored `games/<game>/.env` (see `.env.example`).
 
 - **One game at a time:** `make scale-down-zero` in one, `make scale-up` in the other.
 - **Backups:** the world lives on the PVC. `make sync` copies it to the
@@ -47,8 +47,7 @@ dashboards. Secrets come from env vars or a gitignored `games/<game>/.env` (`.en
 
 ## Docs
 
-- [docs/setup-nodes.md](docs/setup-nodes.md): TrueNAS VM settings (UTC
-  clock, disk, stable IP, CPU, RAM)
+- [docs/setup-nodes.md](docs/setup-nodes.md): VM settings (clock, disk, IP, sizing)
 - [docs/platform.md](docs/platform.md): k3s, registry, monitoring, how apps report
 - [docs/architecture.md](docs/architecture.md): games, networking, sizing
 - [docs/valheim.md](docs/valheim.md) and [docs/zomboid.md](docs/zomboid.md):

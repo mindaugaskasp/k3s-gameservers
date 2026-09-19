@@ -1,8 +1,7 @@
 #!/bin/sh
-# backup-rename.sh DIR: renames the image's worlds-<date>-<time>.zip in DIR to
-# <date>-<time>-game-day-<n>.zip. n is the in-game day as Valheim counts it
-# (1800 s days starting at 0.15 = morning), from netTime, which the save's
-# _main.<n>.db2 opens with (int32 version, double netTime). Unreadable: kept.
+# backup-rename.sh DIR: worlds-<date>-<time>.zip -> <date>-<time>-game-day-<n>.zip.
+# The day comes from netTime (1800 s days, morning at 0.15), which the save's
+# _main.<n>.db2 opens with: int32 version, double netTime. Unreadable: kept.
 dir=$1
 for z in "$dir"/worlds-*.zip; do
   [ -f "$z" ] || continue

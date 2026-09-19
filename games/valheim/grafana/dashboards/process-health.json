@@ -445,7 +445,7 @@
         "uid": "ffyierrb4yl8gd"
       },
       "title": "Play since last backup",
-      "description": "Player activity newer than the newest backup. Normal right after someone plays; it should drop to 0 within ~10 min (next check). Staying red while people play means backups are not being taken.",
+      "description": "Player activity newer than the newest backup. Should fall to 0 within ~10 min; staying red while people play means backups are not being taken.",
       "type": "stat",
       "targets": [
         {
@@ -511,7 +511,7 @@
         "uid": "ffyierrb4yl8gd"
       },
       "title": "Cleanup index",
-      "description": "backup-prune.sh's play-time index (backups/.play-clock). If it is missing or bad while an archive exists, pruning stops (nothing is deleted) and backups pile up until it is fixed. The reason is shown when stopped.",
+      "description": "backups/.play-clock. If it is missing or bad while an archive exists, pruning stops and backups pile up until it is fixed.",
       "type": "stat",
       "targets": [
         {
@@ -613,7 +613,7 @@
         "uid": "ffyierrb4yl8gd"
       },
       "title": "Archive windows filled",
-      "description": "Archived backups per play-time window (days of play back from the newest backup; idle time doesn't count). Each window keeps its newest and oldest. Empty windows are expected until that much play history exists.",
+      "description": "Archived backups per play-time window (days back from the newest backup; idle time doesn't count). Empty until that much play history exists.",
       "type": "bargauge",
       "targets": [
         {
@@ -753,7 +753,7 @@
         "uid": "ffyierrb4yl8gd"
       },
       "title": "Archived backups",
-      "description": "Everything in /config/backups/archive. Each file is the newest or oldest backup of its play-time window; 'Leaves window in' is play time until it moves to the next window or, past the last one, is deleted.",
+      "description": "/config/backups/archive: the newest and oldest backup of each play-time window. 'Leaves window in' is play time until it moves on or is deleted.",
       "type": "table",
       "targets": [
         {

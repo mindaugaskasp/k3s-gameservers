@@ -43,9 +43,8 @@ data:
         done ;;
     esac
     exit 0
-  # Exit 0 if players are on or were since the newest backup. Prefixed to the
-  # image's backup cron; as a post-backup hook, $1 is the backup to ignore.
-  # The A2S count backs up the log hook; a failed query counts as nobody.
+  # Exit 0 if players are on (A2S backs up the log hook) or were since the
+  # newest backup. As a post-backup hook, $1 is the backup to ignore.
   backup-gate.sh: |
     #!/bin/sh
     players=/var/run/valheim-status/players

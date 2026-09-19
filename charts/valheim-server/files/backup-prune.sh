@@ -1,12 +1,7 @@
 #!/bin/sh
-# backup-prune.sh DIR RECENT_DAYS WINDOW_END_DAYS...
-# Ages are play time: each backup gets a clock value once, the previous
-# one's plus the gap, capped at a day, so idle months age nothing. Kept in
-# DIR/.play-clock, which can't be rebuilt once files are gone: if it's
-# missing or unreadable while an archive exists, nothing is touched.
-# Backups within RECENT_DAYS stay in DIR. Older ones move to DIR/archive if
-# newest or oldest in their window (RECENT-7, 7-14, ...), the oldest ageing
-# into the next; the rest, and anything past the last window, are deleted.
+# backup-prune.sh DIR RECENT_DAYS WINDOW_END_DAYS... -- see docs/valheim.md.
+# Ages are play time, from DIR/.play-clock; without a usable index nothing
+# is touched, since it cannot be rebuilt once files are gone.
 set -eu
 dir=$1; recent=$2; shift 2
 clock="$dir/.play-clock"
