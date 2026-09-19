@@ -189,6 +189,7 @@ port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
 dashboards:
+	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	kubectl -n $(NAMESPACE) create configmap $(RELEASE)-dashboards --from-file=grafana/dashboards/ --dry-run=client -o yaml \
 		| kubectl label --local -f - grafana_dashboard=1 -o yaml \
 		| kubectl annotate --local -f - grafana_folder=$(RELEASE) -o yaml \

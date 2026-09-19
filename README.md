@@ -19,11 +19,11 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 ## Setup
 
 1. Prepare the VM: [docs/setup-nodes.md](docs/setup-nodes.md).
-2. Install the cluster:
+2. Install k3s, the registry, monitoring and every game's dashboards
+   (steps: `make k3s`, `registry`, `monitoring`, `dashboards`):
    ```sh
-   ./install/k3s.sh && ./install/registry.sh
    cp monitoring/site.env.example monitoring/site.env   # then edit
-   ./install/monitoring.sh
+   make setup
    ```
 3. Deploy a game (read each script before running it):
    ```sh
@@ -41,7 +41,7 @@ dashboards. Secrets come from env vars or a gitignored `games/<game>/.env`.
 - **One game at a time:** `make scale-down-zero` in one, `make scale-up` in the other.
 - **Backups:** the world lives on the PVC. `make sync` copies it to the
   gitignored `data/` and `data-backups/`.
-- **Grafana:** `make dashboards` ships dashboards; `make grafana-password` (root).
+- **Grafana:** `make dashboards` (root: all games) and `make grafana-password`.
 - **Root `Makefile`:** copy-to-vm / copy-to-host; set `VM_HOST` in the root `.env`.
 
 ## Docs
