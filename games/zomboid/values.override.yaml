@@ -1,5 +1,5 @@
 # Overrides charts/zomboid-server/values.yaml. Secrets never go here.
-# Sized for the ~6GB host as it exists today; revisit once the planned +32GB lands.
+# Sized for the 10GB/16vCPU host, one game at a time (see games/valheim override).
 
 server:
   name: "Zomboid_Kaunas" # the world's folder is already Zomboid_Kaunas
@@ -8,7 +8,7 @@ server:
   public: false
   pvp: false
   maxPlayers: 8
-  memoryXmxGb: 2 # ZGC commits the full heap as shmem; real footprint is ~Xmx+1GB
+  memoryXmxGb: 3 # ZGC commits the full heap as shmem; Xmx 2 peaked at 4Gi (~Xmx+2)
   # mods: ["ModID1"]; workshopItems: ["123456789"]
 
 persistence:
@@ -17,10 +17,10 @@ persistence:
 
 resources:
   requests:
-    cpu: "1"
-    memory: 2Gi
+    cpu: "2"
+    memory: 5Gi
   limits:
-    memory: 4Gi
+    memory: 6Gi
 
 backups:
   periodMinutes: 60

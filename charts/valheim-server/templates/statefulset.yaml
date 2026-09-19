@@ -6,7 +6,9 @@ metadata:
     {{- include "valheim-server.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "valheim-server.fullname" . }}
-  replicas: 1
+  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "valheim-server.fullname" .) }}
+  replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
   selector:
     matchLabels:
       {{- include "valheim-server.selectorLabels" . | nindent 6 }}
