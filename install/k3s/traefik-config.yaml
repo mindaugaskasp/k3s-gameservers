@@ -1,0 +1,17 @@
+# Lives in k3s's auto-deploy manifests folder; k3s re-installs Traefik with these values.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        exposedPort: 80
+      websecure:
+        exposedPort: 443
+    service:
+      spec:
+        # Route to a Traefik pod on the receiving node, which keeps the client source IP.
+        externalTrafficPolicy: Local

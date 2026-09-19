@@ -1,0 +1,23 @@
+# LAN machines push logs here. Only the push path is exposed; Loki has no auth,
+# so lan-only is the only protection. Don't widen it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: loki
+  annotations:
+    # <namespace>-<middleware name>@kubernetescrd, defined in middleware.yaml
+    traefik.ingress.kubernetes.io/router.middlewares: monitoring-lan-only@kubernetescrd
+spec:
+  rules:
+    - host: LOKI_HOST # from site.env
+      http: &loki-push
+        paths:
+          - path: /loki/api/v1/push
+            pathType: Exact
+            backend:
+              service:
+                name: loki
+                port:
+                  name: http
+    - host: loki.lan
+      http: *loki-push

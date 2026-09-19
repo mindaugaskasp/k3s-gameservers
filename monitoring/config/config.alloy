@@ -1,0 +1,54 @@
+// Pods scheduled on this node only, so each Alloy instance tails its own share.
+discovery.kubernetes "pods" {
+  role = "pod"
+
+  selectors {
+    role  = "pod"
+    field = "spec.nodeName=" + sys.env("NODE_NAME")
+  }
+}
+
+discovery.relabel "pods" {
+  targets = discovery.kubernetes.pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    target_label  = "app"
+  }
+}
+
+// Reads container logs through the Kubernetes API, so no host paths or root access are needed.
+loki.source.kubernetes "pods" {
+  targets    = discovery.relabel.pods.output
+  forward_to = [loki.process.pods.receiver]
+}
+
+loki.process "pods" {
+  // Kubernetes probes hit /healthz every few seconds; keep them out of storage.
+  stage.drop {
+    expression = ".*GET /healthz .*"
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki.monitoring.svc:3100/loki/api/v1/push"
+  }
+}

@@ -41,7 +41,7 @@ help:
 	@echo "                           (run from your machine, not the VM; needs VM_HOST -- see root Makefile)"
 	@echo "make restore-backup        pick a backup from a numbered list, restore it, start server again"
 	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
-	@echo "make dashboards            push grafana/dashboards/*.json to Grafana (needs GRAFANA_TOKEN, GRAFANA_URL)"
+	@echo "make dashboards            ship grafana/dashboards/ as a ConfigMap Grafana picks up"
 	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
 
 lint:
@@ -189,15 +189,10 @@ port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
 dashboards:
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	test -n "$$GRAFANA_TOKEN" || { echo "GRAFANA_TOKEN is not set" >&2; exit 1; }; \
-	test -n "$$GRAFANA_URL" || { echo "GRAFANA_URL is not set" >&2; exit 1; }; \
-	for f in grafana/dashboards/*.json; do \
-		python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps({'dashboard': d, 'folderUid': 'zomboid', 'overwrite': True}))" "$$f" \
-		| curl -sf -X POST "$$GRAFANA_URL/api/dashboards/db" \
-			-H "Authorization: Bearer $$GRAFANA_TOKEN" -H "Content-Type: application/json" -d @- ; \
-		echo ; \
-	done
+	kubectl -n $(NAMESPACE) create configmap $(RELEASE)-dashboards --from-file=grafana/dashboards/ --dry-run=client -o yaml \
+		| kubectl label --local -f - grafana_dashboard=1 -o yaml \
+		| kubectl annotate --local -f - grafana_folder=$(RELEASE) -o yaml \
+		| kubectl apply --server-side -f -
 
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)

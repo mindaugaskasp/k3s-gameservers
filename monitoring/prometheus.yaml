@@ -1,10 +1,4 @@
-# Standalone Prometheus: no operator, no kube-state-metrics, no
-# Alertmanager. Queried by the in-cluster Grafana (servers-web's logging stack).
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: monitoring
----
+# Standalone Prometheus: no operator, no kube-state-metrics, no Alertmanager.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

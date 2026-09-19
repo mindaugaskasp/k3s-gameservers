@@ -79,7 +79,7 @@ resources:
 statusMetrics:
   enabled: true
   image:
-    # In-cluster registry (servers-web's, NodePort 30500); `make push-metrics-image`.
+    # In-cluster registry (registry/, NodePort 30500); `make push-metrics-image`.
     repository: localhost:30500/k3s-gameservers/game-status-metrics
     tag: latest
     pullPolicy: Always

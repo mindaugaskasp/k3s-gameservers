@@ -3,23 +3,8 @@
 A single-node k3s cluster runs three namespaces:
 
 - `games`: one StatefulSet per game (`valheim`, `zomboid`)
-- `monitoring`: Prometheus, plus Grafana, Loki and Alloy from servers-web
-- `webserver`: the servers-web site, behind Traefik
-
-## Cluster config
-
-`install/k3s.sh` writes these to
-[`/etc/rancher/k3s/config.yaml`](https://docs.k3s.io/installation/configuration#configuration-file):
-
-- `node-name: ${NODE_NAME}` (default: short hostname)
-- `write-kubeconfig-mode: "600"`
-- `service-node-port-range=2456-32767`
-
-Config file, not flags: servers-web re-runs the installer, which rewrites flags.
-`kubectl` uses `~/.kube/config`; `/etc/rancher/k3s/k3s.yaml` is root-only.
-
-**Don't rename the node.** `local-path` PVs pin the node name, and that
-field is immutable ([k3s storage](https://docs.k3s.io/storage)).
+- `monitoring`, `registry`: the platform, see [platform.md](platform.md)
+- other namespaces: apps like servers-web, which only report to the platform
 
 ## Workloads
 
@@ -40,7 +25,7 @@ Game ports are UDP NodePorts on the same numbers the router forwards:
 - Valheim: 2456-2458
 - Zomboid: 16261-16262, plus RCON on TCP 27015
 
-That's why the NodePort range is widened.
+That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 
 ## Monitoring
 
@@ -48,7 +33,8 @@ That's why the NodePort range is widened.
   [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`.
 - **Prometheus:** plain manifests on NodePort 30090 with 7 days of history.
   It scrapes the sidecars, kubelet and cAdvisor.
-- **Grafana:** provisions that Prometheus with uid `ffyierrb4yl8gd`.
+- **Dashboards:** `make dashboards` applies `games/<game>/grafana/dashboards/`
+  as a labeled ConfigMap ([platform.md](platform.md#reporting-from-an-app)).
 - **[VPA](https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler)**
   (optional): `updateMode: "Off"`, so it only makes recommendations.
 

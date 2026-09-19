@@ -9,12 +9,25 @@ else
   sudo apt-get install -y podman
 fi
 
-# Wait for verified time sync, not just network: a stale boot clock makes
-# k3s generate TLS certs that are not yet valid.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/k3s"
+
 sudo systemctl enable systemd-time-wait-sync.service
-sudo mkdir -p /etc/systemd/system/k3s.service.d
-printf '[Unit]\nWants=time-sync.target\nAfter=time-sync.target\n' | sudo tee /etc/systemd/system/k3s.service.d/wait-for-time-sync.conf >/dev/null
+sudo install -D -m 644 "$HERE/wait-for-clock.conf" /etc/systemd/system/k3s.service.d/wait-for-clock.conf
+sudo rm -f /etc/systemd/system/k3s.service.d/wait-for-time-sync.conf # merged into wait-for-clock.conf
 sudo systemctl daemon-reload
+
+# In-cluster registry (registry/) over plain HTTP, for k3s pulls and podman pushes.
+sudo install -D -m 644 "$HERE/registries.yaml" /etc/rancher/k3s/registries.yaml
+mkdir -p "$HOME/.config/containers/registries.conf.d"
+printf '[[registry]]\nlocation = "localhost:30500"\ninsecure = true\n' > "$HOME/.config/containers/registries.conf.d/localhost-30500.conf"
+
+# Traefik must see real client IPs for the lan-only middleware.
+sudo install -D -m 644 "$HERE/traefik-config.yaml" /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
+
+if sudo ufw status 2>/dev/null | grep -q '^Status: active'; then
+  sudo ufw allow from 10.42.0.0/16 comment 'k3s pods'
+  sudo ufw allow from 10.43.0.0/16 comment 'k3s services'
+fi
 
 # In config.yaml, not installer flags: re-running the k3s installer rewrites flags only.
 NODE_NAME="${NODE_NAME:-$(hostname -s)}"
@@ -23,7 +36,7 @@ K3S_CONFIG=/etc/rancher/k3s/config.yaml
 if command -v k3s >/dev/null 2>&1; then
   echo "k3s already installed: $(k3s --version | head -1)"
   sudo grep -q "^node-name:" "$K3S_CONFIG" 2>/dev/null \
-    || echo "WARNING: no node-name in $K3S_CONFIG -- see docs/architecture.md 'Node identity' before adding one" >&2
+    || echo "WARNING: no node-name in $K3S_CONFIG -- renaming the node breaks local-path PVs, see docs/architecture.md" >&2
 else
   sudo mkdir -p /etc/rancher/k3s
   sudo tee "$K3S_CONFIG" >/dev/null <<EOF

@@ -1,0 +1,5 @@
+# /etc/rancher/k3s/registries.yaml: pull from the in-cluster registry over plain HTTP.
+mirrors:
+  "localhost:30500":
+    endpoint:
+      - "http://localhost:30500"

@@ -1,0 +1,65 @@
+# podman pushes to and k3s pulls from localhost:30500 (see install/k3s/registries.yaml).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: registry
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: registry-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      containers:
+        - name: registry
+          image: registry:2
+          env:
+            - name: REGISTRY_STORAGE_DELETE_ENABLED
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /v2/
+              port: http
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: registry-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http
+      nodePort: 30500
