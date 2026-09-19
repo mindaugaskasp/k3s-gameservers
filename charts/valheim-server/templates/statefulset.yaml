@@ -78,9 +78,10 @@ spec:
             # reaching into archive/) stays off; backup-prune.sh does it.
             - name: BACKUPS_MAX_AGE
               value: "36500"
-            # Also drops the image's start-up backup when nobody played.
+            # Drops the image's start-up backup when nobody played, names
+            # backups by in-game day, then prunes.
             - name: POST_BACKUP_HOOK
-              value: {{ printf "/etc/valheim-hooks/backup-gate.sh @BACKUP_FILE@ || rm -f @BACKUP_FILE@; /etc/valheim-hooks/backup-prune.sh /config/backups %v %s" .Values.backups.recentDays (join " " .Values.backups.backupArchiveWindowDays) | quote }}
+              value: {{ printf "/etc/valheim-hooks/backup-gate.sh @BACKUP_FILE@ || rm -f @BACKUP_FILE@; /etc/valheim-hooks/backup-rename.sh /config/backups; /etc/valheim-hooks/backup-prune.sh /config/backups %v %s" .Values.backups.recentDays (join " " .Values.backups.backupArchiveWindowDays) | quote }}
             - name: BACKUPS_MAX_COUNT
               value: "0"
             - name: BACKUPS_IF_IDLE
@@ -169,6 +170,10 @@ spec:
               value: "/config"
             - name: BACKUP_DIR
               value: "/config/backups"
+            - name: BACKUP_RECENT_DAYS
+              value: {{ .Values.backups.recentDays | quote }}
+            - name: BACKUP_ARCHIVE_WINDOW_DAYS
+              value: {{ join " " .Values.backups.backupArchiveWindowDays | quote }}
           ports:
             - name: metrics
               containerPort: {{ .Values.statusMetrics.port }}

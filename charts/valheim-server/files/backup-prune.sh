@@ -11,7 +11,7 @@ set -eu
 dir=$1; recent=$2; shift 2
 clock="$dir/.play-clock"
 mkdir -p "$dir/archive"
-find "$dir" "$dir/archive" -maxdepth 1 -type f -name 'worlds-*.zip' -printf '%T@ %p\n' | sort -n |
+find "$dir" "$dir/archive" -maxdepth 1 -type f -name '*.zip' -printf '%T@ %p\n' | sort -n |
   awk -v recent="$recent" -v ends="$*" -v clock="$clock" '
     BEGIN {
       while ((r = getline l < clock) > 0) {

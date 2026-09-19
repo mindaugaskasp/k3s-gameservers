@@ -13,6 +13,9 @@ const PERSIST_DIR = process.env.PERSIST_DIR || "/config"; // PVC-backed, survive
 const BACKUP_DIR = process.env.BACKUP_DIR || "/config/backups";
 const BACKUP_MAX_AGE_DAYS = Number(process.env.BACKUP_MAX_AGE_DAYS || 0);
 const BACKUP_MAX_COUNT = Number(process.env.BACKUP_MAX_COUNT || 0);
+// Set for games using backup-prune.sh (play-time archive windows).
+const BACKUP_RECENT_DAYS = Number(process.env.BACKUP_RECENT_DAYS || 0);
+const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(" ").filter(Boolean).map(Number);
 
 // Written by the gameserver's lifecycle hooks; gamedig has no notion of
 // "when did the process last (re)start".
@@ -203,6 +206,100 @@ function renderOnlinePlayers(g) {
   ];
 }
 
+// Mirrors backup-prune.sh: same index checks, same windows, so the dashboard
+// shows what the next prune will do and whether it will run at all.
+function readPlayClock(backups) {
+  const known = new Map();
+  let problem = "";
+  try {
+    for (const line of fs.readFileSync(`${BACKUP_DIR}/.play-clock`, "utf8").split("\n")) {
+      if (!line) continue;
+      const m = /^([^ ]+) ([0-9]+)$/.exec(line);
+      if (!m) {
+        problem = "unreadable line";
+        break;
+      }
+      known.set(m[1], Number(m[2]));
+    }
+  } catch {
+    problem = "missing";
+  }
+  const base = (b) => b.name.replace(/.*\//, "");
+  const archived = backups.filter((b) => b.name.startsWith("archive/"));
+  const unindexed = archived.find((b) => !known.has(base(b)));
+  if (!problem && unindexed) problem = `no entry for ${base(unindexed)}`;
+  if (problem && !archived.length) problem = ""; // prune rebuilds it while nothing is archived
+  return { known, problem, base };
+}
+
+function windowFor(ageDays) {
+  let lo = BACKUP_RECENT_DAYS;
+  if (ageDays < lo) return "recent";
+  for (const end of BACKUP_WINDOW_ENDS) {
+    if (ageDays < end) return `${lo}-${end}`;
+    lo = end;
+  }
+  return "expired";
+}
+
+function renderArchive(g, backups) {
+  const { known, problem, base } = readPlayClock(backups);
+  const newest = backups.length ? known.get(base(backups[backups.length - 1])) : undefined;
+  const lines = [
+    `# HELP game_server_backup_play_clock_ok 1 if backup-prune.sh's play-time index is usable; 0 means pruning is stopped.`,
+    `# TYPE game_server_backup_play_clock_ok gauge`,
+    `game_server_backup_play_clock_ok{game="${g}",problem="${escapeLabel(problem)}"} ${problem ? 0 : 1}`,
+  ];
+  if (newest !== undefined) {
+    lines.push(
+      `# HELP game_server_backup_play_clock_seconds Play time recorded up to the newest backup (idle gaps count at most a day).`,
+      `# TYPE game_server_backup_play_clock_seconds gauge`,
+      `game_server_backup_play_clock_seconds{game="${g}"} ${newest}`
+    );
+  }
+  const windows = new Map(BACKUP_WINDOW_ENDS.map((end, i) => [`${i ? BACKUP_WINDOW_ENDS[i - 1] : BACKUP_RECENT_DAYS}-${end}`, 0]));
+  const files = [];
+  for (const b of backups) {
+    const p = known.get(base(b));
+    const ageDays = newest !== undefined && p !== undefined ? (newest - p) / 86400 : undefined;
+    const win = ageDays === undefined ? "unindexed" : windowFor(ageDays);
+    const end = win.includes("-") ? Number(win.split("-")[1]) : win === "recent" ? BACKUP_RECENT_DAYS : undefined;
+    const day = /-game-day-([0-9]+)\.zip$/.exec(b.name);
+    if (b.name.startsWith("archive/") && windows.has(win)) windows.set(win, windows.get(win) + 1);
+    files.push({ b, ageDays, win, end, day: day ? Number(day[1]) : undefined });
+  }
+  const label = (f) => `game="${g}",file="${escapeLabel(`${BACKUP_DIR}/${f.b.name}`)}"`;
+  lines.push(
+    `# HELP game_server_backup_archive_window_files Archived backups per play-time window (days).`,
+    `# TYPE game_server_backup_archive_window_files gauge`,
+    ...[...windows].map(([w, n]) => `game_server_backup_archive_window_files{game="${g}",window="${w}"} ${n}`),
+    `# HELP game_server_backup_file_info Where each backup sits: recent/archive, and its play-time window.`,
+    `# TYPE game_server_backup_file_info gauge`,
+    ...files.map((f) => `game_server_backup_file_info{${label(f)},location="${f.b.name.startsWith("archive/") ? "archive" : "recent"}",window="${f.win}"} 1`),
+    `# HELP game_server_backup_file_game_day In-game day of the world in each backup (from its name).`,
+    `# TYPE game_server_backup_file_game_day gauge`,
+    ...files.filter((f) => f.day !== undefined).map((f) => `game_server_backup_file_game_day{${label(f)}} ${f.day}`),
+    `# HELP game_server_backup_file_play_age_seconds Play time between each backup and the newest one.`,
+    `# TYPE game_server_backup_file_play_age_seconds gauge`,
+    ...files.filter((f) => f.ageDays !== undefined).map((f) => `game_server_backup_file_play_age_seconds{${label(f)}} ${Math.round(f.ageDays * 86400)}`),
+    `# HELP game_server_backup_file_window_left_seconds Play time until each backup leaves its window (then archived, moved on or deleted).`,
+    `# TYPE game_server_backup_file_window_left_seconds gauge`,
+    ...files.filter((f) => f.end !== undefined).map((f) => `game_server_backup_file_window_left_seconds{${label(f)}} ${Math.round((f.end - f.ageDays) * 86400)}`)
+  );
+  // Touched by player-event.sh / backup-gate.sh on any player activity.
+  try {
+    const t = Math.floor(fs.statSync(`${STATUS_DIR}/players/last-activity`).mtimeMs / 1000);
+    lines.push(
+      `# HELP game_server_last_player_activity_timestamp_seconds Last join/leave/online-check that saw a player.`,
+      `# TYPE game_server_last_player_activity_timestamp_seconds gauge`,
+      `game_server_last_player_activity_timestamp_seconds{game="${g}"} ${t}`
+    );
+  } catch {
+    // no activity since the pod started
+  }
+  return lines;
+}
+
 function renderBackups(g) {
   const backups = readBackups();
   const totalBytes = backups.reduce((n, b) => n + b.bytes, 0);
@@ -248,6 +345,7 @@ function renderBackups(g) {
       ...backups.map((b) => `game_server_backup_file_bytes{game="${g}",file="${escapeLabel(`${BACKUP_DIR}/${b.name}`)}"} ${b.bytes}`)
     );
   }
+  if (BACKUP_WINDOW_ENDS.length) lines.push(...renderArchive(g, backups));
   return lines;
 }
 

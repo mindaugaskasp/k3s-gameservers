@@ -54,10 +54,12 @@ data:
       mkdir -p "$players" && touch "$players/last-activity"; exit 0
     fi
     [ -f "$players/last-activity" ] || exit 1
-    last=$(ls -t /config/backups/worlds-*.zip 2>/dev/null | grep -vxF "${1:-}" | head -1)
+    last=$(ls -t /config/backups/*.zip 2>/dev/null | grep -vxF "${1:-}" | head -1)
     [ -z "$last" ] || [ "$players/last-activity" -nt "$last" ]
   backup-prune.sh: |
     {{- .Files.Get "files/backup-prune.sh" | nindent 4 }}
+  backup-rename.sh: |
+    {{- .Files.Get "files/backup-rename.sh" | nindent 4 }}
   # SOURCED by valheim-server's PRE_SERVER_RUN_HOOK, never executed: only a
   # same-shell run can clear DOORSTOP_ENABLED before the server launches.
   mod-guard.sh: |

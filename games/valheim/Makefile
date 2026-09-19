@@ -141,7 +141,7 @@ sync-backups:
 	@rm -rf $(BACKUP_DIR).new && mkdir -p $(BACKUP_DIR).new
 	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
 		tar cf - -C /config/backups . | tar xf - -C $(BACKUP_DIR).new
-	@ls $(BACKUP_DIR).new/worlds-*.zip >/dev/null 2>&1 || { \
+	@ls $(BACKUP_DIR).new/*.zip >/dev/null 2>&1 || { \
 		echo "server has no backups; keeping $(BACKUP_DIR)/ unchanged" >&2; rm -rf $(BACKUP_DIR).new; exit 1; }
 	@rm -rf $(BACKUP_DIR).old; if [ -d $(BACKUP_DIR) ]; then mv $(BACKUP_DIR) $(BACKUP_DIR).old; fi
 	@mv $(BACKUP_DIR).new $(BACKUP_DIR) && rm -rf $(BACKUP_DIR).old
@@ -166,7 +166,7 @@ install-sync-timer:
 # Overwrites the live world. Stops the server, unpacks the archive over the
 # PVC via a helper pod, then starts it again.
 restore-backup:
-	@mapfile -t backups < <(cd $(BACKUP_DIR) 2>/dev/null && ls -1t worlds-*.zip archive/worlds-*.zip 2>/dev/null); \
+	@mapfile -t backups < <(cd $(BACKUP_DIR) 2>/dev/null && ls -1t *.zip archive/*.zip 2>/dev/null); \
 	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
 	echo "Available backups (newest first):"; \
 	for i in "$${!backups[@]}"; do printf "  %2d) %s\n" "$$((i + 1))" "$${backups[$$i]}"; done; \
