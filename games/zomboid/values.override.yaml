@@ -1,5 +1,5 @@
 # Overrides charts/zomboid-server/values.yaml. Secrets never go here.
-# Sized for the 10GB/16vCPU host, one game at a time (see games/valheim override).
+# Sizing: see the resources comment in games/valheim/values.override.yaml.
 
 server:
   name: "Zomboid_Kaunas" # the world's folder is already Zomboid_Kaunas

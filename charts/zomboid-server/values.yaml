@@ -71,7 +71,7 @@ persistence:
   storageClassName: local-path
   size: 15Gi
 
-# Sized for the host's planned +32GB RAM upgrade -- see docs/architecture.md.
+# Container uses ~Xmx + 1GB (ZGC); see docs/zomboid.md "Memory".
 resources:
   requests:
     cpu: "1"

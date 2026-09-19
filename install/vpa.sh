@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Installs the Vertical Pod Autoscaler (CRDs, recommender, updater,
-# admission controller) cluster-wide via upstream's own installer.
-# Optional: skip this and leave verticalPodAutoscaler.enabled off in
-# chart values if you'd rather not run third-party code with a
-# cluster-wide admission webhook.
+# Optional: installs VPA cluster-wide, incl. an admission webhook.
+# https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
 set -euo pipefail
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}" # /etc/rancher/k3s/k3s.yaml is root-only
 
@@ -16,11 +13,8 @@ echo "Installing Vertical Pod Autoscaler components..."
 tmpdir=$(mktemp -d)
 trap 'rm -rf "${tmpdir}"' EXIT
 
-# Pinned, not just latest master: vpa-up.sh hardcodes this same tag as its
-# own default (both for `git switch --detach` and for the image tag it
-# substitutes into the manifests), and a plain --depth 1 clone of the
-# default branch doesn't have that tag's history for the switch to find.
-# Bump both this and vpa-up.sh's DEFAULT_TAG together if you upgrade.
+# Must match vpa-up.sh's DEFAULT_TAG: it checks out that tag, which a
+# shallow clone of master lacks. Bump both together.
 VPA_TAG="vertical-pod-autoscaler-1.7.1"
 git clone --depth 1 --branch "${VPA_TAG}" \
   https://github.com/kubernetes/autoscaler.git "${tmpdir}/autoscaler"

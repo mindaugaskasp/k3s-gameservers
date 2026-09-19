@@ -145,10 +145,7 @@ sync-backups:
 	@find $(BACKUP_DIR) -type f -mtime +$(BACKUP_RETENTION_DAYS) -print -delete
 	@echo "Synced /config/backups -> $(BACKUP_DIR)/ (keeping $(BACKUP_RETENTION_DAYS) days)"
 
-# Extends the root Makefile's copy-to-host: pulls every backup this box
-# already has (synced by sync-backups/install-sync-timer) down to your
-# machine in one go, instead of one file at a time. Run this from your own
-# machine, same as copy-to-host -- needs VM_HOST set (see the root Makefile).
+# Run from your own machine (needs VM_HOST): pulls every backup synced on the VM.
 VM_REPO_DIR := k3s-gameservers
 download-backups:
 	@mkdir -p $(BACKUP_DIR)

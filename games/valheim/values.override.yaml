@@ -19,8 +19,8 @@ persistence:
   storageClassName: local-path
   size: 5Gi
 
-# 10GB/16vCPU host, one game at a time. Request + Zomboid's exceeds the node,
-# so the second game stays Pending instead of starving the first. Peak seen: 3.1Gi.
+# To run one game at a time, keep game requests summed above node allocatable:
+# the second game then stays Pending instead of starving the first.
 resources:
   requests:
     cpu: "2"

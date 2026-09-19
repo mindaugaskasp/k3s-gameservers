@@ -16,9 +16,8 @@ sudo mkdir -p /etc/systemd/system/k3s.service.d
 printf '[Unit]\nWants=time-sync.target\nAfter=time-sync.target\n' | sudo tee /etc/systemd/system/k3s.service.d/wait-for-time-sync.conf >/dev/null
 sudo systemctl daemon-reload
 
-# In config.yaml, not installer flags: servers-web's cluster-setup/install.sh
-# re-runs the k3s installer on this same box, which rewrites the flags but not this file.
-NODE_NAME="${NODE_NAME:-kubernetes-vm}"
+# In config.yaml, not installer flags: re-running the k3s installer rewrites flags only.
+NODE_NAME="${NODE_NAME:-$(hostname -s)}"
 K3S_CONFIG=/etc/rancher/k3s/config.yaml
 
 if command -v k3s >/dev/null 2>&1; then
