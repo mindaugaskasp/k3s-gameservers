@@ -47,6 +47,10 @@ data:
         static_configs:
           - targets: ["zomboid-metrics.games.svc.cluster.local:9101"]
 
+      - job_name: enshrouded-exporter
+        static_configs:
+          - targets: ["enshrouded-metrics.games.svc.cluster.local:9101"]
+
       - job_name: kubelet-cadvisor
         scheme: https
         tls_config:

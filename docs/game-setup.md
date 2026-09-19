@@ -24,10 +24,15 @@ Add `games/<game>/` with `values.override.yaml` (site settings, sizing),
 `.env.example` (secrets), `Makefile` (same target names as the other games),
 `restore-helper-pod.yaml` and the systemd data-sync units.
 
-## 4. Dashboards
+## 4. Monitoring
 
-Copy another game's `grafana/dashboards/`, swap the game label, pod and PVC
-selectors, and drop panels that game can't feed.
+1. Add a scrape job for the game's metrics Service in
+   `monitoring/prometheus.yaml`, then `kubectl apply -k monitoring` and
+   restart Prometheus — the jobs are static, one per game.
+2. Copy another game's `grafana/dashboards/`, swap the game label, pod and
+   PVC selectors, and drop panels that game can't feed.
+3. `make dashboards`, then restart Grafana once: it only picks up a *new*
+   dashboard folder at startup.
 
 ## 5. Networking
 
