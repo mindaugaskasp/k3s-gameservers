@@ -84,15 +84,19 @@ function clearOnlinePlayers() {
 
 // Oldest first, so [0] is the next one the server's retention will delete.
 // Per-file guard: retention may delete a backup between readdir and stat.
+// Includes archive/, where tiered retention keeps older backups.
 function readBackups() {
-  let names;
-  try {
-    names = fs.readdirSync(BACKUP_DIR);
-  } catch {
-    return [];
+  const names = [];
+  for (const sub of ["", "archive/"]) {
+    try {
+      names.push(...fs.readdirSync(`${BACKUP_DIR}/${sub}`).map((n) => sub + n));
+    } catch {
+      continue;
+    }
   }
   const out = [];
   for (const name of names) {
+    if (name.startsWith(".") || name.includes("/.")) continue; // e.g. .play-clock
     try {
       const st = fs.statSync(`${BACKUP_DIR}/${name}`);
       if (st.isFile()) out.push({ name, bytes: st.size, mtime: Math.floor(st.mtimeMs / 1000) });

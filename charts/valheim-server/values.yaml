@@ -39,14 +39,18 @@ restart:
   cron: "10 5 * * *"
   ifIdle: true
 
-# Retention is whichever limit bites first. Surfaced as game_server_backup_*
-# metrics, so the Grafana "Backups" row shows the effect of changes here.
+# Surfaced as game_server_backup_* metrics in the Grafana "Backups" row.
 backups:
   enabled: true
-  cron: "5 * * * *" # how often a backup is taken
-  maxAge: 5 # delete backups older than this many days (0 = no age limit)
-  maxCount: 0 # keep at most this many backups (0 = no count limit)
-  ifIdle: true
+  # Checked on this schedule; a backup is taken only if players were on
+  # since the last one (backup-gate.sh), so an idle server makes none.
+  cron: "*/10 * * * *"
+  # files/backup-prune.sh, ages counted back from the newest backup with
+  # idle gaps capped at a day, so ages are play history, not calendar: all
+  # within recentDays stay in /config/backups, then the newest and oldest
+  # of each window (recentDays-7, 7-14, ... days) go to backups/archive.
+  recentDays: 3
+  backupArchiveWindowDays: [7, 14, 21, 28, 48]
   zip: true
 
 status:

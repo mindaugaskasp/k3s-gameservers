@@ -70,14 +70,21 @@ spec:
               value: {{ .Values.restart.ifIdle | quote }}
             - name: BACKUPS
               value: {{ .Values.backups.enabled | quote }}
+            # The image prefixes its backup trigger with this, so the gate
+            # decides whether the trigger runs.
             - name: BACKUPS_CRON
-              value: {{ .Values.backups.cron | quote }}
+              value: {{ printf "%s /etc/valheim-hooks/backup-gate.sh &&" .Values.backups.cron | quote }}
+            # The image's own pruning (wall-clock age, newest-N count, both
+            # reaching into archive/) stays off; backup-prune.sh does it.
             - name: BACKUPS_MAX_AGE
-              value: {{ .Values.backups.maxAge | quote }}
+              value: "36500"
+            # Also drops the image's start-up backup when nobody played.
+            - name: POST_BACKUP_HOOK
+              value: {{ printf "/etc/valheim-hooks/backup-gate.sh @BACKUP_FILE@ || rm -f @BACKUP_FILE@; /etc/valheim-hooks/backup-prune.sh /config/backups %v %s" .Values.backups.recentDays (join " " .Values.backups.backupArchiveWindowDays) | quote }}
             - name: BACKUPS_MAX_COUNT
-              value: {{ .Values.backups.maxCount | quote }}
+              value: "0"
             - name: BACKUPS_IF_IDLE
-              value: {{ .Values.backups.ifIdle | quote }}
+              value: "true" # backup-gate.sh does the idle check
             - name: BACKUPS_ZIP
               value: {{ .Values.backups.zip | quote }}
             - name: STATUS_HTTP
@@ -162,10 +169,6 @@ spec:
               value: "/config"
             - name: BACKUP_DIR
               value: "/config/backups"
-            - name: BACKUP_MAX_AGE_DAYS
-              value: {{ .Values.backups.maxAge | quote }}
-            - name: BACKUP_MAX_COUNT
-              value: {{ .Values.backups.maxCount | quote }}
           ports:
             - name: metrics
               containerPort: {{ .Values.statusMetrics.port }}

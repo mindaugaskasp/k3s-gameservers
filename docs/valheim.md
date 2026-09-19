@@ -8,8 +8,13 @@
   chart's `values.yaml`. All times are UTC.
 - **Data:** the world and config are on the PVC at `/config` (saves in
   `worlds_local`). The game install is a disposable subPath at `/opt/valheim`.
-- **Backups:** hourly, into `/config/backups`, pruned by `backups.maxAge`
-  and `backups.maxCount`.
+- **Backups:** into `/config/backups`, every 10 minutes but only if players
+  were on since the last one (`backup-gate.sh`); an idle server makes none.
+  Cleanup (`files/backup-prune.sh`) ages backups in play time (idle gaps
+  count as at most a day): the last `backups.recentDays` all stay, then the
+  newest and oldest per `backupArchiveWindowDays` window move to
+  `backups/archive/`. Ages live in `backups/.play-clock`; if it's missing or
+  unreadable, cleanup logs it and deletes nothing. `make sync` mirrors it all.
 - **Restoring:** `make restore-backup` stops the server, unpacks the archive
   and starts it again.
 

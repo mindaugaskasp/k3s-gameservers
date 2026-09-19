@@ -26,6 +26,7 @@ data:
     dir=/var/run/valheim-status/players
     mkdir -p "$dir/online"
     IFS= read -r l || exit 0
+    touch "$dir/last-activity"  # read by backup-gate.sh
     case "$l" in
       *"Got handshake from client "*)
         id=${l##*Got handshake from client }; printf '%s' "${id%% *}" > "$dir/last-handshake" ;;
@@ -42,6 +43,21 @@ data:
         done ;;
     esac
     exit 0
+  # Exit 0 if players are on or were since the newest backup. Prefixed to the
+  # image's backup cron; as a post-backup hook, $1 is the backup to ignore.
+  # The A2S count backs up the log hook; a failed query counts as nobody.
+  backup-gate.sh: |
+    #!/bin/sh
+    players=/var/run/valheim-status/players
+    if [ -n "$(ls -A "$players/online" 2>/dev/null)" ] ||
+      /usr/local/bin/valheim-status 2>/dev/null | grep -q '"player_count": [1-9]'; then
+      mkdir -p "$players" && touch "$players/last-activity"; exit 0
+    fi
+    [ -f "$players/last-activity" ] || exit 1
+    last=$(ls -t /config/backups/worlds-*.zip 2>/dev/null | grep -vxF "${1:-}" | head -1)
+    [ -z "$last" ] || [ "$players/last-activity" -nt "$last" ]
+  backup-prune.sh: |
+    {{- .Files.Get "files/backup-prune.sh" | nindent 4 }}
   # SOURCED by valheim-server's PRE_SERVER_RUN_HOOK, never executed: only a
   # same-shell run can clear DOORSTOP_ENABLED before the server launches.
   mod-guard.sh: |

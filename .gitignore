@@ -4,7 +4,7 @@ node_modules/
 
 # World saves and server config pulled down by `make sync-data`
 games/*/data/
-games/*/data-backups/
+games/*/data-backups*/
 .env
 .env.*
 secrets*.yaml

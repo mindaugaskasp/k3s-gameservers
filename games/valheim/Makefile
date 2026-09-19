@@ -11,8 +11,6 @@ VALUES := values.override.yaml
 DATA_DIR := data
 BACKUP_DIR := data-backups
 REPO_ROOT := $(abspath ../..)
-# Keep this in step with backups.maxAge in the chart values.
-BACKUP_RETENTION_DAYS := 5
 
 .PHONY: help lint template deploy status logs logs-metrics \
 	restart scale-down-zero scale-up shell port-forward-metrics dashboards secrets-check \
@@ -113,7 +111,7 @@ players:
 		wget -qO- http://127.0.0.1:9101/metrics | grep game_server_players
 
 backups:
-	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- ls -la /config/backups
+	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- ls -laR /config/backups
 
 mods-status:
 	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- sh -c '\
@@ -137,13 +135,17 @@ sync-data:
 		tar cf - -C /config --exclude=./backups . | tar xf - -C $(DATA_DIR)
 	@echo "Synced /config (worlds + config) -> $(DATA_DIR)/"
 
-# Local copies are pruned to the same window the server keeps.
+# Mirrors the server's backups + archive, swapped in only once complete and
+# only if the server still has backups, so a failed pull keeps the old copy.
 sync-backups:
-	@mkdir -p $(BACKUP_DIR)
+	@rm -rf $(BACKUP_DIR).new && mkdir -p $(BACKUP_DIR).new
 	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
-		tar cf - -C /config/backups . | tar xf - -C $(BACKUP_DIR)
-	@find $(BACKUP_DIR) -type f -mtime +$(BACKUP_RETENTION_DAYS) -print -delete
-	@echo "Synced /config/backups -> $(BACKUP_DIR)/ (keeping $(BACKUP_RETENTION_DAYS) days)"
+		tar cf - -C /config/backups . | tar xf - -C $(BACKUP_DIR).new
+	@ls $(BACKUP_DIR).new/worlds-*.zip >/dev/null 2>&1 || { \
+		echo "server has no backups; keeping $(BACKUP_DIR)/ unchanged" >&2; rm -rf $(BACKUP_DIR).new; exit 1; }
+	@rm -rf $(BACKUP_DIR).old; if [ -d $(BACKUP_DIR) ]; then mv $(BACKUP_DIR) $(BACKUP_DIR).old; fi
+	@mv $(BACKUP_DIR).new $(BACKUP_DIR) && rm -rf $(BACKUP_DIR).old
+	@echo "Synced /config/backups -> $(BACKUP_DIR)/"
 
 # Run from your own machine (needs VM_HOST): pulls every backup synced on the VM.
 VM_REPO_DIR := k3s-gameservers
@@ -164,7 +166,7 @@ install-sync-timer:
 # Overwrites the live world. Stops the server, unpacks the archive over the
 # PVC via a helper pod, then starts it again.
 restore-backup:
-	@mapfile -t backups < <(ls -1t $(BACKUP_DIR) 2>/dev/null); \
+	@mapfile -t backups < <(cd $(BACKUP_DIR) 2>/dev/null && ls -1t worlds-*.zip archive/worlds-*.zip 2>/dev/null); \
 	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
 	echo "Available backups (newest first):"; \
 	for i in "$${!backups[@]}"; do printf "  %2d) %s\n" "$$((i + 1))" "$${backups[$$i]}"; done; \
