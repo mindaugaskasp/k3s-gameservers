@@ -1,5 +1,5 @@
 # Standalone Prometheus: no operator, no kube-state-metrics, no
-# Alertmanager. Queried by the Grafana on the webserver VM.
+# Alertmanager. Queried by the in-cluster Grafana (servers-web's logging stack).
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -48,6 +48,10 @@ data:
       - job_name: valheim-exporter
         static_configs:
           - targets: ["valheim-metrics.games.svc.cluster.local:9101"]
+
+      - job_name: zomboid-exporter
+        static_configs:
+          - targets: ["zomboid-metrics.games.svc.cluster.local:9101"]
 
       - job_name: kubelet-cadvisor
         scheme: https
@@ -142,6 +146,9 @@ metadata:
 spec:
   accessModes: ["ReadWriteOnce"]
   storageClassName: local-path
+  # Pinned: recreated once already during a node rename, see
+  # docs/architecture.md's "Node identity" section.
+  volumeName: pvc-bc737f55-9a16-4f41-a184-dc6a2a764c7d
   resources:
     requests:
       storage: 2Gi

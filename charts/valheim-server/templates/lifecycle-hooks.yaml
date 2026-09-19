@@ -19,6 +19,29 @@ metadata:
   labels:
     {{- include "valheim-server.labels" . | nindent 4 }}
 data:
+  # Run by the image's ON_VALHEIM_LOG_FILTER_* hooks with the log line on stdin. The
+  # query protocol has no player names, so this keeps one file per online character.
+  player-event.sh: |
+    #!/bin/sh
+    dir=/var/run/valheim-status/players
+    mkdir -p "$dir/online"
+    IFS= read -r l || exit 0
+    case "$l" in
+      *"Got handshake from client "*)
+        id=${l##*Got handshake from client }; printf '%s' "${id%% *}" > "$dir/last-handshake" ;;
+      *"Got character ZDOID from "*)
+        rest=${l##*Got character ZDOID from }; zdo=${rest##* : }
+        [ "${zdo%%:*}" = 0 ] && exit 0  # ZDOID 0:0 is a death, not a join
+        name=$(printf '%s' "${rest% : *}" | tr -d '/')
+        # A respawn keeps the SteamID from the join, not whoever handshook last.
+        [ -n "$name" ] && [ ! -f "$dir/online/$name" ] && cat "$dir/last-handshake" > "$dir/online/$name" 2>/dev/null ;;
+      *"Closing socket "*)
+        id=${l##*Closing socket }; id=${id%% *}
+        for f in "$dir/online"/*; do
+          [ -f "$f" ] && [ "$(cat "$f")" = "$id" ] && rm -f "$f"
+        done ;;
+    esac
+    exit 0
   # SOURCED by valheim-server's PRE_SERVER_RUN_HOOK, never executed: only a
   # same-shell run can clear DOORSTOP_ENABLED before the server launches.
   mod-guard.sh: |

@@ -95,27 +95,109 @@
     },
     {
       "id": 4,
-      "title": "Players online over time",
+      "title": "Players online over time (by character)",
       "type": "timeseries",
+      "description": "One stacked band per character, from the server log (Valheim's query protocol has no names). Dashed line is the server's own player count.",
       "gridPos": {
         "h": 8,
         "w": 24,
         "x": 0,
         "y": 4
       },
-      "targets": [
-        {
-          "expr": "game_server_players{game=\"valheim\"}",
-          "legendFormat": "players",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ffyierrb4yl8gd"
-          }
-        }
-      ],
       "datasource": {
         "type": "prometheus",
         "uid": "ffyierrb4yl8gd"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          },
+          "legendFormat": "{{name}}",
+          "expr": "sum by (name) (game_server_player_online{game=\"valheim\"})"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          },
+          "legendFormat": "total (server count)",
+          "expr": "game_server_players{game=\"valheim\"}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "mode": "none"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       }
     },
     {
@@ -182,7 +264,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{namespace=\"games\", container=\"gameserver\"}"
+          "expr": "{namespace=\"games\", pod=~\"valheim-.*\", container=\"gameserver\"}"
         }
       ],
       "options": {
@@ -259,7 +341,9 @@
             {
               "type": "value",
               "options": {
-                "0": { "text": "Never" }
+                "0": {
+                  "text": "Never"
+                }
               }
             }
           ]
@@ -298,7 +382,9 @@
             {
               "type": "value",
               "options": {
-                "0": { "text": "Never" }
+                "0": {
+                  "text": "Never"
+                }
               }
             }
           ]

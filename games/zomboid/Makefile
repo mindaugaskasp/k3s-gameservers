@@ -1,50 +1,45 @@
 SHELL := /bin/bash
-# pipefail so a failed `kubectl ... | tar` aborts before the backup prune runs.
 .SHELLFLAGS := -o pipefail -c
 export KUBECONFIG ?= $(HOME)/.kube/config
-CHART := ../../charts/valheim-server
+CHART := ../../charts/zomboid-server
 STATUS_METRICS_DIR := ../../game-status-metrics
 STATUS_METRICS_IMAGE := localhost:30500/k3s-gameservers/game-status-metrics:latest
-RELEASE := valheim
+RELEASE := zomboid
 NAMESPACE := games
 VALUES := values.override.yaml
 DATA_DIR := data
 BACKUP_DIR := data-backups
 REPO_ROOT := $(abspath ../..)
-# Keep this in step with backups.maxAge in the chart values.
 BACKUP_RETENTION_DAYS := 5
 
 .PHONY: help lint template deploy status logs logs-metrics \
 	restart scale-down-zero scale-up shell port-forward-metrics dashboards secrets-check \
-	uninstall build-metrics-image push-metrics-image players backups \
-	sync sync-data sync-backups install-sync-timer restore-backup _restore-run \
-	mods-status approve-mods download-backups
+	uninstall build-metrics-image push-metrics-image players backups announce \
+	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups
 
 help:
 	@echo "make lint                  helm lint this chart+values"
 	@echo "make template              render manifests locally (no cluster needed)"
 	@echo "make build-metrics-image   podman build the status-metrics image"
 	@echo "make push-metrics-image    build it and push to the in-cluster registry (no sudo)"
-	@echo "make deploy                helm upgrade --install (needs VALHEIM_SERVER_PASSWORD;"
-	@echo "                           set VALHEIM_DISCORD_WEBHOOK too for alerts, and"
-	@echo "                           VALHEIM_CONNECT_HOST for the public DDNS hostname)"
+	@echo "make deploy                helm upgrade --install (needs ZOMBOID_ADMIN_PASSWORD and"
+	@echo "                           ZOMBOID_RCON_PASSWORD; ZOMBOID_SERVER_PASSWORD, ZOMBOID_DISCORD_WEBHOOK,"
+	@echo "                           ZOMBOID_CONNECT_HOST optional)"
 	@echo "make status                pods/pvc/svc for this release"
 	@echo "make logs                  tail the gameserver container"
 	@echo "make logs-metrics          tail the status-metrics sidecar"
-	@echo "make restart               rollout restart the statefulset"
+	@echo "make restart               rollout restart the statefulset (also how updates apply)"
 	@echo "make scale-down-zero       scale the statefulset to 0 replicas"
 	@echo "make scale-up              scale the statefulset back to 1 replica"
 	@echo "make shell                 shell into the running gameserver container"
 	@echo "make players               current player count from status-metrics"
-	@echo "make backups               list backups under /config/backups"
-	@echo "make sync                  pull world, config and backups into $(DATA_DIR)/ + $(BACKUP_DIR)/"
-	@echo "make install-sync-timer    run that sync hourly via systemd (on the k3s host)"
+	@echo "make announce MSG=\"...\"    broadcast an in-game message to all connected players via RCON"
+	@echo "make backups               list the game's own period/startup/version backup zips"
+	@echo "make sync                  pull config, install and backups into $(DATA_DIR)/ + $(BACKUP_DIR)/"
+	@echo "make install-sync-timer    run that hourly via systemd (on the k3s host)"
 	@echo "make download-backups      scp every synced backup to your machine's $(BACKUP_DIR)/"
 	@echo "                           (run from your machine, not the VM; needs VM_HOST -- see root Makefile)"
 	@echo "make restore-backup        pick a backup from a numbered list, restore it, start server again"
-	@echo "make mods-status           whether mods loaded, why not, and which plugins exist"
-	@echo "make approve-mods          confirm mods work on the running game build,"
-	@echo "                           so the fail-safe stops holding them back"
 	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
 	@echo "make dashboards            push grafana/dashboards/*.json to Grafana (needs GRAFANA_TOKEN, GRAFANA_URL)"
 	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
@@ -54,10 +49,13 @@ lint:
 
 template:
 	helm template $(RELEASE) $(CHART) -f $(VALUES) -n $(NAMESPACE) \
-		--set-string secrets.serverPassword=REDACTED
+		--set-string secrets.adminPassword=REDACTED \
+		--set-string secrets.rconPassword=REDACTED
 
 secrets-check:
-	@test -n "$$VALHEIM_SERVER_PASSWORD" || (echo "VALHEIM_SERVER_PASSWORD is not set" >&2; exit 1)
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	test -n "$$ZOMBOID_ADMIN_PASSWORD" || (echo "ZOMBOID_ADMIN_PASSWORD is not set" >&2; exit 1); \
+	test -n "$$ZOMBOID_RCON_PASSWORD" || (echo "ZOMBOID_RCON_PASSWORD is not set" >&2; exit 1)
 
 build-metrics-image:
 	podman build --memory=512m -t $(STATUS_METRICS_IMAGE) $(STATUS_METRICS_DIR)
@@ -66,29 +64,28 @@ build-metrics-image:
 push-metrics-image: build-metrics-image
 	podman push $(STATUS_METRICS_IMAGE)
 
-# Discord alerts stay off unless VALHEIM_DISCORD_WEBHOOK is exported.
-# connectHost is set the same way, via VALHEIM_CONNECT_HOST, so the public
-# DDNS hostname never has to be committed to values.override.yaml.
 deploy: secrets-check
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@extra=(); \
-	if [ -n "$$VALHEIM_DISCORD_WEBHOOK" ]; then \
-		extra+=(--set alerts.enabled=true \
-			--set-string alerts.discordWebhook="$$VALHEIM_DISCORD_WEBHOOK"); \
-	else \
-		echo "note: VALHEIM_DISCORD_WEBHOOK unset, deploying without Discord alerts" >&2; \
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	extra=(); \
+	if [ -n "$$ZOMBOID_SERVER_PASSWORD" ]; then \
+		extra+=(--set-string secrets.serverPassword="$$ZOMBOID_SERVER_PASSWORD"); \
 	fi; \
-	if [ -n "$$VALHEIM_CONNECT_HOST" ]; then \
-		extra+=(--set-string server.connectHost="$$VALHEIM_CONNECT_HOST"); \
+	if [ -n "$$ZOMBOID_DISCORD_WEBHOOK" ]; then \
+		extra+=(--set alerts.enabled=true --set-string alerts.discordWebhook="$$ZOMBOID_DISCORD_WEBHOOK"); \
+	fi; \
+	if [ -n "$$ZOMBOID_CONNECT_HOST" ]; then \
+		extra+=(--set-string server.connectHost="$$ZOMBOID_CONNECT_HOST"); \
 	fi; \
 	helm upgrade --install $(RELEASE) $(CHART) \
 		-f $(VALUES) \
 		-n $(NAMESPACE) \
-		--set-string secrets.serverPassword="$$VALHEIM_SERVER_PASSWORD" \
+		--set-string secrets.adminPassword="$$ZOMBOID_ADMIN_PASSWORD" \
+		--set-string secrets.rconPassword="$$ZOMBOID_RCON_PASSWORD" \
 		"$${extra[@]}"
 
 status:
-	kubectl -n $(NAMESPACE) get statefulset,pod,pvc,svc -l app.kubernetes.io/instance=$(RELEASE)
+	kubectl -n $(NAMESPACE) get statefulset,pod,pvc,svc,cronjob -l app.kubernetes.io/instance=$(RELEASE)
 
 logs:
 	kubectl -n $(NAMESPACE) logs -f $(RELEASE)-0 -c gameserver
@@ -106,79 +103,70 @@ scale-up:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
 
 shell:
-	kubectl -n $(NAMESPACE) exec -it $(RELEASE)-0 -c gameserver -- sh
+	kubectl -n $(NAMESPACE) exec -it $(RELEASE)-0 -c gameserver -- bash
 
 players:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c status-metrics -- \
 		wget -qO- http://127.0.0.1:9101/metrics | grep game_server_players
 
 backups:
-	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- ls -la /config/backups
+	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
+		sh -c 'cd /project-zomboid-config/backups && ls -la period startup version 2>/dev/null'
 
-mods-status:
-	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- sh -c '\
-		printf "mods active: "; cat /var/run/valheim-status/mods-active 2>/dev/null || echo "(fail-safe not in use)"; \
-		printf "reason:      "; cat /var/run/valheim-status/mods-status 2>/dev/null; echo; \
-		printf "approved build: "; cat /config/mods-approved-build 2>/dev/null || echo "(none)"; echo; \
-		printf "plugins:     "; ls -1 /config/bepinex/plugins 2>/dev/null | tr "\n" " " || echo "(none)"; echo'
+announce:
+	@test -n "$(MSG)" || { echo "usage: make announce MSG=\"your message\"" >&2; exit 1; }
+	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- env MSG="$(MSG)" sh -c \
+		'rcon -a 127.0.0.1:$${PORT_TCP_RCON:-27015} -p "$$RCON_PASSWORD" "servermsg \"$$MSG\""'
 
-# Records YOUR confirmation that mods work on this build; it tests nothing.
-approve-mods:
-	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- /etc/valheim-hooks/approve-mods.sh
-	@echo "Restart to load mods: make restart"
-
-# Read-only pull from the running pod. `restore` is the only path that
-# writes back, and it stops the server first.
 sync: sync-data sync-backups
 
 sync-data:
 	@mkdir -p $(DATA_DIR)
 	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
-		tar cf - -C /config --exclude=./backups . | tar xf - -C $(DATA_DIR)
-	@echo "Synced /config (worlds + config) -> $(DATA_DIR)/"
+		tar cf - -C /project-zomboid-config --exclude=./backups . | tar xf - -C $(DATA_DIR)
+	@echo "Synced /project-zomboid-config -> $(DATA_DIR)/"
 
-# Local copies are pruned to the same window the server keeps.
 sync-backups:
 	@mkdir -p $(BACKUP_DIR)
 	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
-		tar cf - -C /config/backups . | tar xf - -C $(BACKUP_DIR)
+		tar cf - -C /project-zomboid-config/backups . | tar xf - -C $(BACKUP_DIR)
 	@find $(BACKUP_DIR) -type f -mtime +$(BACKUP_RETENTION_DAYS) -print -delete
-	@echo "Synced /config/backups -> $(BACKUP_DIR)/ (keeping $(BACKUP_RETENTION_DAYS) days)"
+	@echo "Synced /project-zomboid-config/backups -> $(BACKUP_DIR)/ (keeping $(BACKUP_RETENTION_DAYS) days)"
 
-# Extends the root Makefile's copy-to-host: pulls every backup this box
-# already has (synced by sync-backups/install-sync-timer) down to your
-# machine in one go, instead of one file at a time. Run this from your own
-# machine, same as copy-to-host -- needs VM_HOST set (see the root Makefile).
 VM_REPO_DIR := k3s-gameservers
 download-backups:
 	@mkdir -p $(BACKUP_DIR)
 	$(MAKE) -C $(REPO_ROOT) copy-to-host \
-		FILE=$(VM_REPO_DIR)/games/valheim/$(BACKUP_DIR)/. DEST=$(BACKUP_DIR)
+		FILE=$(VM_REPO_DIR)/games/zomboid/$(BACKUP_DIR)/. DEST=$(BACKUP_DIR)
 
 install-sync-timer:
 	@test -d /run/systemd/system || { echo "systemd not found; run this on the k3s host" >&2; exit 1; }
 	@sed -e "s|__REPO__|$(REPO_ROOT)|g" -e "s|__USER__|$$(id -un)|g" -e "s|__HOME__|$$HOME|g" \
-		systemd/valheim-data-sync.service | sudo tee /etc/systemd/system/valheim-data-sync.service >/dev/null
-	@sudo cp systemd/valheim-data-sync.timer /etc/systemd/system/valheim-data-sync.timer
+		systemd/zomboid-data-sync.service | sudo tee /etc/systemd/system/zomboid-data-sync.service >/dev/null
+	@sudo cp systemd/zomboid-data-sync.timer /etc/systemd/system/zomboid-data-sync.timer
 	sudo systemctl daemon-reload
-	sudo systemctl enable --now valheim-data-sync.timer
-	systemctl list-timers valheim-data-sync.timer --no-pager
+	sudo systemctl enable --now zomboid-data-sync.timer
+	systemctl list-timers zomboid-data-sync.timer --no-pager
 
-# Overwrites the live world. Stops the server, unpacks the archive over the
-# PVC via a helper pod, then starts it again.
 restore-backup:
-	@mapfile -t backups < <(ls -1t $(BACKUP_DIR) 2>/dev/null); \
+	@mapfile -t backups < <(find $(BACKUP_DIR) -name 'backup_*.zip' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-); \
 	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
 	echo "Available backups (newest first):"; \
-	for i in "$${!backups[@]}"; do printf "  %2d) %s\n" "$$((i + 1))" "$${backups[$$i]}"; done; \
+	for i in "$${!backups[@]}"; do \
+		printf "  %2d) %-22s %s  %s\n" "$$((i + 1))" "$${backups[$$i]#$(BACKUP_DIR)/}" \
+			"$$(date -r "$${backups[$$i]}" '+%Y-%m-%d %H:%M')" "$$(du -h "$${backups[$$i]}" | cut -f1)"; \
+	done; \
 	read -r -p "Select a backup to restore (number): " n; \
 	idx=$$((n - 1)); \
 	[ "$$idx" -ge 0 ] 2>/dev/null && [ "$$idx" -lt $${#backups[@]} ] || { echo "invalid selection" >&2; exit 1; }; \
-	$(MAKE) _restore-run BACKUP=$(BACKUP_DIR)/$${backups[$$idx]}
+	$(MAKE) _restore-run BACKUP="$${backups[$$idx]}"
 
+# The zip holds Saves/Multiplayer/<name>, Server/, db/ and options.ini relative to
+# /project-zomboid-config; only those are swapped, so Logs/ and backups/ stay put.
 _restore-run:
-	@test -n "$(BACKUP)" || { echo "usage: make _restore-run BACKUP=$(BACKUP_DIR)/<file>.zip" >&2; exit 1; }
+	@test -n "$(BACKUP)" || { echo "usage: make _restore-run BACKUP=$(BACKUP_DIR)/<type>/backup_N.zip" >&2; exit 1; }
 	@test -f "$(BACKUP)" || { echo "no such file: $(BACKUP)" >&2; exit 1; }
+	@unzip -l "$(BACKUP)" | grep -q "Saves/Multiplayer/" || { echo "$(BACKUP) has no world save in it -- refusing" >&2; exit 1; }
 	@echo "This REPLACES the live world of '$(RELEASE)' with $(BACKUP)."
 	@read -r -p "Type $(RELEASE) to confirm: " a; [ "$$a" = "$(RELEASE)" ] || { echo "aborted" >&2; exit 1; }
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=0
@@ -186,17 +174,13 @@ _restore-run:
 	kubectl -n $(NAMESPACE) apply -f restore-helper-pod.yaml
 	kubectl -n $(NAMESPACE) wait --for=condition=Ready pod/$(RELEASE)-restore-helper --timeout=180s
 	kubectl -n $(NAMESPACE) cp "$(BACKUP)" $(RELEASE)-restore-helper:/tmp/restore.zip
-	@echo "Archive paths are config/worlds_local/..., so it unpacks at the PVC root."
-	kubectl -n $(NAMESPACE) exec $(RELEASE)-restore-helper -- sh -c 'set -e; \
-		cd /data; \
-		rm -rf .restore-tmp; mkdir -p .restore-tmp; \
-		unzip -q -o /tmp/restore.zip -d .restore-tmp; \
-		test -d .restore-tmp/config/worlds_local; \
-		ts=$$(date +%Y%m%d-%H%M%S); \
-		if [ -d config/worlds_local ]; then mv config/worlds_local config/worlds_local.replaced-$$ts; fi; \
-		mv .restore-tmp/config/worlds_local config/worlds_local; \
-		rm -rf .restore-tmp; \
-		echo "previous world kept at config/worlds_local.replaced-$$ts"'
+	kubectl -n $(NAMESPACE) exec $(RELEASE)-restore-helper -- sh -c 'set -e; cd /data/config; \
+		name=$$(unzip -p /tmp/restore.zip readme.txt | sed -n "s/^ServerName: *//p" | tr -d "\r"); \
+		test -n "$$name"; keep=".replaced-$$(date +%Y%m%d-%H%M%S)"; \
+		for p in "Saves/Multiplayer/$$name" Server db options.ini; do \
+			[ -e "$$p" ] && mkdir -p "$$keep/$$(dirname "$$p")" && mv "$$p" "$$keep/$$p"; true; done; \
+		unzip -q -o /tmp/restore.zip -x readme.txt; \
+		echo "previous world kept at /project-zomboid-config/$$keep"'
 	kubectl -n $(NAMESPACE) delete -f restore-helper-pod.yaml --wait
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
 	@echo "Restored $(BACKUP). Watch it come up with: make logs"
@@ -204,13 +188,12 @@ _restore-run:
 port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
-# Needs a "valheim" folder in Grafana; GRAFANA_URL/GRAFANA_TOKEN come from the gitignored .env.
 dashboards:
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	test -n "$$GRAFANA_TOKEN" || { echo "GRAFANA_TOKEN is not set" >&2; exit 1; }; \
 	test -n "$$GRAFANA_URL" || { echo "GRAFANA_URL is not set" >&2; exit 1; }; \
 	for f in grafana/dashboards/*.json; do \
-		python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps({'dashboard': d, 'folderUid': 'valheim', 'overwrite': True}))" "$$f" \
+		python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps({'dashboard': d, 'folderUid': 'zomboid', 'overwrite': True}))" "$$f" \
 		| curl -sf -X POST "$$GRAFANA_URL/api/dashboards/db" \
 			-H "Authorization: Bearer $$GRAFANA_TOKEN" -H "Content-Type: application/json" -d @- ; \
 		echo ; \

@@ -79,11 +79,10 @@ resources:
 statusMetrics:
   enabled: true
   image:
-    # localhost/ prefix is required: podman namespaces locally-built images
-    # that way, and it stops containerd trying to pull from Docker Hub.
-    repository: localhost/k3s-gameservers/game-status-metrics
+    # In-cluster registry (servers-web's, NodePort 30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/game-status-metrics
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   port: 9101
   queryPort: "2457"
   resources:

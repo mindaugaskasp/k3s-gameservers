@@ -16,16 +16,32 @@ sudo mkdir -p /etc/systemd/system/k3s.service.d
 printf '[Unit]\nWants=time-sync.target\nAfter=time-sync.target\n' | sudo tee /etc/systemd/system/k3s.service.d/wait-for-time-sync.conf >/dev/null
 sudo systemctl daemon-reload
 
+# In config.yaml, not installer flags: servers-web's cluster-setup/install.sh
+# re-runs the k3s installer on this same box, which rewrites the flags but not this file.
+NODE_NAME="${NODE_NAME:-kubernetes-vm}"
+K3S_CONFIG=/etc/rancher/k3s/config.yaml
+
 if command -v k3s >/dev/null 2>&1; then
   echo "k3s already installed: $(k3s --version | head -1)"
+  sudo grep -q "^node-name:" "$K3S_CONFIG" 2>/dev/null \
+    || echo "WARNING: no node-name in $K3S_CONFIG -- see docs/architecture.md 'Node identity' before adding one" >&2
 else
+  sudo mkdir -p /etc/rancher/k3s
+  sudo tee "$K3S_CONFIG" >/dev/null <<EOF
+node-name: ${NODE_NAME}
+write-kubeconfig-mode: "600"
+kube-apiserver-arg:
+  - "service-node-port-range=2456-32767"
+EOF
   echo "Installing k3s..."
-  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik --write-kubeconfig-mode 644" sh -
+  curl -sfL https://get.k3s.io | sh -
 fi
 
 mkdir -p "${HOME}/.kube"
 sudo cp /etc/rancher/k3s/k3s.yaml "${HOME}/.kube/config"
 sudo chown "$(id -u):$(id -g)" "${HOME}/.kube/config"
+chmod 600 "${HOME}/.kube/config"
+export KUBECONFIG="${HOME}/.kube/config"
 echo "kubeconfig written to ${HOME}/.kube/config"
 
 if ! command -v helm >/dev/null 2>&1; then

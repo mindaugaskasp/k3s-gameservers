@@ -1,0 +1,43 @@
+{{- if .Values.updates.cron }}
+# For the update CronJob: exec into the game pod (RCON player count), and
+# restart its StatefulSet. Scoped to this namespace only.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "zomboid-server.fullname" . }}-maintenance
+  labels:
+    {{- include "zomboid-server.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "zomboid-server.fullname" . }}-maintenance
+  labels:
+    {{- include "zomboid-server.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    resourceNames: [{{ include "zomboid-server.fullname" . | quote }}]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "zomboid-server.fullname" . }}-maintenance
+  labels:
+    {{- include "zomboid-server.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "zomboid-server.fullname" . }}-maintenance
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "zomboid-server.fullname" . }}-maintenance
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

@@ -5,6 +5,7 @@
 # chart values if you'd rather not run third-party code with a
 # cluster-wide admission webhook.
 set -euo pipefail
+export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}" # /etc/rancher/k3s/k3s.yaml is root-only
 
 if kubectl get crd verticalpodautoscalers.autoscaling.k8s.io >/dev/null 2>&1; then
   echo "VPA CRDs already present; nothing to do."

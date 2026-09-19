@@ -1,0 +1,27 @@
+# Overrides charts/zomboid-server/values.yaml. Secrets never go here.
+# Sized for the ~6GB host as it exists today; revisit once the planned +32GB lands.
+
+server:
+  name: "Zomboid_Kaunas" # the world's folder is already Zomboid_Kaunas
+  displayName: "Zomboid Kaunas"
+  adminUsername: "admin"
+  public: false
+  pvp: false
+  maxPlayers: 8
+  memoryXmxGb: 2 # ZGC commits the full heap as shmem; real footprint is ~Xmx+1GB
+  # mods: ["ModID1"]; workshopItems: ["123456789"]
+
+persistence:
+  storageClassName: local-path
+  size: 10Gi
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 2Gi
+  limits:
+    memory: 4Gi
+
+backups:
+  periodMinutes: 60
+  count: 120

@@ -1,0 +1,26 @@
+{{- if .Values.verticalPodAutoscaler.enabled }}
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: {{ include "zomboid-server.fullname" . }}
+  labels:
+    {{- include "zomboid-server.labels" . | nindent 4 }}
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: {{ include "zomboid-server.fullname" . }}
+  updatePolicy:
+    updateMode: {{ .Values.verticalPodAutoscaler.updateMode | quote }}
+  resourcePolicy:
+    containerPolicies:
+      - containerName: gameserver
+        minAllowed:
+          cpu: 100m
+          memory: 512Mi
+        maxAllowed:
+          cpu: "4"
+          memory: 6Gi
+      - containerName: status-metrics
+        mode: "Off"
+{{- end }}

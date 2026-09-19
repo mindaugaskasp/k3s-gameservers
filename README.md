@@ -2,7 +2,9 @@
 
 Runs game servers as pods on a single-node [k3s](https://k3s.io/) cluster,
 with per-pod resource tracking so each game can be right-sized instead of
-hand-tuned on bare metal. Currently one server: Valheim.
+hand-tuned on bare metal. Two servers: Valheim and Project Zomboid. Until the
+host's RAM upgrade, only one runs at a time (`make scale-down-zero` /
+`make scale-up` in `games/<game>/`).
 
 ## Layout
 
@@ -10,18 +12,18 @@ hand-tuned on bare metal. Currently one server: Valheim.
 Makefile                 copy-to-vm / copy-to-host -- run from your own
                          machine, not the VM (see below)
 charts/valheim-server/   Helm chart -- the deployable unit
+charts/zomboid-server/   Helm chart for Project Zomboid
 games/valheim/           This server's config and day-to-day ops
   values.override.yaml     overrides charts/valheim-server/values.yaml
   Makefile                 deploy, logs, restart, backups, dashboards
   grafana/dashboards/      Grafana dashboard JSON
+games/zomboid/           Ditto for Project Zomboid (see "Project Zomboid" below)
 install/                 Run-once setup scripts, in this order
   k3s.sh                      podman + k3s + helm
   monitoring.sh               in-cluster Prometheus
   vpa.sh                      Vertical Pod Autoscaler (optional; see below)
-  logging.sh                  Grafana Alloy -> Loki on the webserver VM
 monitoring-config/       Config the install scripts apply
   prometheus-manifests.yaml   applied with kubectl, not Helm
-  alloy-helm-values.yaml      values for the upstream grafana/alloy chart
 game-status-metrics/     Source for the sidecar image that reports player
                          counts and server status as Prometheus metrics
 docs/architecture.md     Design rationale and host constraints
@@ -36,10 +38,10 @@ and is meant to be read before it is run.
 ./install/k3s.sh
 ./install/monitoring.sh
 ./install/vpa.sh       # optional: see "Vertical Pod Autoscaler" below before running
-./install/logging.sh   # needs LOKI_URL=http://loki.<host> in a local, gitignored .env
+# Logging (Alloy, Loki, Grafana) comes from the servers-web repo's logging stack.
 
 cd games/valheim
-make import-metrics-image                 # build + load the sidecar image
+make push-metrics-image                   # build + push the sidecar image to the in-cluster registry
 export VALHEIM_SERVER_PASSWORD=...
 make deploy
 make status
@@ -74,11 +76,11 @@ make install-sync-timer   # run that hourly via systemd (on the k3s host)
 Both directories are gitignored — never commit save data. Local archives
 are pruned to the same window the server keeps.
 
-To restore, pick an archive and let the target handle stopping the server:
+To restore, run the target and pick an archive from the numbered list it
+shows -- it handles stopping and restarting the server:
 
 ```sh
-ls data-backups
-make restore BACKUP=data-backups/<file>.zip
+make restore-backup
 ```
 
 It scales the StatefulSet to 0, unpacks the archive over the PVC through a
@@ -96,11 +98,13 @@ values) — there are no Kubernetes CronJobs.
 ## Monitoring
 
 Prometheus runs in-cluster on NodePort 30090 and keeps 7 days of history.
-Grafana is **not** in this cluster — dashboards live on the webserver VM's
-Grafana, which queries this Prometheus. Push dashboard changes with
-`make dashboards` (needs `GRAFANA_URL` and `GRAFANA_TOKEN`).
+Grafana and Loki run in the same cluster, deployed by the servers-web repo's
+logging stack. Grafana is at http://grafana.192.168.0.129.nip.io (LAN only);
+the admin password comes from `make grafana-password` in servers-web. Alloy
+ships every pod's logs to Loki, `games` included.
 
-Pod logs ship to that same VM's Loki via Alloy.
+Push dashboard changes with `make dashboards`. It reads `GRAFANA_URL` and
+`GRAFANA_TOKEN` (an Editor service-account token) from the game's gitignored `.env`.
 
 ## Vertical Pod Autoscaler
 
@@ -185,9 +189,29 @@ breaks mods, `-Action disable` gets you playing again in seconds, and
 If you would rather not use the script, [r2modman](https://thunderstore.io/package/ebkr/r2modman/)
 does the same job with a UI and handles updates.
 
+## Project Zomboid
+
+`charts/zomboid-server/` + `games/zomboid/` are built and lint clean but
+**not deployed**. `games/zomboid/values.override.yaml` is sized for a
+planned +32GB host RAM upgrade (Build 42 needs ~6GB just to start an empty
+world) — see docs/architecture.md before deploying on the box as it exists today.
+
+It runs `terule/pz-dedicated-server`, a thinner image than Valheim's: no
+in-container update cron (`make restart` is how updates apply), and no
+BepInEx-style mod fail-safe (mods have nothing to half-load, so none is
+needed). Backups run from a Kubernetes CronJob instead of in-container
+cron, and Discord alerts run over plain Kubernetes container hooks instead
+of the image's own — both documented in docs/architecture.md. Mods go in
+via `server.mods`/`server.workshopItems` in values, and persist across
+restarts the same way every other setting does. There's no way to
+pre-authorize an admin by Steam ID (confirmed against PZ's actual admin
+model, not just this image) — `ADMIN_USERNAME`/`ADMIN_PASSWORD` is the
+supported path.
+
 ## Adding another game
 
-Copy `charts/valheim-server` and swap the image and its env vars, then add
-a `games/<name>/` with a `values.override.yaml` and a Makefile.
+Copy `charts/valheim-server` (or `charts/zomboid-server` for a thinner,
+hooks-free starting point) and swap the image and its env vars, then add a
+`games/<name>/` with a `values.override.yaml` and a Makefile.
 `game-status-metrics/` works for any game — point `GAMEDIG_GAME` at any
 [gamedig](https://github.com/gamedig/node-gamedig#games-list) game id.

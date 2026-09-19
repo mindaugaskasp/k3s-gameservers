@@ -1,0 +1,106 @@
+image:
+  repository: terule/pz-dedicated-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+server:
+  # Save/ini/db filename -- changing it starts a NEW world. No spaces: PZ saves
+  # the world as name_with_underscores but backs up by the raw name, so backups miss it.
+  name: "dedicated"
+  displayName: "" # shown in the server browser (ini PublicName); defaults to name
+  adminUsername: "admin"
+  public: false
+  pvp: false
+  maxPlayers: 10
+  port: 16261 # UDP; "direct" (raknet) is always port+1
+  rconPort: 27015
+  # In-game Mod IDs / matching Steam Workshop item IDs (same order+count).
+  mods: []
+  workshopItems: []
+  # Appended verbatim after -mods/-workshopitems on the launch command.
+  extraFlags: ""
+  memoryXmxGb: 12 # GB of JVM heap; must fit under resources.limits.memory
+  branch: "" # unstable | outdatedunstable | "" (stable)
+  connectHost: "" # public join address shown in Discord alerts
+  display:
+    mouseOverName: false
+    userName: false
+    firstLastName: true
+    sneakHidePlayers: false
+    mapRemoteVisibility: 3
+    minimap: true
+
+# The image re-runs steamcmd on start, so the scheduled update is a restart.
+updates:
+  onStart: true
+  cron: "0 5 * * *" # "" disables the scheduled restart
+  timeZone: "Etc/UTC" # matches Valheim, whose container runs in UTC
+  ifIdle: true # skip that day's restart if anyone is online
+
+# Pass at deploy time with --set-string, or point secretRef at an existing
+# Secret with keys ADMIN_PASS/RCON_PASS/SERVER_PASS. Never commit real passwords.
+secrets:
+  adminPassword: ""
+  rconPassword: ""
+  serverPassword: ""
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+# The game's own ZipBackup, written into server.ini before each boot. Zips land in
+# /project-zomboid-config/backups/{period,startup,version}/backup_N.zip (1 = newest).
+backups:
+  periodMinutes: 60 # 0 disables periodic backups
+  count: 120 # kept per type; 120 hourly = 5 days, same window as Valheim
+  onStart: true
+  onVersionChange: true
+
+# UDP game/raknet, TCP rcon. Outside the default NodePort range; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 16261
+    raknet: 16262
+    rcon: 27015
+
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 15Gi
+
+# Sized for the host's planned +32GB RAM upgrade -- see docs/architecture.md.
+resources:
+  requests:
+    cpu: "1"
+    memory: 4Gi
+  limits:
+    memory: 16Gi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (servers-web's, NodePort 30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/game-status-metrics
+    tag: latest
+    pullPolicy: Always
+  port: 9101
+  queryPort: "16261" # PZ's A2S query lives on the game port, not port+1
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+# PZ writes chat/user/PerkLog to files, not stdout; this tails them to stdout
+# (prefixed "[chat] ", "[user] ", ...) so the log shipper picks them up.
+gameLogs:
+  enabled: true
+
+# Requires the VPA CRDs; install/monitoring.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto

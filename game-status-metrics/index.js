@@ -59,6 +59,29 @@ function readModState() {
   }
 }
 
+// One file per online player, named after the character, written by the game's
+// log hooks (games whose query protocol doesn't report names, e.g. Valheim).
+const ONLINE_DIR = `${STATUS_DIR}/players/online`;
+
+function readOnlinePlayers() {
+  try {
+    return fs.readdirSync(ONLINE_DIR).sort();
+  } catch {
+    return [];
+  }
+}
+
+// The server says nobody is on, so any name still listed missed its disconnect line.
+function clearOnlinePlayers() {
+  for (const name of readOnlinePlayers()) {
+    try {
+      fs.unlinkSync(`${ONLINE_DIR}/${name}`);
+    } catch {
+      continue;
+    }
+  }
+}
+
 // Oldest first, so [0] is the next one the server's retention will delete.
 // Per-file guard: retention may delete a backup between readdir and stat.
 function readBackups() {
@@ -115,6 +138,7 @@ async function scrape() {
   const start = Date.now();
   try {
     const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });
+    if (state.players.length === 0) clearOnlinePlayers();
     last = {
       up: 1,
       players: state.players.length,
@@ -162,6 +186,16 @@ function renderMods(g) {
     `# HELP game_server_mods_info Why mods are or are not loaded; read the reason label.`,
     `# TYPE game_server_mods_info gauge`,
     `game_server_mods_info{game="${g}",reason="${escapeLabel(mods.status)}"} 1`,
+  ];
+}
+
+function renderOnlinePlayers(g) {
+  const names = readOnlinePlayers();
+  if (!names.length) return [];
+  return [
+    `# HELP game_server_player_online A player currently online, by character name, from the server log.`,
+    `# TYPE game_server_player_online gauge`,
+    ...names.map((n) => `game_server_player_online{game="${g}",name="${escapeLabel(n)}"} 1`),
   ];
 }
 
@@ -259,6 +293,7 @@ function render() {
     `# TYPE game_server_uptime_total_seconds gauge`,
     `game_server_uptime_total_seconds{game="${g}"} ${readUptimeBaseline() + currentSessionSeconds()}`,
     ...playerLines,
+    ...renderOnlinePlayers(g),
     ...renderMods(g),
     ...renderBackups(g),
     "",

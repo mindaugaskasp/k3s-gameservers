@@ -1,140 +1,162 @@
 # Architecture
 
-Valheim runs as a StatefulSet (`valheim`) in the `games` namespace on a
-single-node k3s cluster, replacing a bare-metal LinuxGSM instance that has
-since been retired.
+A single-node k3s cluster (node `kubernetes-vm`, 192.168.0.129). Game servers
+run in the `games` namespace, one StatefulSet each (`valheim`, `zomboid`).
+Prometheus runs in `monitoring`. The servers-web site (a separate repo) shares
+the cluster in its own namespace behind Traefik.
 
-## Why not LinuxGSM's own image
+## Cluster setup
 
-The first attempt wrapped `gameservermanagers/gameserver:vh`. It crashed
-reproducibly a few seconds after startup with a `NullReferenceException` in
-`MagicaCloth2.MagicaWindZone.Awake()` — even with known-good binaries copied
-in from the working bare-metal install. Root cause was never found. The
-chart now uses the community
-[`valheim-server-docker`](https://github.com/community-valheim-tools/valheim-server-docker)
-image, which does not have the issue.
-
-## Why StatefulSet, not Deployment
-
-One world, one save directory, one process. There is no meaningful way to
-run two replicas of the same world, so `replicas` is fixed at 1. The
-StatefulSet gives a stable pod identity and a `volumeClaimTemplate`, which
-makes "1 world = 1 volume = 1 pod" explicit. Horizontal scaling does not
-apply; vertical (VPA) does.
-
-## Config and secrets
-
-`games/valheim/values.override.yaml` holds the non-sensitive settings —
-server name, world name, modifiers — and overrides the chart defaults in
-`charts/valheim-server/values.yaml`.
-
-The password is a Kubernetes Secret, supplied at deploy time via
-`--set-string secrets.serverPassword=...`; the Makefile reads it from
-`$VALHEIM_SERVER_PASSWORD`. The Discord webhook works the same way. Neither
-is ever committed. Both can instead point at a pre-existing Secret via
-`secretRef`.
-
-## Networking
-
-Game (2456), query (2457) and RPC (2458) are UDP NodePorts, matching the
-router's existing port-forward from the bare-metal setup. Kubernetes'
-default NodePort range (30000-32767) does not cover these, so k3s's range
-was widened in `/etc/rancher/k3s/config.yaml`:
+`install/k3s.sh` writes `/etc/rancher/k3s/config.yaml` before installing:
 
 ```yaml
+node-name: kubernetes-vm
+write-kubeconfig-mode: "600"
 kube-apiserver-arg:
   - "service-node-port-range=2456-32767"
 ```
 
-This is host state, not in this repo — a rebuilt host needs it reapplied.
+These live in config.yaml rather than installer flags because servers-web's
+`cluster-setup/install.sh` re-runs the k3s installer on this box, which
+replaces the flags but leaves config.yaml alone. Traefik is left enabled
+because the site needs it.
 
-## World data
+The kubeconfig at `/etc/rancher/k3s/k3s.yaml` is root-only. The install
+scripts and Makefiles default `KUBECONFIG` to `~/.kube/config`. `kubectl`
+here is k3s's own binary, and without that variable it reads the
+root-only file.
 
-The world save and server config live on the PVC at `/config` inside the
-pod (`/config/worlds_local` for the save itself); the game install is on a
-separate subPath at `/opt/valheim` and is disposable. The PVC is created by
-the StatefulSet's `volumeClaimTemplate` and is **not** removed by
-`helm uninstall`.
+**Node identity.** The node name is pinned instead of following the
+hostname. `local-path` PVs pin `nodeAffinity` to the node name when they are
+created, and the field is immutable. The node used to be named `valheim`.
+When the host was renamed, every PV (Valheim, Zomboid, Prometheus) had to be
+recreated by hand: reclaim policy set to `Retain`, PV/PVC deleted, then
+recreated with `volumeName` pinned to the same on-disk path. Renaming the
+node again means repeating that for every PVC.
 
-`make sync` pulls a read-only copy into `games/valheim/data/` and
-`data-backups/`, both gitignored. `make install-sync-timer` runs that
-hourly from a systemd timer on the k3s host — the pod cannot write to a
-working copy itself, so the pull is driven from outside.
+## Why StatefulSet
 
-`make restore BACKUP=...` is the only path that writes back. It scales the
-StatefulSet to 0, mounts the PVC in a helper pod
-(`games/valheim/restore-helper-pod.yaml`), unpacks the archive over
-`/config`, then scales back up. Restoring into a running server would be
-overwritten by the next world save, hence the stop.
+One world, one save directory, one process. `replicas` is fixed at 1, and
+the `volumeClaimTemplate` makes "1 world = 1 volume = 1 pod" explicit.
+Vertical scaling (VPA) applies, horizontal doesn't. `helm uninstall` keeps
+the PVC.
 
-Backup retention is the server's own (`backups.cron`, `maxAge`,
-`maxCount`); the status-metrics sidecar reads `/config/backups` read-only
-and reports count, per-file size and timestamp, total bytes and the
-oldest archive's expiry as `game_server_backup_*` metrics.
+## Config and secrets
 
-## Mods (BepInEx)
+`games/<game>/values.override.yaml` holds non-sensitive settings. Passwords
+and Discord webhooks are Kubernetes Secrets set at deploy time from env vars
+(or a gitignored `games/<game>/.env`), or from an existing Secret via
+`secretRef`. They are never committed.
 
-Off by default (`mods.enabled`). When on, the image installs BepInEx itself
-and re-merges it over vanilla after every Steam update; plugin DLLs go in
-`/config/bepinex/plugins` on the PVC. For admin cheat commands the mod is
-[Server Devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/),
-which gates on `/config/adminlist.txt` — note the admin's *client* needs it
-installed too, not just the server.
+## Networking
 
-The image pulls BepInEx from Thunderstore unpinned, so a Valheim update can
-land before a compatible BepInEx does. `mod-guard.sh` runs as
-`PRE_SERVER_RUN_HOOK` and starts the server unmodded rather than letting it
-crash-loop, when either:
+Game ports are UDP NodePorts on the same numbers the router already
+forwards: Valheim 2456-2458, Zomboid 16261-16262, plus Zomboid RCON on TCP
+27015. The widened NodePort range above is what allows ports below 30000.
 
-- `libdoorstop` is missing or has unresolved libraries (this is what a
-  BepInEx build needing a newer GLIBC than the image looks like), or
-- the Steam build ID differs from `/config/mods-approved-build`, i.e. the
-  game updated and nobody has confirmed the mods still work.
+## Valheim
 
-Degrading clears both `DOORSTOP_ENABLED` and `SERVER_LD_PRELOAD`. Clearing
-only the first would still `LD_PRELOAD` an unloadable library and still kill
-the server. It posts a Discord alert and exports
-`game_server_mods_active` so a silent fallback is visible.
+Uses the community
+[`valheim-server-docker`](https://github.com/community-valheim-tools/valheim-server-docker)
+image. LinuxGSM's `gameserver:vh` image crashed a few seconds after startup
+in `MagicaCloth2.MagicaWindZone.Awake()`, and the cause was never found.
 
-The hook is **sourced, not executed** (`. /etc/valheim-hooks/mod-guard.sh`).
-It has to mutate variables in the server script's own shell; run as a child
-process it would report success and change nothing.
+The world and config are on the PVC at `/config` (the save itself is in
+`worlds_local`). The game install is on a disposable subPath at
+`/opt/valheim`. The image schedules its own updates (every 15 minutes),
+restart (05:10) and hourly backups, all idle-gated and all in UTC.
 
-Re-enable with `make approve-mods` after verifying a modded start, then
-`make restart`.
+**Who's online.** Valheim's query protocol reports a player count, not names. The
+image's `ON_VALHEIM_LOG_FILTER_*` hooks run `player-event.sh` on three log lines:
+`Got handshake from client <SteamID>`, `Got character ZDOID from <Name> : <id>`
+(where `0:0` is a death) and `Closing socket <SteamID>`. It keeps one file per
+online character under `/var/run/valheim-status/players/online`, and the sidecar
+exports these as `game_server_player_online{name}`. The sidecar also clears them
+whenever the server reports 0 players, so a missed disconnect can't leave a
+name behind.
 
-## Maintenance
+**Mods (BepInEx)** are off by default. When enabled, plugin DLLs go in
+`/config/bepinex/plugins`. The image pulls BepInEx unpinned, so a Valheim
+update can land before a compatible BepInEx does. `mod-guard.sh` runs as a
+*sourced* `PRE_SERVER_RUN_HOOK` and starts the server unmodded instead of
+letting it crash-loop in either of these cases:
 
-Updates, restarts and backups are scheduled **inside the container** by
-`UPDATE_CRON` / `RESTART_CRON` / `BACKUPS_CRON`, all idle-gated so they
-never interrupt active play. There are no Kubernetes CronJobs.
+- `libdoorstop` is missing or has unresolved libraries
+- the Steam build differs from `/config/mods-approved-build`
+
+It clears both `DOORSTOP_ENABLED` and `SERVER_LD_PRELOAD`, sends an alert and
+exports `game_server_mods_active`. After checking that a modded start works,
+re-enable with `make approve-mods` and then `make restart`. Admin commands
+come from Server Devcommands, which the admin's own client needs as well.
+
+## Project Zomboid
+
+Built on `terule/pz-dedicated-server`. The chart follows what the image's
+`entrypoint.sh` actually reads; its README and `.env.example` disagree with
+it on port variable names. Differences from Valheim:
+
+- **Names.** `server.name` names the save, ini and db files, and must not
+  contain spaces (the chart refuses). PZ saves the world as
+  `name_with_underscores` but backs it up by the raw name, so with a space
+  in the name the game's backups silently skipped the world.
+  `server.displayName` becomes the browser name (`PublicName`).
+- **ini settings.** `entrypoint.sh` patches only its own set of keys. An
+  initContainer sets `PublicName` and the `Backups*` keys before the game
+  reads the ini. On a brand-new volume these only apply from the second
+  boot, because there is no ini on the first.
+- **Backups** use the game's own `ZipBackup`, writing to
+  `/project-zomboid-config/backups/{period,startup,version}/backup_N.zip`,
+  where 1 is the newest and `backups.count` is kept per type. Periodic
+  backups run hourly. A backup is also taken on every start and before a
+  version change. The version-change backup matters because Build 42 saves
+  don't survive some updates. Each zip holds `Saves/Multiplayer/<name>`,
+  `Server/`, `db/` and `options.ini`. `make restore-backup` swaps back only
+  those paths, and it refuses a zip that contains no world.
+- **Updates.** The image runs steamcmd on every start, so updating means
+  restarting. The `zomboid-update` CronJob (05:00 UTC) asks RCON how many
+  players are online and restarts the StatefulSet only if there are none.
+  Its ServiceAccount can only exec into pods and patch this one StatefulSet.
+- **Alerts.** The image has no hook system, so Discord alerts run from
+  Kubernetes `postStart`/`preStop` hooks. `postStart` must return quickly
+  (kubelet holds the container out of Running until it does), so it starts
+  a background poller. The poller waits for RCON, then compares the Steam
+  build (appid 380870) with the previous one to tell a plain start from an
+  update.
+- **Probes** run `pgrep ProjectZomboid`, the same check as the image's
+  Dockerfile `HEALTHCHECK`. There's no HTTP status endpoint.
+- **RCON.** The binary is `rcon`, not `rcon-cli`. Each argument is a
+  separate command, so a command and its argument go in as one string:
+  `rcon ... "servermsg \"hi\""`.
+- **Admins** can't be pre-authorized by Steam ID. PZ grants admin with
+  `/setaccesslevel <user> admin` to a player who already exists in its
+  database, and `addsteamid` only manages the join whitelist.
+  `ADMIN_USERNAME`/`ADMIN_PASSWORD` is the way in from the start.
+- **Memory.** PZ runs on ZGC, which backs the whole heap with shared memory
+  and commits it up front. The container's footprint is about `Xmx + 1GB`,
+  not `Xmx`.
 
 ## Monitoring
 
-A Node.js sidecar (`game-status-metrics/`) queries the game's status port with
-[gamedig](https://github.com/gamedig/node-gamedig) and serves Prometheus
-text on `:9101/metrics`. Lifecycle hooks in the chart write
-started/updated timestamps and the Steam build ID to a shared volume for
-the exporter to read, since gamedig cannot see any of that.
+The `game-status-metrics/` sidecar queries each game with
+[gamedig](https://github.com/gamedig/node-gamedig) (Zomboid answers A2S on
+its game port, Valheim on port+1). It serves `:9101/metrics`, adding lifecycle
+timestamps, the build ID and backup stats from files on shared and PVC
+volumes. Lifetime uptime is kept on the PVC because Prometheus only retains
+7 days.
 
-Lifetime uptime is accumulated into a file on the PVC because Prometheus
-only retains 7 days and so cannot answer it from history alone.
-
-Prometheus itself runs in-cluster
-(`monitoring-config/prometheus-manifests.yaml`, plain manifests rather than
-Helm) on NodePort 30090. Grafana is deliberately not deployed here — the webserver VM
-already runs one, and it queries this Prometheus and receives pod logs via
-Loki. That keeps this box spending its RAM on the game.
-
-VPA is installed separately via `install/vpa.sh` (cluster-wide admission
-webhook, so it's opt-in rather than bundled into `monitoring.sh`) and runs
-in `updateMode: "Off"` -- recommendations only, via `kubectl describe vpa
-valheim`, never evictions.
+Prometheus is plain manifests (`monitoring-config/prometheus-manifests.yaml`)
+on NodePort 30090. It scrapes both exporters plus the kubelet and cAdvisor.
+Grafana, Loki and Alloy come from servers-web's logging stack in the same
+`monitoring` namespace. Its Grafana provisions this Prometheus with uid
+`ffyierrb4yl8gd`, which the game dashboards reference. Zomboid's chat, user
+and PerkLog files reach Loki through the chart's `game-logs` sidecar. VPA
+(`install/vpa.sh`) is opt-in and runs in `updateMode: "Off"`, so it only
+makes recommendations.
 
 ## Resources
 
-Host: 7.7GB RAM, 4 vCPUs (one i7-9700K, 8 threads, shared with TrueNAS).
-Measured idle: ~130m CPU, ~1.5GB RAM. Values request 1 core / 1Gi, limit
-4Gi memory, and set no CPU limit to avoid CFS throttling. Community
-guidance for four players is 2+ modern cores and 4-6GB RAM as the world
-grows, which is close to this box's ceiling.
+Host: 4 vCPUs of an i7-9700K shared with TrueNAS, and 5.8GB allocatable.
+There's no CPU limit anywhere, to avoid CFS throttling. On this RAM,
+Valheim (~1.7GB) and Zomboid (~3.2GB with a 2GB heap) can't run at the same
+time; scale one down with `make scale-down-zero`. Revisit the sizing after
+the planned +32GB upgrade.
