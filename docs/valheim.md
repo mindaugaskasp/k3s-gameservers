@@ -24,9 +24,9 @@ Valheim's query protocol reports only a player count. For names,
 `player-event.sh` runs from the image's
 [log-filter hooks](https://github.com/community-valheim-tools/valheim-server-docker#log-filters)
 and keeps one file per online character. The sidecar exports them as
-`game_server_player_online{name}`, and clears them when the count is 0.
+`valheim_player_online{name}`, and clears them when the count is 0.
 Each scrape also stamps them into `/config/players/seen/` (on the PVC), exported as
-`game_server_player_last_seen_timestamp_seconds{name}` so names outlive restarts.
+`valheim_player_last_seen_timestamp_seconds{name}` so names outlive restarts.
 
 ## Alerts
 

@@ -117,7 +117,7 @@ spec:
               value: "/etc/valheim-hooks/notify.sh down"
             - name: POST_RESTART_HOOK
               value: "/etc/valheim-hooks/notify.sh updated"
-            # Who's online, for game_server_player_online: see player-event.sh.
+            # Who's online, for valheim_player_online: see player-event.sh.
             {{- range $name, $match := dict "Handshake" "Got handshake from client " "Spawned" "Got character ZDOID from " "Left" "Closing socket " }}
             - name: VALHEIM_LOG_FILTER_CONTAINS_Player{{ $name }}
               value: {{ $match | quote }}

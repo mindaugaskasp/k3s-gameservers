@@ -449,7 +449,7 @@
       "type": "stat",
       "targets": [
         {
-          "expr": "clamp_min(game_server_last_player_activity_timestamp_seconds{game=\"valheim\"} - game_server_backup_newest_timestamp_seconds{game=\"valheim\"}, 0)",
+          "expr": "clamp_min(valheim_last_player_activity_timestamp_seconds{game=\"valheim\"} - game_server_backup_newest_timestamp_seconds{game=\"valheim\"}, 0)",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -515,7 +515,7 @@
       "type": "stat",
       "targets": [
         {
-          "expr": "game_server_backup_play_clock_ok{game=\"valheim\"}",
+          "expr": "valheim_backup_play_clock_ok{game=\"valheim\"}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -573,7 +573,7 @@
       "type": "stat",
       "targets": [
         {
-          "expr": "max(game_server_backup_file_game_day{game=\"valheim\"})",
+          "expr": "max(valheim_backup_file_game_day{game=\"valheim\"})",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -617,7 +617,7 @@
       "type": "bargauge",
       "targets": [
         {
-          "expr": "game_server_backup_archive_window_files{game=\"valheim\"}",
+          "expr": "valheim_backup_archive_window_files{game=\"valheim\"}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -681,7 +681,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "max(game_server_backup_file_game_day{game=\"valheim\"})",
+          "expr": "max(valheim_backup_file_game_day{game=\"valheim\"})",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -719,7 +719,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "game_server_backup_play_clock_seconds{game=\"valheim\"}",
+          "expr": "valheim_backup_play_clock_seconds{game=\"valheim\"}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -757,7 +757,7 @@
       "type": "table",
       "targets": [
         {
-          "expr": "game_server_backup_file_info{game=\"valheim\",location=\"archive\"}",
+          "expr": "valheim_backup_file_info{game=\"valheim\",location=\"archive\"}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -767,7 +767,7 @@
           "instant": true
         },
         {
-          "expr": "(game_server_backup_file_timestamp_seconds{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"archive\"}) * 1000",
+          "expr": "(game_server_backup_file_timestamp_seconds{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"archive\"}) * 1000",
           "refId": "B",
           "datasource": {
             "type": "prometheus",
@@ -777,7 +777,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_game_day{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"archive\"}",
+          "expr": "valheim_backup_file_game_day{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"archive\"}",
           "refId": "C",
           "datasource": {
             "type": "prometheus",
@@ -787,7 +787,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_play_age_seconds{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"archive\"}",
+          "expr": "valheim_backup_file_play_age_seconds{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"archive\"}",
           "refId": "D",
           "datasource": {
             "type": "prometheus",
@@ -797,7 +797,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_window_left_seconds{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"archive\"}",
+          "expr": "valheim_backup_file_window_left_seconds{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"archive\"}",
           "refId": "E",
           "datasource": {
             "type": "prometheus",
@@ -807,7 +807,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_bytes{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"archive\"}",
+          "expr": "game_server_backup_file_bytes{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"archive\"}",
           "refId": "F",
           "datasource": {
             "type": "prometheus",
@@ -963,7 +963,7 @@
       "type": "table",
       "targets": [
         {
-          "expr": "game_server_backup_file_info{game=\"valheim\",location=\"recent\"}",
+          "expr": "valheim_backup_file_info{game=\"valheim\",location=\"recent\"}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -973,7 +973,7 @@
           "instant": true
         },
         {
-          "expr": "(game_server_backup_file_timestamp_seconds{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"recent\"}) * 1000",
+          "expr": "(game_server_backup_file_timestamp_seconds{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"recent\"}) * 1000",
           "refId": "B",
           "datasource": {
             "type": "prometheus",
@@ -983,7 +983,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_game_day{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"recent\"}",
+          "expr": "valheim_backup_file_game_day{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"recent\"}",
           "refId": "C",
           "datasource": {
             "type": "prometheus",
@@ -993,7 +993,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_play_age_seconds{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"recent\"}",
+          "expr": "valheim_backup_file_play_age_seconds{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"recent\"}",
           "refId": "D",
           "datasource": {
             "type": "prometheus",
@@ -1003,7 +1003,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_window_left_seconds{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"recent\"}",
+          "expr": "valheim_backup_file_window_left_seconds{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"recent\"}",
           "refId": "E",
           "datasource": {
             "type": "prometheus",
@@ -1013,7 +1013,7 @@
           "instant": true
         },
         {
-          "expr": "game_server_backup_file_bytes{game=\"valheim\"} and on(file) game_server_backup_file_info{game=\"valheim\",location=\"recent\"}",
+          "expr": "game_server_backup_file_bytes{game=\"valheim\"} and on(file) valheim_backup_file_info{game=\"valheim\",location=\"recent\"}",
           "refId": "F",
           "datasource": {
             "type": "prometheus",
@@ -1377,7 +1377,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_mods_active{game=\"valheim\"}",
+          "expr": "valheim_mods_active{game=\"valheim\"}",
           "legendFormat": "mods active",
           "datasource": {
             "type": "prometheus",
@@ -1439,7 +1439,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_mods_info{game=\"valheim\"}",
+          "expr": "valheim_mods_info{game=\"valheim\"}",
           "legendFormat": "{{reason}}",
           "datasource": {
             "type": "prometheus",

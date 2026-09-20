@@ -5,6 +5,9 @@ const fs = require("fs");
 const { GameDig } = require("gamedig");
 
 const GAME = process.env.GAMEDIG_GAME;
+// valheim_* metrics come from hooks only the Valheim chart installs (player-event.sh,
+// mod-guard.sh, backup-rename.sh). The prefix is written out, never built from GAME, so
+// every metric name stays greppable.
 const HOST = process.env.QUERY_HOST || "127.0.0.1";
 const PORT = Number(process.env.QUERY_PORT);
 const METRICS_PORT = Number(process.env.METRICS_PORT || 9101);
@@ -247,9 +250,9 @@ function renderPlayersSeen(g) {
   const seen = readPlayersSeen();
   if (!seen.length) return [];
   return [
-    `# HELP game_server_player_last_seen_timestamp_seconds Unix time a player was last seen online.`,
-    `# TYPE game_server_player_last_seen_timestamp_seconds gauge`,
-    ...seen.map((p) => `game_server_player_last_seen_timestamp_seconds{game="${g}",name="${escapeLabel(p.name)}"} ${p.at}`),
+    `# HELP valheim_player_last_seen_timestamp_seconds Unix time a player was last seen online.`,
+    `# TYPE valheim_player_last_seen_timestamp_seconds gauge`,
+    ...seen.map((p) => `valheim_player_last_seen_timestamp_seconds{game="${g}",name="${escapeLabel(p.name)}"} ${p.at}`),
   ];
 }
 
@@ -257,12 +260,12 @@ function renderMods(g) {
   const mods = readModState();
   if (!mods) return [];
   return [
-    `# HELP game_server_mods_active Whether the server started with mods loaded (0 = fail-safe dropped them).`,
-    `# TYPE game_server_mods_active gauge`,
-    `game_server_mods_active{game="${g}"} ${mods.active}`,
-    `# HELP game_server_mods_info Why mods are or are not loaded; read the reason label.`,
-    `# TYPE game_server_mods_info gauge`,
-    `game_server_mods_info{game="${g}",reason="${escapeLabel(mods.status)}"} 1`,
+    `# HELP valheim_mods_active Whether the server started with mods loaded (0 = fail-safe dropped them).`,
+    `# TYPE valheim_mods_active gauge`,
+    `valheim_mods_active{game="${g}"} ${mods.active}`,
+    `# HELP valheim_mods_info Why mods are or are not loaded; read the reason label.`,
+    `# TYPE valheim_mods_info gauge`,
+    `valheim_mods_info{game="${g}",reason="${escapeLabel(mods.status)}"} 1`,
   ];
 }
 
@@ -270,9 +273,9 @@ function renderWorldModifiers(g) {
   const modifiers = readWorldModifiers();
   if (!modifiers.length) return [];
   return [
-    `# HELP game_server_world_modifier A world rule the server runs with; read the name and value labels.`,
-    `# TYPE game_server_world_modifier gauge`,
-    ...modifiers.map((m) => `game_server_world_modifier{game="${g}",name="${escapeLabel(m.name)}",value="${escapeLabel(m.value)}"} 1`),
+    `# HELP valheim_world_modifier A world rule the server runs with; read the name and value labels.`,
+    `# TYPE valheim_world_modifier gauge`,
+    ...modifiers.map((m) => `valheim_world_modifier{game="${g}",name="${escapeLabel(m.name)}",value="${escapeLabel(m.value)}"} 1`),
   ];
 }
 
@@ -280,9 +283,9 @@ function renderOnlinePlayers(g) {
   const names = readOnlinePlayers();
   if (!names.length) return [];
   return [
-    `# HELP game_server_player_online A player currently online, by character name, from the server log.`,
-    `# TYPE game_server_player_online gauge`,
-    ...names.map((n) => `game_server_player_online{game="${g}",name="${escapeLabel(n)}"} 1`),
+    `# HELP valheim_player_online A player currently online, by character name, from the server log.`,
+    `# TYPE valheim_player_online gauge`,
+    ...names.map((n) => `valheim_player_online{game="${g}",name="${escapeLabel(n)}"} 1`),
   ];
 }
 
@@ -326,15 +329,15 @@ function renderArchive(g, backups) {
   const { known, problem, base } = readPlayClock(backups);
   const newest = backups.length ? known.get(base(backups[backups.length - 1])) : undefined;
   const lines = [
-    `# HELP game_server_backup_play_clock_ok 1 if backup-prune.sh's play-time index is usable; 0 means pruning is stopped.`,
-    `# TYPE game_server_backup_play_clock_ok gauge`,
-    `game_server_backup_play_clock_ok{game="${g}",problem="${escapeLabel(problem)}"} ${problem ? 0 : 1}`,
+    `# HELP valheim_backup_play_clock_ok 1 if backup-prune.sh's play-time index is usable; 0 means pruning is stopped.`,
+    `# TYPE valheim_backup_play_clock_ok gauge`,
+    `valheim_backup_play_clock_ok{game="${g}",problem="${escapeLabel(problem)}"} ${problem ? 0 : 1}`,
   ];
   if (newest !== undefined) {
     lines.push(
-      `# HELP game_server_backup_play_clock_seconds Play time recorded up to the newest backup (idle gaps count at most a day).`,
-      `# TYPE game_server_backup_play_clock_seconds gauge`,
-      `game_server_backup_play_clock_seconds{game="${g}"} ${newest}`
+      `# HELP valheim_backup_play_clock_seconds Play time recorded up to the newest backup (idle gaps count at most a day).`,
+      `# TYPE valheim_backup_play_clock_seconds gauge`,
+      `valheim_backup_play_clock_seconds{game="${g}"} ${newest}`
     );
   }
   const windows = new Map(BACKUP_WINDOW_ENDS.map((end, i) => [`${i ? BACKUP_WINDOW_ENDS[i - 1] : BACKUP_RECENT_DAYS}-${end}`, 0]));
@@ -350,29 +353,29 @@ function renderArchive(g, backups) {
   }
   const label = (f) => `game="${g}",file="${escapeLabel(`${BACKUP_DIR}/${f.b.name}`)}"`;
   lines.push(
-    `# HELP game_server_backup_archive_window_files Archived backups per play-time window (days).`,
-    `# TYPE game_server_backup_archive_window_files gauge`,
-    ...[...windows].map(([w, n]) => `game_server_backup_archive_window_files{game="${g}",window="${w}"} ${n}`),
-    `# HELP game_server_backup_file_info Where each backup sits: recent/archive, and its play-time window.`,
-    `# TYPE game_server_backup_file_info gauge`,
-    ...files.map((f) => `game_server_backup_file_info{${label(f)},location="${f.b.name.startsWith("archive/") ? "archive" : "recent"}",window="${f.win}"} 1`),
-    `# HELP game_server_backup_file_game_day In-game day of the world in each backup (from its name).`,
-    `# TYPE game_server_backup_file_game_day gauge`,
-    ...files.filter((f) => f.day !== undefined).map((f) => `game_server_backup_file_game_day{${label(f)}} ${f.day}`),
-    `# HELP game_server_backup_file_play_age_seconds Play time between each backup and the newest one.`,
-    `# TYPE game_server_backup_file_play_age_seconds gauge`,
-    ...files.filter((f) => f.ageDays !== undefined).map((f) => `game_server_backup_file_play_age_seconds{${label(f)}} ${Math.round(f.ageDays * 86400)}`),
-    `# HELP game_server_backup_file_window_left_seconds Play time until each backup leaves its window (then archived, moved on or deleted).`,
-    `# TYPE game_server_backup_file_window_left_seconds gauge`,
-    ...files.filter((f) => f.end !== undefined).map((f) => `game_server_backup_file_window_left_seconds{${label(f)}} ${Math.round((f.end - f.ageDays) * 86400)}`)
+    `# HELP valheim_backup_archive_window_files Archived backups per play-time window (days).`,
+    `# TYPE valheim_backup_archive_window_files gauge`,
+    ...[...windows].map(([w, n]) => `valheim_backup_archive_window_files{game="${g}",window="${w}"} ${n}`),
+    `# HELP valheim_backup_file_info Where each backup sits: recent/archive, and its play-time window.`,
+    `# TYPE valheim_backup_file_info gauge`,
+    ...files.map((f) => `valheim_backup_file_info{${label(f)},location="${f.b.name.startsWith("archive/") ? "archive" : "recent"}",window="${f.win}"} 1`),
+    `# HELP valheim_backup_file_game_day In-game day of the world in each backup (from its name).`,
+    `# TYPE valheim_backup_file_game_day gauge`,
+    ...files.filter((f) => f.day !== undefined).map((f) => `valheim_backup_file_game_day{${label(f)}} ${f.day}`),
+    `# HELP valheim_backup_file_play_age_seconds Play time between each backup and the newest one.`,
+    `# TYPE valheim_backup_file_play_age_seconds gauge`,
+    ...files.filter((f) => f.ageDays !== undefined).map((f) => `valheim_backup_file_play_age_seconds{${label(f)}} ${Math.round(f.ageDays * 86400)}`),
+    `# HELP valheim_backup_file_window_left_seconds Play time until each backup leaves its window (then archived, moved on or deleted).`,
+    `# TYPE valheim_backup_file_window_left_seconds gauge`,
+    ...files.filter((f) => f.end !== undefined).map((f) => `valheim_backup_file_window_left_seconds{${label(f)}} ${Math.round((f.end - f.ageDays) * 86400)}`)
   );
   // Touched by player-event.sh / backup-gate.sh on any player activity.
   try {
     const t = Math.floor(fs.statSync(`${STATUS_DIR}/players/last-activity`).mtimeMs / 1000);
     lines.push(
-      `# HELP game_server_last_player_activity_timestamp_seconds Last join/leave/online-check that saw a player.`,
-      `# TYPE game_server_last_player_activity_timestamp_seconds gauge`,
-      `game_server_last_player_activity_timestamp_seconds{game="${g}"} ${t}`
+      `# HELP valheim_last_player_activity_timestamp_seconds Last join/leave/online-check that saw a player.`,
+      `# TYPE valheim_last_player_activity_timestamp_seconds gauge`,
+      `valheim_last_player_activity_timestamp_seconds{game="${g}"} ${t}`
     );
   } catch {
     // no activity since the pod started

@@ -116,7 +116,7 @@
             "uid": "ffyierrb4yl8gd"
           },
           "legendFormat": "{{name}}",
-          "expr": "sum by (name) (game_server_player_online{game=\"valheim\"})"
+          "expr": "sum by (name) (valheim_player_online{game=\"valheim\"})"
         },
         {
           "refId": "B",

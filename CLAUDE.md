@@ -26,6 +26,18 @@ Hard rules for code, docs and comments.
   saying what it does and why it exists. Nothing ships undocumented.
 - **Check:** `wc -l` the file you touched, and count the arguments you added.
 
+## Metrics
+
+- **A metric only one game can ever answer carries that game's name**:
+  `valheim_world_modifier`, not `game_server_world_modifier`. The name alone has to
+  say which server it describes, without reading the exporter to find out.
+- **A metric every game answers keeps `game_server_`** and tells the servers apart
+  with the `game` label. A prefix there would split one series into three and break
+  every query that compares games.
+- **A published name is an interface.** Renaming one breaks its Grafana panels and
+  the website's readers, so grep `grafana/` and the web repo's `game-stats.js`
+  first, and change them in the same commit.
+
 ## Docs and comments
 
 - **Brief.** Say what it is or what to do. No narratives or incident history
