@@ -1,0 +1,112 @@
+image:
+  # Windows-only game binary; the image runs it under Proton. `stable-wine` is
+  # the Wine build. https://github.com/mornedhels/enshrouded-server#image-tags
+  repository: mornedhels/enshrouded-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+server:
+  name: "Enshrouded Server" # shown in the server browser
+  slotCount: 16 # 1-16, the game's own cap
+  # One UDP port carries both game traffic and Steam queries.
+  queryPort: 15637
+  voiceChat: false
+  voiceChatMode: "Proximity" # Proximity | Global
+  textChat: false
+  branch: "public" # Steam branch, e.g. testing
+  connectHost: "" # public join address shown in Discord alerts
+  timeZone: "Etc/UTC" # container TZ; the image's crons below run in it
+
+# Difficulty and world rules: every key becomes SERVER_GS_<KEY> and lands in
+# the config's gameSettings. The individual keys apply only with PRESET=Custom.
+# https://github.com/mornedhels/enshrouded-server/blob/main/docs/SERVER_DIFFICULTY.md
+gameSettings:
+  PRESET: "Default" # Default | Relaxed | Hard | Survival | Custom
+
+# Enshrouded has no single server password: each role has its own, and the
+# password a player joins with picks their role. secrets.rolePasswords holds
+# the passwords, keyed by secretKey.
+# https://github.com/mornedhels/enshrouded-server/blob/main/docs/SERVER_ROLES.md
+roles:
+  - name: "Admins"
+    secretKey: ADMIN_PASS
+    canKickBan: true
+    canAccessInventories: true
+    canEditBase: true
+    canExtendBase: true
+    reservedSlots: 1
+  - name: "Friends"
+    secretKey: FRIEND_PASS
+    canKickBan: false
+    canAccessInventories: true
+    canEditBase: true
+    canExtendBase: true
+    reservedSlots: 0
+
+# Pass at deploy time with --set-string, or point secretRef at an existing
+# Secret holding the same keys. Never commit real passwords.
+secrets:
+  rolePasswords: {}
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+# The image checks Steam on this schedule and restarts the game process
+# in-place (no pod restart) when the build changed.
+updates:
+  cron: "*/30 * * * *"
+  ifIdle: true # skip the update while players are connected
+
+# Upstream marks the restart cron work-in-progress; "" disables it.
+restart:
+  cron: ""
+  ifIdle: true
+
+# The image zips the newest save on this schedule; don't go below 10 minutes.
+# Surfaced as game_server_backup_* metrics in the Grafana "Backups" row.
+backups:
+  cron: "0 * * * *"
+  maxCount: 48 # 0 keeps every backup; each zip holds the whole world
+
+# UDP. Outside the default NodePort range; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 15637
+
+# Holds the game install (server/), savegame/, logs/ and backups/.
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 25Gi
+
+# An update needs up to twice the game size on disk while it downloads.
+resources:
+  requests:
+    cpu: "2"
+    memory: 6Gi
+  limits:
+    memory: 12Gi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (registry/, NodePort 30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/game-status-metrics
+    tag: latest
+    pullPolicy: Always
+  port: 9101
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+# Requires the VPA CRDs; install/monitoring.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto

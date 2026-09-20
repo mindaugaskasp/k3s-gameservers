@@ -1,0 +1,11 @@
+[Unit]
+Description=Copy the Enshrouded save and recent backups out of the cluster
+After=k3s.service
+Wants=k3s.service
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__REPO__/games/enshrouded
+Environment=KUBECONFIG=__HOME__/.kube/config
+ExecStart=/usr/bin/make sync

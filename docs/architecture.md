@@ -2,7 +2,7 @@
 
 A single-node k3s cluster runs three namespaces:
 
-- `games`: one StatefulSet per game (`valheim`, `zomboid`)
+- `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`)
 - `monitoring`, `registry`: the platform, see [platform.md](platform.md)
 - other namespaces: apps like servers-web, which only report to the platform
 
@@ -24,6 +24,7 @@ Game ports are UDP NodePorts on the same numbers the router forwards:
 
 - Valheim: 2456-2458
 - Zomboid: 16261-16262, plus RCON on TCP 27015
+- Enshrouded: 15637 (game traffic and Steam queries share it)
 
 That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 

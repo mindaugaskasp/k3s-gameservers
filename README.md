@@ -1,6 +1,6 @@
 # k3s-gameservers
 
-Game servers (Valheim, Project Zomboid) as pods on a single-node
+Game servers (Valheim, Project Zomboid, Enshrouded) as pods on a single-node
 [k3s](https://docs.k3s.io/) cluster, with per-pod metrics for right-sizing.
 Each game scales independently (`make scale-up` / `make scale-down-zero`).
 
@@ -12,7 +12,7 @@ games/<game>/              values.override.yaml, Makefile, Grafana dashboards
 install/                   k3s.sh, registry.sh, monitoring.sh, vpa.sh (optional)
 registry/ monitoring/ maintenance/   platform, see docs/platform.md
 game-status-metrics/       player/status exporter sidecar (gamedig)
-docs/                      setup-nodes, platform, architecture, valheim, zomboid
+docs/                      setup-nodes, platform, architecture, game-setup, per-game
 Makefile                   copy-to-vm / copy-to-host (run from your machine)
 ```
 
@@ -50,11 +50,11 @@ dashboards. Secrets: gitignored `games/<game>/.env` (see `.env.example`).
 - [docs/setup-nodes.md](docs/setup-nodes.md): VM settings (clock, disk, IP, sizing)
 - [docs/platform.md](docs/platform.md): k3s, registry, monitoring, how apps report
 - [docs/architecture.md](docs/architecture.md): games, networking, sizing
-- [docs/valheim.md](docs/valheim.md) and [docs/zomboid.md](docs/zomboid.md):
-  per-game notes
+- [docs/game-setup.md](docs/game-setup.md): checklist for adding a game
+- [docs/valheim.md](docs/valheim.md), [docs/zomboid.md](docs/zomboid.md) and
+  [docs/enshrouded.md](docs/enshrouded.md): per-game notes
 
 ## Adding a game
 
-Copy a chart under `charts/`, swap in the new image and its env vars, and
-add `games/<name>/`. The sidecar supports any
+Follow [docs/game-setup.md](docs/game-setup.md). The sidecar supports any
 [gamedig game id](https://github.com/gamedig/node-gamedig/blob/master/GAMES_LIST.md).

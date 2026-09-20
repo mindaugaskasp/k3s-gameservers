@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Enshrouded data sync
+
+[Timer]
+OnCalendar=hourly
+# Picks up the game's own hourly backups, and catches up after downtime.
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
