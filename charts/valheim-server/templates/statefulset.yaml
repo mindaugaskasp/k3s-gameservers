@@ -168,6 +168,8 @@ spec:
               value: "/var/run/valheim-status"
             - name: PERSIST_DIR
               value: "/config"
+            - name: DATABASE_DIR
+              value: "/database/sqlite"
             - name: BACKUP_DIR
               value: "/config/backups"
             - name: BACKUP_RECENT_DAYS
@@ -204,10 +206,11 @@ spec:
               mountPath: /config
               subPath: config
               readOnly: true
-            # The one path the exporter writes: player history that outlives the pod.
+            # The exporter's own path on the volume, off the game's data tree: the game
+            # runs as root and resets ownership across that tree on every start.
             - name: data
-              mountPath: /config/database/sqlite
-              subPath: config/database/sqlite
+              mountPath: /database/sqlite
+              subPath: database/sqlite
         {{- end }}
       volumes:
         {{- if not .Values.persistence.enabled }}

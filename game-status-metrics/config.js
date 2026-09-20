@@ -21,8 +21,9 @@ const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(
 const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
 // Appended to by the log hooks, one line per death, and folded into the database.
 const DEATH_LOG_FILE = `${STATUS_DIR}/players/deaths`;
-// The one path on the PVC both this exporter and the game's log hooks may write.
-const DATABASE_DIR = `${PERSIST_DIR}/database/sqlite`;
+// Mounted from the volume but outside the game's own data tree: the game images run
+// as root and reset ownership across their data dir on every start.
+const DATABASE_DIR = process.env.DATABASE_DIR || `${PERSIST_DIR}/database/sqlite`;
 // Named after the game: one database per server, never a file two could share.
 const PLAYERS_DATABASE_FILE = `${DATABASE_DIR}/${GAME}-players.db`;
 

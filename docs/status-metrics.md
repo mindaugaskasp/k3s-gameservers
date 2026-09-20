@@ -23,7 +23,7 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   written by the log hooks; the file's mtime is when the session started.
 - `death-log-reader.js`: the deaths the log hooks appended since the last read, by
   offset so a line written mid-read is not lost.
-- `player-database.js`: `database/sqlite/<game>-players.db` on the PVC, one per
+- `player-database.js`: `<DATABASE_DIR>/<game>-players.db` on the PVC, one per
   game -- time online, deaths, last seen. This process is its only writer: one
   running as another user would leave [WAL](https://sqlite.org/wal.html) files
   this one cannot write, and every query would fail as "readonly database".

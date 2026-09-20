@@ -155,6 +155,8 @@ spec:
               value: "/var/run/enshrouded-status"
             - name: PERSIST_DIR
               value: {{ $data | quote }}
+            - name: DATABASE_DIR
+              value: "/database/sqlite"
             - name: BACKUP_DIR
               value: {{ printf "%s/backups" $data | quote }}
             - name: BACKUP_MAX_AGE_DAYS
@@ -185,9 +187,10 @@ spec:
             - name: data
               mountPath: {{ $data }}
               readOnly: true
-            # The one path the exporter writes: player history that outlives the pod.
+            # The exporter's own path on the volume, off the game's data tree: the game
+            # runs as root and resets ownership across that tree on every start.
             - name: data
-              mountPath: {{ $data }}/database/sqlite
+              mountPath: /database/sqlite
               subPath: database/sqlite
         {{- end }}
       volumes:

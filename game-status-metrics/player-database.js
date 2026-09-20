@@ -62,8 +62,10 @@ function runForEachPlayer(sql, names, value) {
   try {
     const statement = db.prepare(sql);
     for (const name of names) statement.run(name, value);
-  } catch {
-    return;
+  } catch (error) {
+    // A database that opens but will not take writes: report it like a failed open.
+    if (!reportedOpenFailure) console.error(`player database not writable: ${error.message}`);
+    reportedOpenFailure = true;
   }
 }
 
