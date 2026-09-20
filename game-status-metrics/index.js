@@ -74,6 +74,56 @@ function readOnlinePlayers() {
   }
 }
 
+// Last time each player was seen online, on the PVC so it outlives the pod. Stamped
+// every scrape rather than on disconnect: a missed disconnect line then costs nothing.
+const SEEN_DIR = `${PERSIST_DIR}/players/seen`;
+const SEEN_PLAYER_LIMIT = 50;
+
+// Names are free text, so they are percent-encoded to stay valid single filenames.
+function recordPlayersSeen(names) {
+  if (!names.length) return;
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    fs.mkdirSync(SEEN_DIR, { recursive: true });
+    for (const name of names) {
+      fs.writeFileSync(`${SEEN_DIR}/${encodeURIComponent(name)}`, String(now));
+    }
+  } catch {
+    // Read-only or missing PVC: last-seen is a nicety, never worth failing a scrape over.
+  }
+}
+
+/** Most recently seen first, capped so a busy server can't grow the directory forever. */
+function readPlayersSeen() {
+  let files = [];
+  try {
+    files = fs.readdirSync(SEEN_DIR);
+  } catch {
+    return [];
+  }
+
+  const seen = [];
+  for (const file of files) {
+    try {
+      const at = parseInt(fs.readFileSync(`${SEEN_DIR}/${file}`, "utf8").trim(), 10);
+      if (at > 0) seen.push({ name: decodeURIComponent(file), at, file });
+    } catch {
+      continue;
+    }
+  }
+  seen.sort((a, b) => b.at - a.at);
+
+  for (const stale of seen.slice(SEEN_PLAYER_LIMIT)) {
+    try {
+      fs.unlinkSync(`${SEEN_DIR}/${stale.file}`);
+    } catch {
+      continue;
+    }
+  }
+
+  return seen.slice(0, SEEN_PLAYER_LIMIT);
+}
+
 // The server says nobody is on, so any name still listed missed its disconnect line.
 function clearOnlinePlayers() {
   for (const name of readOnlinePlayers()) {
@@ -146,6 +196,9 @@ async function scrape() {
   try {
     const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });
     if (state.players.length === 0) clearOnlinePlayers();
+    recordPlayersSeen([
+      ...new Set([...readOnlinePlayers(), ...state.players.map((p) => p.name).filter(Boolean)]),
+    ]);
     last = {
       up: 1,
       players: state.players.length,
@@ -181,6 +234,16 @@ async function scrape() {
 // name or failure reason containing one would break every metric.
 function escapeLabel(s) {
   return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+}
+
+function renderPlayersSeen(g) {
+  const seen = readPlayersSeen();
+  if (!seen.length) return [];
+  return [
+    `# HELP game_server_player_last_seen_timestamp_seconds Unix time a player was last seen online.`,
+    `# TYPE game_server_player_last_seen_timestamp_seconds gauge`,
+    ...seen.map((p) => `game_server_player_last_seen_timestamp_seconds{game="${g}",name="${escapeLabel(p.name)}"} ${p.at}`),
+  ];
 }
 
 function renderMods(g) {
@@ -396,6 +459,7 @@ function render() {
     `game_server_uptime_total_seconds{game="${g}"} ${readUptimeBaseline() + currentSessionSeconds()}`,
     ...playerLines,
     ...renderOnlinePlayers(g),
+    ...renderPlayersSeen(g),
     ...renderMods(g),
     ...renderBackups(g),
     "",
