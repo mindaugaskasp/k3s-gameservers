@@ -21,6 +21,8 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   mod state, last player activity.
 - `player-files.js`: who is online now, and when each player was last seen
   (on the PVC, capped at 50 names).
+- `player-play-time.js`: each player's lifetime seconds online (on the PVC),
+  credited one scrape interval at a time while they are connected.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
 - `backup-files.js`: backup archives on disk, oldest first.
 - `backup-archive.js`: the `.play-clock` index and play-time retention

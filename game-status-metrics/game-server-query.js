@@ -3,6 +3,7 @@
 const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, clearOnlinePlayers, recordPlayersSeen } = require("./player-files");
+const { creditPlayTime } = require("./player-play-time");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".
@@ -33,9 +34,12 @@ class GameServerQuery {
     try {
       const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });
       if (state.players.length === 0) clearOnlinePlayers();
-      recordPlayersSeen([
+      // The log hooks and the query protocol each know names the other doesn't.
+      const onlinePlayerNames = [
         ...new Set([...readOnlinePlayers(), ...state.players.map((player) => player.name).filter(Boolean)]),
-      ]);
+      ];
+      recordPlayersSeen(onlinePlayerNames);
+      creditPlayTime(onlinePlayerNames);
       this.lastStatus = {
         up: 1,
         players: state.players.length,

@@ -21,6 +21,10 @@ const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(
 const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
 // Last time each player was seen online, on the PVC so it outlives the pod.
 const SEEN_PLAYERS_DIR = `${PERSIST_DIR}/players/seen`;
+// One file per player holding the seconds they have been online in total, and the
+// time that total was last credited. Both on the PVC: they are a lifetime tally.
+const PLAY_TIME_DIR = `${PERSIST_DIR}/players/play-time`;
+const PLAY_TIME_CLOCK_FILE = `${PERSIST_DIR}/players/play-time-clock.seconds`;
 
 module.exports = {
   GAME,
@@ -37,4 +41,6 @@ module.exports = {
   BACKUP_WINDOW_ENDS,
   ONLINE_PLAYERS_DIR,
   SEEN_PLAYERS_DIR,
+  PLAY_TIME_DIR,
+  PLAY_TIME_CLOCK_FILE,
 };

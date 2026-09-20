@@ -7,6 +7,7 @@ const {
   readBuildId,
   readPastSessionsUptimeSeconds,
 } = require("../status-files");
+const { readPlayTimeTotals } = require("../player-play-time");
 
 // Only counts while the server answers: a session that ended is already in the baseline.
 function currentSessionSeconds(isServerUp) {
@@ -63,6 +64,11 @@ function gameServerMetricLines(status) {
       "game_server_player_session_seconds",
       "Session duration of a currently-connected player (name is a placeholder if the game's query protocol doesn't report one, e.g. Valheim).",
       status.playerSessions.map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
+    ),
+    ...gaugeLines(
+      "game_server_player_play_time_seconds",
+      "Total time a player has spent online, across every session the exporter has seen.",
+      readPlayTimeTotals().map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
     ),
   ];
 }
