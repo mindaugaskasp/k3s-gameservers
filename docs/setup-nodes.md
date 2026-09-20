@@ -34,6 +34,12 @@ sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 
 # Static IP: edit /etc/netplan/*.yaml. Run from the VM console, not SSH:
 sudo netplan try
+
+# Rootless podman image builds need a subuid/subgid range for the build user,
+# or any non-root file in an image fails with "value too large for defined
+# data type". Pick a 65536 range no other user in /etc/subuid holds:
+sudo usermod --add-subuids 231072-296607 --add-subgids 231072-296607 "$(id -un)"
+podman system migrate
 ```
 
 For the netplan file, see the
