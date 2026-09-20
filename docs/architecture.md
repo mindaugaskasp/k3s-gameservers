@@ -31,7 +31,8 @@ That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 ## Monitoring
 
 - **Sidecar:** `game-status-metrics/` queries each game with
-  [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`.
+  [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`;
+  its modules are listed in [status-metrics.md](status-metrics.md).
 - **Image tag:** `games/metrics-image.mk` tags the sidecar with the last commit that
   touched its source, so changing it replaces the pod and leaving it alone does not.
 - **Metric names:** `valheim_*` for what only Valheim reports, `game_server_*` for
