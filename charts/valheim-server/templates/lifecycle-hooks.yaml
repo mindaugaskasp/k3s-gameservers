@@ -34,14 +34,18 @@ data:
         rest=${l##*Got character ZDOID from }; zdo=${rest##* : }
         name=$(printf '%s' "${rest% : *}" | tr -d '/')
         [ -n "$name" ] || exit 0
-        # ZDOID 0:0 is a death, not a join. The tally is on the volume, so it lives
-        # on across restarts; status-metrics reads it.
+        # ZDOID 0:0 is a death, not a join. status-metrics owns the database and its
+        # schema; this only inserts, and mode=rw so it never creates one it would own.
         if [ "${zdo%%:*}" = 0 ]; then
-          deaths=/config/players/deaths
-          mkdir -p "$deaths"
-          count=$(cat "$deaths/$name" 2>/dev/null || echo 0)
-          case "$count" in ''|*[!0-9]*) count=0 ;; esac
-          echo $((count + 1)) > "$deaths/$name"
+          PLAYER_NAME=$name python3 - <<'DEATH' 2>/dev/null || true
+    import os, sqlite3
+    with sqlite3.connect("file:/config/players/valheim-players.db?mode=rw", uri=True, timeout=5) as db:
+        db.execute(
+            "INSERT INTO player (name, death_count) VALUES (?, 1)"
+            " ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1",
+            (os.environ["PLAYER_NAME"],),
+        )
+    DEATH
           exit 0
         fi
         # A respawn keeps the SteamID from the join, not whoever handshook last.

@@ -2,8 +2,8 @@
 
 const { GAME } = require("../config");
 const { gaugeLines } = require("../metric-lines");
-const { readOnlinePlayers, readOnlinePlayerSessions, readPlayersSeen } = require("../player-files");
-const { readDeathCounts } = require("../player-counters");
+const { readOnlinePlayers, readOnlinePlayerSessions } = require("../online-players");
+const { readDeathCounts, readPlayersSeen } = require("../player-database");
 const { readModState } = require("../status-files");
 const { readWorldModifiers } = require("../world-modifiers");
 

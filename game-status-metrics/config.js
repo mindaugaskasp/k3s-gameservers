@@ -19,14 +19,11 @@ const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(
 // One file per online player, named after the character, written by the game's
 // log hooks (games whose query protocol doesn't report names, e.g. Valheim).
 const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
-// Last time each player was seen online, on the PVC so it outlives the pod.
-const SEEN_PLAYERS_DIR = `${PERSIST_DIR}/players/seen`;
-// One file per player holding the seconds they have been online in total, and the
-// time that total was last credited. Both on the PVC: they are a lifetime tally.
-const PLAY_TIME_DIR = `${PERSIST_DIR}/players/play-time`;
-const PLAY_TIME_CLOCK_FILE = `${PERSIST_DIR}/players/play-time-clock.seconds`;
-// One file per player holding their death count, written by the game's log hook.
-const DEATHS_DIR = `${PERSIST_DIR}/players/deaths`;
+// Lifetime player history -- time online, deaths, last seen. On the PVC, and the one
+// path both this exporter and the game's log hooks may write.
+const PLAYERS_DIR = `${PERSIST_DIR}/players`;
+// Named after the game: one database per server, never a file two could share.
+const PLAYERS_DATABASE_FILE = `${PLAYERS_DIR}/${GAME}-players.db`;
 
 module.exports = {
   GAME,
@@ -42,8 +39,6 @@ module.exports = {
   BACKUP_RECENT_DAYS,
   BACKUP_WINDOW_ENDS,
   ONLINE_PLAYERS_DIR,
-  SEEN_PLAYERS_DIR,
-  PLAY_TIME_DIR,
-  PLAY_TIME_CLOCK_FILE,
-  DEATHS_DIR,
+  PLAYERS_DIR,
+  PLAYERS_DATABASE_FILE,
 };
