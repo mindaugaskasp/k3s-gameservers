@@ -30,6 +30,8 @@ That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 
 ## Monitoring
 
+- **Player tallies:** the sidecar mounts the game volume read-only apart from
+  `players/`, the one path it and the log hooks write.
 - **Sidecar:** `game-status-metrics/` queries each game with
   [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`;
   its modules are listed in [status-metrics.md](status-metrics.md).

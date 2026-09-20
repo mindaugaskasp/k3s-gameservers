@@ -185,6 +185,10 @@ spec:
             - name: data
               mountPath: {{ $data }}
               readOnly: true
+            # The one path the exporter writes: player tallies that outlive the pod.
+            - name: data
+              mountPath: {{ $data }}/players
+              subPath: players
         {{- end }}
       volumes:
         {{- if not .Values.persistence.enabled }}

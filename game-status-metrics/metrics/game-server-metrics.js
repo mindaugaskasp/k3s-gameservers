@@ -7,7 +7,7 @@ const {
   readBuildId,
   readPastSessionsUptimeSeconds,
 } = require("../status-files");
-const { readPlayTimeTotals } = require("../player-play-time");
+const { readPlayTimeTotals } = require("../player-counters");
 
 // Only counts while the server answers: a session that ended is already in the baseline.
 function currentSessionSeconds(isServerUp) {

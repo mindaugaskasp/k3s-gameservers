@@ -1,7 +1,7 @@
 "use strict";
 
 const fs = require("fs");
-const { PLAY_TIME_DIR, PLAY_TIME_CLOCK_FILE } = require("./config");
+const { PLAY_TIME_DIR, PLAY_TIME_CLOCK_FILE, DEATHS_DIR } = require("./config");
 
 // A gap longer than this means the exporter was not watching, and nobody knows who
 // stayed online across it, so it is credited to no one.
@@ -45,7 +45,15 @@ function creditPlayTime(names) {
   }
 }
 
-/** Longest played first, capped so one scrape can't publish an unbounded list. */
+/** Highest first, capped so one scrape can't publish an unbounded list. */
+function rankHighestFirst(players, field) {
+  const ranked = players.filter((player) => player[field] > 0);
+  ranked.sort((first, second) => second[field] - first[field] || first.name.localeCompare(second.name));
+
+  return ranked.slice(0, RANKED_PLAYER_LIMIT);
+}
+
+/** Longest played first. */
 function readPlayTimeTotals() {
   let files = [];
   try {
@@ -54,12 +62,22 @@ function readPlayTimeTotals() {
     return [];
   }
 
-  const totals = files
-    .map((file) => ({ name: decodeURIComponent(file), seconds: readNumberFile(`${PLAY_TIME_DIR}/${file}`) }))
-    .filter((player) => player.seconds > 0);
-  totals.sort((first, second) => second.seconds - first.seconds || first.name.localeCompare(second.name));
-
-  return totals.slice(0, RANKED_PLAYER_LIMIT);
+  return rankHighestFirst(
+    files.map((file) => ({ name: decodeURIComponent(file), seconds: readNumberFile(`${PLAY_TIME_DIR}/${file}`) })),
+    "seconds"
+  );
 }
 
-module.exports = { creditPlayTime, readPlayTimeTotals };
+/** Deaths per player, counted by the game's log hook. Names are its own filenames, unencoded. */
+function readDeathCounts() {
+  let files = [];
+  try {
+    files = fs.readdirSync(DEATHS_DIR);
+  } catch {
+    return [];
+  }
+
+  return rankHighestFirst(files.map((name) => ({ name, count: readNumberFile(`${DEATHS_DIR}/${name}`) })), "count");
+}
+
+module.exports = { creditPlayTime, readPlayTimeTotals, readDeathCounts };

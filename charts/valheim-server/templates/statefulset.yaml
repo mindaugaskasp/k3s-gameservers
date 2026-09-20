@@ -204,6 +204,10 @@ spec:
               mountPath: /config
               subPath: config
               readOnly: true
+            # The one path the exporter writes: player tallies that outlive the pod.
+            - name: data
+              mountPath: /config/players
+              subPath: config/players
         {{- end }}
       volumes:
         {{- if not .Values.persistence.enabled }}

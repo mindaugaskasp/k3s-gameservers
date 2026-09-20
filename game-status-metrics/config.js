@@ -25,6 +25,8 @@ const SEEN_PLAYERS_DIR = `${PERSIST_DIR}/players/seen`;
 // time that total was last credited. Both on the PVC: they are a lifetime tally.
 const PLAY_TIME_DIR = `${PERSIST_DIR}/players/play-time`;
 const PLAY_TIME_CLOCK_FILE = `${PERSIST_DIR}/players/play-time-clock.seconds`;
+// One file per player holding their death count, written by the game's log hook.
+const DEATHS_DIR = `${PERSIST_DIR}/players/deaths`;
 
 module.exports = {
   GAME,
@@ -43,4 +45,5 @@ module.exports = {
   SEEN_PLAYERS_DIR,
   PLAY_TIME_DIR,
   PLAY_TIME_CLOCK_FILE,
+  DEATHS_DIR,
 };

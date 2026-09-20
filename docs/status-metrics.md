@@ -21,8 +21,8 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   mod state, last player activity.
 - `player-files.js`: who is online now, and when each player was last seen
   (on the PVC, capped at 50 names).
-- `player-play-time.js`: each player's lifetime seconds online (on the PVC),
-  credited one scrape interval at a time while they are connected.
+- `player-counters.js`: per-player tallies on the volume -- seconds online,
+  credited one scrape interval at a time, and deaths, counted by the log hook.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
 - `backup-files.js`: backup archives on disk, oldest first.
 - `backup-archive.js`: the `.play-clock` index and play-time retention
@@ -37,7 +37,7 @@ type named on every `# TYPE` line of the
 
 - `metrics/game-server-metrics.js`: `game_server_*`, what every game answers.
 - `metrics/backup-metrics.js`: `game_server_backup_*`.
-- `metrics/valheim-metrics.js`: `valheim_*` players, mods and world modifiers.
+- `metrics/valheim-metrics.js`: `valheim_*` players, deaths, mods and world modifiers.
 - `metrics/backup-archive-metrics.js`: `valheim_backup_*` archive windows.
 
 Metric naming rules live in [CLAUDE.md](../CLAUDE.md); a published name is an

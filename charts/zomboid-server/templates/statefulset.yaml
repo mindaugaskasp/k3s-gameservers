@@ -238,6 +238,10 @@ spec:
               mountPath: /project-zomboid-config
               subPath: config
               readOnly: true
+            # The one path the exporter writes: player tallies that outlive the pod.
+            - name: data
+              mountPath: /project-zomboid-config/players
+              subPath: config/players
         {{- end }}
         {{- if .Values.gameLogs.enabled }}
         # New files appear per server start with a timestamp prefix; old ones get
