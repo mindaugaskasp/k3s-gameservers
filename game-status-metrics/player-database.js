@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const { DatabaseSync } = require("node:sqlite");
-const { PLAYERS_DIR, PLAYERS_DATABASE_FILE } = require("./config");
+const { DATABASE_DIR, PLAYERS_DATABASE_FILE } = require("./config");
 
 /** Enough names for a leaderboard; every row is kept either way. */
 const RANKED_PLAYER_LIMIT = 10;
@@ -30,14 +30,14 @@ const nowInSeconds = () => Math.floor(Date.now() / 1000);
 let database = null;
 
 /**
- * One connection, opened on first use. This process creates the file so it owns it,
- * mode 0666 because the log hook writes as a different user and SQLite copies the
- * main file's mode onto its -wal and -shm.
+ * One connection, opened on first use. This process creates the file so that it owns
+ * it: the log hooks write as another user, and a file they created first would be one
+ * this user could not write. Mode 0666 so their writes land whoever they run as.
  */
 function openDatabase() {
   if (database) return database;
   try {
-    fs.mkdirSync(PLAYERS_DIR, { recursive: true });
+    fs.mkdirSync(DATABASE_DIR, { recursive: true });
     const opened = new DatabaseSync(PLAYERS_DATABASE_FILE);
     opened.exec(SCHEMA);
     fs.chmodSync(PLAYERS_DATABASE_FILE, 0o666);

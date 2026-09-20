@@ -21,9 +21,9 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   mod state, last player activity.
 - `online-players.js`: who is online now, one `STATUS_DIR` file per player
   written by the log hooks; the file's mtime is when the session started.
-- `player-database.js`: `<game>-players.db` on the PVC (one per game) -- time
-  online, deaths, last seen. This process creates it and owns the schema; the
-  game's log hooks insert deaths as a second writer, so it runs in
+- `player-database.js`: `database/sqlite/<game>-players.db` on the PVC, one per
+  game -- time online, deaths, last seen. This process creates it and owns the
+  schema; the game's log hooks insert deaths as a second writer, so it runs in
   [WAL](https://sqlite.org/wal.html) mode and the file is mode 0666.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
 - `backup-files.js`: backup archives on disk, oldest first.

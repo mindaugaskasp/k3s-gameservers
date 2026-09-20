@@ -204,10 +204,10 @@ spec:
               mountPath: /config
               subPath: config
               readOnly: true
-            # The one path the exporter writes: player tallies that outlive the pod.
+            # The one path the exporter writes: player history that outlives the pod.
             - name: data
-              mountPath: /config/players
-              subPath: config/players
+              mountPath: /config/database/sqlite
+              subPath: config/database/sqlite
         {{- end }}
       volumes:
         {{- if not .Values.persistence.enabled }}

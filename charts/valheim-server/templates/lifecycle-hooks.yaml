@@ -39,7 +39,7 @@ data:
         if [ "${zdo%%:*}" = 0 ]; then
           PLAYER_NAME=$name python3 - <<'DEATH' 2>/dev/null || true
     import os, sqlite3
-    with sqlite3.connect("file:/config/players/valheim-players.db?mode=rw", uri=True, timeout=5) as db:
+    with sqlite3.connect("file:/config/database/sqlite/valheim-players.db?mode=rw", uri=True, timeout=5) as db:
         db.execute(
             "INSERT INTO player (name, death_count) VALUES (?, 1)"
             " ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1",
