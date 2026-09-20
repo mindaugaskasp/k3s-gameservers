@@ -4,7 +4,7 @@ const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, clearOnlinePlayers } = require("./online-players");
 const { recordPlayersSeen, creditPlayTime, recordDeaths } = require("./player-database");
-const { readNewDeaths } = require("./death-log");
+const { readNewDeaths } = require("./death-log-reader");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".

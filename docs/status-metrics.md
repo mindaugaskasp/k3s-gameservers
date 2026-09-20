@@ -21,7 +21,7 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   mod state, last player activity.
 - `online-players.js`: who is online now, one `STATUS_DIR` file per player
   written by the log hooks; the file's mtime is when the session started.
-- `death-log.js`: the deaths the log hooks appended since the last read, by
+- `death-log-reader.js`: the deaths the log hooks appended since the last read, by
   offset so a line written mid-read is not lost.
 - `player-database.js`: `database/sqlite/<game>-players.db` on the PVC, one per
   game -- time online, deaths, last seen. This process is its only writer: one
