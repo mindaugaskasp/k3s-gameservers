@@ -22,11 +22,12 @@ const CONNECTION_SETTINGS = `
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
 
 let database = null;
+let reportedOpenFailure = false;
 
 /**
- * One connection, opened on first use. This process creates the file so that it owns
- * it: the log hooks write as another user, and a file they created first would be one
- * this user could not write. Mode 0666 so their writes land whoever they run as.
+ * One connection, opened on first use. This process is the database's only writer:
+ * a second one running as another user would create -wal and -shm this one cannot
+ * write, and every read would then fail with "readonly database".
  */
 function openDatabase() {
   if (database) return database;
@@ -35,10 +36,11 @@ function openDatabase() {
     const opened = new DatabaseSync(PLAYERS_DATABASE_FILE);
     opened.exec(CONNECTION_SETTINGS);
     runMigrations(opened);
-    fs.chmodSync(PLAYERS_DATABASE_FILE, 0o666);
     database = opened;
-  } catch {
-    // Read-only or missing volume: player history is a nicety, never worth failing a scrape over.
+  } catch (error) {
+    // Never worth failing a scrape over, but silence here once cost three metrics.
+    if (!reportedOpenFailure) console.error(`player database unavailable: ${error.message}`);
+    reportedOpenFailure = true;
     database = null;
   }
 
@@ -111,6 +113,16 @@ function creditPlayTime(names) {
   );
 }
 
+/** One row per death the log hook reported, so two deaths in one scrape both count. */
+function recordDeaths(names) {
+  runForEachPlayer(
+    `INSERT INTO player (name, death_count) VALUES (?, ?)
+       ON CONFLICT(name) DO UPDATE SET death_count = death_count + excluded.death_count`,
+    names,
+    1
+  );
+}
+
 /** Most recently seen first. */
 function readPlayersSeen() {
   return readRows(
@@ -135,4 +147,4 @@ function readDeathCounts() {
   );
 }
 
-module.exports = { recordPlayersSeen, creditPlayTime, readPlayersSeen, readPlayTimeTotals, readDeathCounts };
+module.exports = { recordPlayersSeen, creditPlayTime, recordDeaths, readPlayersSeen, readPlayTimeTotals, readDeathCounts };

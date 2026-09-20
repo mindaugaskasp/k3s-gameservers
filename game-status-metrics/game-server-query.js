@@ -3,7 +3,8 @@
 const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, clearOnlinePlayers } = require("./online-players");
-const { recordPlayersSeen, creditPlayTime } = require("./player-database");
+const { recordPlayersSeen, creditPlayTime, recordDeaths } = require("./player-database");
+const { readNewDeaths } = require("./death-log");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".
@@ -30,6 +31,7 @@ class GameServerQuery {
   }
 
   async refresh() {
+    recordDeaths(readNewDeaths()); // deaths happen whether or not the query answers
     const queryStartedAt = Date.now();
     try {
       const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });

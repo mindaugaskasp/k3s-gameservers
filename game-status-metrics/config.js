@@ -19,6 +19,8 @@ const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(
 // One file per online player, named after the character, written by the game's
 // log hooks (games whose query protocol doesn't report names, e.g. Valheim).
 const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
+// Appended to by the log hooks, one line per death, and folded into the database.
+const DEATH_LOG_FILE = `${STATUS_DIR}/players/deaths`;
 // The one path on the PVC both this exporter and the game's log hooks may write.
 const DATABASE_DIR = `${PERSIST_DIR}/database/sqlite`;
 // Named after the game: one database per server, never a file two could share.
@@ -38,6 +40,7 @@ module.exports = {
   BACKUP_RECENT_DAYS,
   BACKUP_WINDOW_ENDS,
   ONLINE_PLAYERS_DIR,
+  DEATH_LOG_FILE,
   DATABASE_DIR,
   PLAYERS_DATABASE_FILE,
 };

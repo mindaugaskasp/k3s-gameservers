@@ -31,7 +31,7 @@ That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 ## Monitoring
 
 - **Player history:** `database/sqlite/<game>-players.db` on each game's own volume,
-  the one path the sidecar and the log hooks write; everything else is read-only.
+  written only by the sidecar; the rest of the volume is mounted read-only there.
 - **Sidecar:** `game-status-metrics/` queries each game with
   [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`;
   its modules are listed in [status-metrics.md](status-metrics.md).
