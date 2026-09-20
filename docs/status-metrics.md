@@ -25,6 +25,9 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   game -- time online, deaths, last seen. This process creates it and owns the
   schema; the game's log hooks insert deaths as a second writer, so it runs in
   [WAL](https://sqlite.org/wal.html) mode and the file is mode 0666.
+- `database-migrations.js` + `migrations/`: one file per schema version, applied
+  in filename order on connect and recorded in the `migration` table. Add a file,
+  never edit one that has shipped.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
 - `backup-files.js`: backup archives on disk, oldest first.
 - `backup-archive.js`: the `.play-clock` index and play-time retention

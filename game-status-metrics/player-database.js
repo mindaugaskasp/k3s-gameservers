@@ -3,6 +3,7 @@
 const fs = require("fs");
 const { DatabaseSync } = require("node:sqlite");
 const { DATABASE_DIR, PLAYERS_DATABASE_FILE } = require("./config");
+const { runMigrations } = require("./database-migrations");
 
 /** Enough names for a leaderboard; every row is kept either way. */
 const RANKED_PLAYER_LIMIT = 10;
@@ -13,16 +14,9 @@ const MAX_CREDITED_GAP_SECONDS = 60;
 
 // WAL so the game's log hook can record a death while a scrape is reading:
 // https://sqlite.org/wal.html
-const SCHEMA = `
+const CONNECTION_SETTINGS = `
   PRAGMA journal_mode = WAL;
   PRAGMA busy_timeout = 5000;
-  CREATE TABLE IF NOT EXISTS player (
-    name TEXT PRIMARY KEY,
-    play_time_seconds INTEGER NOT NULL DEFAULT 0,
-    death_count INTEGER NOT NULL DEFAULT 0,
-    last_seen_at INTEGER
-  );
-  CREATE TABLE IF NOT EXISTS exporter_state (key TEXT PRIMARY KEY, value INTEGER NOT NULL);
 `;
 
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
@@ -39,7 +33,8 @@ function openDatabase() {
   try {
     fs.mkdirSync(DATABASE_DIR, { recursive: true });
     const opened = new DatabaseSync(PLAYERS_DATABASE_FILE);
-    opened.exec(SCHEMA);
+    opened.exec(CONNECTION_SETTINGS);
+    runMigrations(opened);
     fs.chmodSync(PLAYERS_DATABASE_FILE, 0o666);
     database = opened;
   } catch {
