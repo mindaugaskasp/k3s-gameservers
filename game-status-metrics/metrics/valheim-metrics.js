@@ -2,7 +2,8 @@
 
 const { GAME } = require("../config");
 const { gaugeLines } = require("../metric-lines");
-const { readOnlinePlayers, readPlayersSeen } = require("../player-files");
+const { readOnlinePlayers, readOnlinePlayerSessions } = require("../online-players");
+const { readDeathCounts, readPlayersSeen } = require("../player-database");
 const { readModState } = require("../status-files");
 const { readWorldModifiers } = require("../world-modifiers");
 
@@ -19,9 +20,22 @@ function valheimMetricLines() {
       readOnlinePlayers().map((name) => ({ labels: { game, name }, value: 1 }))
     ),
     ...gaugeLines(
+      "valheim_player_session_seconds",
+      "How long a player currently online has been connected, by character name.",
+      readOnlinePlayerSessions().map((player) => ({
+        labels: { game, name: player.name },
+        value: Math.max(0, Math.floor(Date.now() / 1000) - player.startedAt),
+      }))
+    ),
+    ...gaugeLines(
       "valheim_player_last_seen_timestamp_seconds",
       "Unix time a player was last seen online.",
       readPlayersSeen().map((player) => ({ labels: { game, name: player.name }, value: player.at }))
+    ),
+    ...gaugeLines(
+      "valheim_player_deaths",
+      "How many times a player has died on this server, counted from the server log.",
+      readDeathCounts().map((player) => ({ labels: { game, name: player.name }, value: player.count }))
     ),
     ...gaugeLines(
       "valheim_mods_active",

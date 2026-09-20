@@ -12,4 +12,3 @@ secrets*.yaml
 *.kubeconfig
 kubeconfig
 .DS_Store
-monitoring/site.env

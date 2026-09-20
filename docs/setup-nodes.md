@@ -45,7 +45,7 @@ podman system migrate
 For the netplan file, see the
 [netplan examples](https://netplan.readthedocs.io/en/stable/examples/)
 (`dhcp4: false`, `addresses`, `routes`, `nameservers`). If the IP changes,
-also update the router's port forwards, `VM_HOST` and `monitoring/site.env`.
+also update the router's port forwards, `VM_HOST` and `monitoring/.env`.
 
 ## Node NotReady after a restart?
 

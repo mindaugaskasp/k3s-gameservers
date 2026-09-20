@@ -19,8 +19,13 @@ const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(
 // One file per online player, named after the character, written by the game's
 // log hooks (games whose query protocol doesn't report names, e.g. Valheim).
 const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
-// Last time each player was seen online, on the PVC so it outlives the pod.
-const SEEN_PLAYERS_DIR = `${PERSIST_DIR}/players/seen`;
+// Appended to by the log hooks, one line per death, and folded into the database.
+const DEATH_LOG_FILE = `${STATUS_DIR}/players/deaths`;
+// Mounted from the volume but outside the game's own data tree: the game images run
+// as root and reset ownership across their data dir on every start.
+const DATABASE_DIR = process.env.DATABASE_DIR || `${PERSIST_DIR}/database/sqlite`;
+// Named after the game: one database per server, never a file two could share.
+const PLAYERS_DATABASE_FILE = `${DATABASE_DIR}/${GAME}-players.db`;
 
 module.exports = {
   GAME,
@@ -36,5 +41,7 @@ module.exports = {
   BACKUP_RECENT_DAYS,
   BACKUP_WINDOW_ENDS,
   ONLINE_PLAYERS_DIR,
-  SEEN_PLAYERS_DIR,
+  DEATH_LOG_FILE,
+  DATABASE_DIR,
+  PLAYERS_DATABASE_FILE,
 };

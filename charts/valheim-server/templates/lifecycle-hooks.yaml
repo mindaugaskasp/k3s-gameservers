@@ -32,10 +32,16 @@ data:
         id=${l##*Got handshake from client }; printf '%s' "${id%% *}" > "$dir/last-handshake" ;;
       *"Got character ZDOID from "*)
         rest=${l##*Got character ZDOID from }; zdo=${rest##* : }
-        [ "${zdo%%:*}" = 0 ] && exit 0  # ZDOID 0:0 is a death, not a join
         name=$(printf '%s' "${rest% : *}" | tr -d '/')
+        [ -n "$name" ] || exit 0
+        # ZDOID 0:0 is a death, not a join. One line per death; status-metrics folds
+        # them into its database, so nothing but status-metrics ever writes that file.
+        if [ "${zdo%%:*}" = 0 ]; then
+          printf '%s\n' "$name" >> "$dir/deaths"
+          exit 0
+        fi
         # A respawn keeps the SteamID from the join, not whoever handshook last.
-        [ -n "$name" ] && [ ! -f "$dir/online/$name" ] && cat "$dir/last-handshake" > "$dir/online/$name" 2>/dev/null ;;
+        [ ! -f "$dir/online/$name" ] && cat "$dir/last-handshake" > "$dir/online/$name" 2>/dev/null ;;
       *"Closing socket "*)
         id=${l##*Closing socket }; id=${id%% *}
         for f in "$dir/online"/*; do

@@ -19,8 +19,17 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 
 - `status-files.js`: `STATUS_DIR` files -- start/update timestamps, build id,
   mod state, last player activity.
-- `player-files.js`: who is online now, and when each player was last seen
-  (on the PVC, capped at 50 names).
+- `online-players.js`: who is online now, one `STATUS_DIR` file per player
+  written by the log hooks; the file's mtime is when the session started.
+- `death-log-reader.js`: the deaths the log hooks appended since the last read, by
+  offset so a line written mid-read is not lost.
+- `player-database.js`: `<DATABASE_DIR>/<game>-players.db` on the PVC, one per
+  game -- time online, deaths, last seen. This process is its only writer: one
+  running as another user would leave [WAL](https://sqlite.org/wal.html) files
+  this one cannot write, and every query would fail as "readonly database".
+- `database-migrations.js` + `migrations/`: one file per schema version, applied
+  in filename order on connect and recorded in the `migration` table. Add a file,
+  never edit one that has shipped.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
 - `backup-files.js`: backup archives on disk, oldest first.
 - `backup-archive.js`: the `.play-clock` index and play-time retention
@@ -35,7 +44,7 @@ type named on every `# TYPE` line of the
 
 - `metrics/game-server-metrics.js`: `game_server_*`, what every game answers.
 - `metrics/backup-metrics.js`: `game_server_backup_*`.
-- `metrics/valheim-metrics.js`: `valheim_*` players, mods and world modifiers.
+- `metrics/valheim-metrics.js`: `valheim_*` players, deaths, mods and world modifiers.
 - `metrics/backup-archive-metrics.js`: `valheim_backup_*` archive windows.
 
 Metric naming rules live in [CLAUDE.md](../CLAUDE.md); a published name is an

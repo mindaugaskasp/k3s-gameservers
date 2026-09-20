@@ -207,6 +207,8 @@ spec:
               value: "/var/run/zomboid-status"
             - name: PERSIST_DIR
               value: "/project-zomboid-config"
+            - name: DATABASE_DIR
+              value: "/database/sqlite"
             - name: BACKUP_DIR
               value: "/project-zomboid-config/backups/period"
             - name: BACKUP_MAX_AGE_DAYS
@@ -238,6 +240,11 @@ spec:
               mountPath: /project-zomboid-config
               subPath: config
               readOnly: true
+            # The exporter's own path on the volume, off the game's data tree: the game
+            # runs as root and resets ownership across that tree on every start.
+            - name: data
+              mountPath: /database/sqlite
+              subPath: database/sqlite
         {{- end }}
         {{- if .Values.gameLogs.enabled }}
         # New files appear per server start with a timestamp prefix; old ones get

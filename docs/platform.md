@@ -33,7 +33,7 @@ controller owns them, and the controller recreates them.
 ## Monitoring
 
 - **Host values** (Grafana/Loki hostnames, LAN CIDR) go in the gitignored
-  `monitoring/site.env` (see `site.env.example`).
+  `monitoring/.env` (see `.env.example`).
 - **Access:** Grafana and Loki's push path are LAN-only, via the
   `monitoring-lan-only@kubernetescrd` Traefik middleware.
 - **Admin password:** `make grafana-password`.
