@@ -84,7 +84,9 @@ statusMetrics:
   image:
     # In-cluster registry (registry/, NodePort 30500); `make push-metrics-image`.
     repository: localhost:30500/k3s-gameservers/game-status-metrics
-    tag: latest
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
     pullPolicy: Always
   port: 9101
   queryPort: "2457"

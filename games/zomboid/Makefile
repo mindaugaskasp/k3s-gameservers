@@ -2,14 +2,13 @@ SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -c
 export KUBECONFIG ?= $(HOME)/.kube/config
 CHART := ../../charts/zomboid-server
-STATUS_METRICS_DIR := ../../game-status-metrics
-STATUS_METRICS_IMAGE := localhost:30500/k3s-gameservers/game-status-metrics:latest
 RELEASE := zomboid
 NAMESPACE := games
 VALUES := values.override.yaml
 DATA_DIR := data
 BACKUP_DIR := data-backups
 REPO_ROOT := $(abspath ../..)
+include ../metrics-image.mk
 BACKUP_RETENTION_DAYS := 5
 
 .PHONY: help lint template deploy status logs logs-metrics \
@@ -45,10 +44,11 @@ help:
 	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
 
 lint:
-	helm lint $(CHART) -f $(VALUES)
+	helm lint $(CHART) -f $(VALUES) --set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
 
 template:
 	helm template $(RELEASE) $(CHART) -f $(VALUES) -n $(NAMESPACE) \
+		--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG) \
 		--set-string secrets.adminPassword=REDACTED \
 		--set-string secrets.rconPassword=REDACTED
 
@@ -80,6 +80,7 @@ deploy: secrets-check
 	helm upgrade --install $(RELEASE) $(CHART) \
 		-f $(VALUES) \
 		-n $(NAMESPACE) \
+		--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG) \
 		--set-string secrets.adminPassword="$$ZOMBOID_ADMIN_PASSWORD" \
 		--set-string secrets.rconPassword="$$ZOMBOID_RCON_PASSWORD" \
 		"$${extra[@]}"

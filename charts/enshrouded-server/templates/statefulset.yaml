@@ -140,7 +140,7 @@ spec:
               mountPath: /var/run/enshrouded-status
         {{- if .Values.statusMetrics.enabled }}
         - name: status-metrics
-          image: "{{ .Values.statusMetrics.image.repository }}:{{ .Values.statusMetrics.image.tag }}"
+          image: "{{ .Values.statusMetrics.image.repository }}:{{ required "statusMetrics.image.tag is required: run make from games/<game>" .Values.statusMetrics.image.tag }}"
           imagePullPolicy: {{ .Values.statusMetrics.image.pullPolicy }}
           env:
             - name: GAMEDIG_GAME

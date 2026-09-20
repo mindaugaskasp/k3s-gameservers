@@ -32,6 +32,10 @@ That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 
 - **Sidecar:** `game-status-metrics/` queries each game with
   [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`.
+- **Image tag:** `games/metrics-image.mk` tags the sidecar with the last commit that
+  touched its source, so changing it replaces the pod and leaving it alone does not.
+- **Metric names:** `valheim_*` for what only Valheim reports, `game_server_*` for
+  what every game reports, separated by the `game` label.
 - **Prometheus:** plain manifests on NodePort 30090 with 7 days of history.
   It scrapes the sidecars, kubelet and cAdvisor.
 - **Dashboards:** `make dashboards` applies `games/<game>/grafana/dashboards/`
