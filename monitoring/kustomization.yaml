@@ -23,7 +23,7 @@ configMapGenerator:
     files: [config/dashboard-providers.yaml]
   # Host-specific values (gitignored); only feeds the replacements below, never applied.
   - name: site
-    envs: [site.env]
+    envs: [.env]
     options:
       annotations:
         config.kubernetes.io/local-config: "true"

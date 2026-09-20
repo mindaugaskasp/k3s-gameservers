@@ -7,6 +7,6 @@ metadata:
 spec:
   ipAllowList:
     sourceRange:
-      - LAN_CIDR # from site.env
+      - LAN_CIDR # from .env
       # k3s pod CIDR: requests from the node itself arrive SNATed into it.
       - 10.42.0.0/16

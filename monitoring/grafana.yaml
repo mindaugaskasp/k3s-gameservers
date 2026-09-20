@@ -92,7 +92,7 @@ spec:
                   name: grafana-admin
                   key: password
             - name: GF_SERVER_ROOT_URL
-              value: http://GRAFANA_HOST/ # from site.env
+              value: http://GRAFANA_HOST/ # from .env
             - name: GF_ANALYTICS_REPORTING_ENABLED
               value: "false"
             - name: GF_ANALYTICS_CHECK_FOR_UPDATES
@@ -176,7 +176,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: monitoring-lan-only@kubernetescrd
 spec:
   rules:
-    - host: GRAFANA_HOST # from site.env
+    - host: GRAFANA_HOST # from .env
       http: &grafana-backend
         paths:
           - path: /

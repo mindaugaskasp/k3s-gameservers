@@ -22,7 +22,7 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 2. Install k3s, the registry, monitoring and every game's dashboards
    (steps: `make k3s`, `registry`, `monitoring`, `maintenance`, `dashboards`):
    ```sh
-   cp monitoring/site.env.example monitoring/site.env   # then edit
+   cp monitoring/.env.example monitoring/.env   # then edit
    make setup
    ```
 3. Deploy a game (read each script before running it):

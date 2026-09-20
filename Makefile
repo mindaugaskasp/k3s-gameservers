@@ -45,8 +45,8 @@ setup: check-site-env k3s registry monitoring maintenance dashboards
 	@echo "Platform ready. Deploy a game: cd games/<game> && make push-metrics-image deploy"
 
 check-site-env:
-	@test -f monitoring/site.env || { \
-		echo "Missing monitoring/site.env -- cp monitoring/site.env.example monitoring/site.env, then edit" >&2; exit 1; }
+	@test -f monitoring/.env || { \
+		echo "Missing monitoring/.env -- cp monitoring/.env.example monitoring/.env, then edit" >&2; exit 1; }
 
 k3s:
 	./install/k3s.sh
