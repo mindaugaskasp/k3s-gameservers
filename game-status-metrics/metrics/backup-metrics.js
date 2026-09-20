@@ -1,0 +1,61 @@
+"use strict";
+
+const { GAME, BACKUP_DIR, BACKUP_MAX_AGE_DAYS, BACKUP_MAX_COUNT, BACKUP_WINDOW_ENDS } = require("../config");
+const { gaugeLines } = require("../metric-lines");
+const { readBackups } = require("../backup-files");
+const { backupArchiveMetricLines } = require("./backup-archive-metrics");
+
+/** What every game with backups reports; the tiered archive is Valheim's own. */
+function backupMetricLines() {
+  const game = GAME;
+  const backups = readBackups();
+  const oldest = backups[0];
+  const newest = backups[backups.length - 1];
+  const sampleForGame = (value) => [{ labels: { game }, value }];
+  const sampleForEachBackup = (readValue) => backups.map((backup) => ({
+    labels: { game, file: `${BACKUP_DIR}/${backup.name}` },
+    value: readValue(backup),
+  }));
+  return [
+    ...gaugeLines("game_server_backup_count", "Number of backup archives currently on disk.", sampleForGame(backups.length)),
+    ...gaugeLines(
+      "game_server_backup_bytes",
+      "Total disk space used by backup archives.",
+      sampleForGame(backups.reduce((total, backup) => total + backup.bytes, 0))
+    ),
+    ...gaugeLines(
+      "game_server_backup_retention_days",
+      "Configured age at which a backup is deleted (0 = no age limit).",
+      sampleForGame(BACKUP_MAX_AGE_DAYS)
+    ),
+    ...gaugeLines(
+      "game_server_backup_retention_count",
+      "Configured max number of backups kept (0 = no count limit).",
+      sampleForGame(BACKUP_MAX_COUNT)
+    ),
+    ...gaugeLines(
+      "game_server_backup_oldest_timestamp_seconds",
+      "Modification time of the oldest backup.",
+      oldest ? sampleForGame(oldest.mtime) : []
+    ),
+    ...gaugeLines(
+      "game_server_backup_newest_timestamp_seconds",
+      "Modification time of the newest backup.",
+      oldest ? sampleForGame(newest.mtime) : []
+    ),
+    ...gaugeLines(
+      "game_server_backup_oldest_expiry_timestamp_seconds",
+      "When the oldest backup becomes eligible for deletion.",
+      oldest && BACKUP_MAX_AGE_DAYS > 0 ? sampleForGame(oldest.mtime + BACKUP_MAX_AGE_DAYS * 86400) : []
+    ),
+    ...gaugeLines(
+      "game_server_backup_file_timestamp_seconds",
+      "Modification time of each backup archive.",
+      sampleForEachBackup((backup) => backup.mtime)
+    ),
+    ...gaugeLines("game_server_backup_file_bytes", "Size of each backup archive.", sampleForEachBackup((backup) => backup.bytes)),
+    ...(BACKUP_WINDOW_ENDS.length ? backupArchiveMetricLines(backups) : []),
+  ];
+}
+
+module.exports = { backupMetricLines };
