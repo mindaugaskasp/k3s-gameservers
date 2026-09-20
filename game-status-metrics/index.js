@@ -11,6 +11,8 @@ const METRICS_PORT = Number(process.env.METRICS_PORT || 9101);
 const STATUS_DIR = process.env.STATUS_DIR || "/var/run/valheim-status";
 const PERSIST_DIR = process.env.PERSIST_DIR || "/config"; // PVC-backed, survives restarts (unlike STATUS_DIR)
 const BACKUP_DIR = process.env.BACKUP_DIR || "/config/backups";
+// The server's own command line. World modifiers ride on it as "-modifier <name> <value>".
+const SERVER_ARGS = process.env.SERVER_ARGS || "";
 const BACKUP_MAX_AGE_DAYS = Number(process.env.BACKUP_MAX_AGE_DAYS || 0);
 const BACKUP_MAX_COUNT = Number(process.env.BACKUP_MAX_COUNT || 0);
 // Set for games using backup-prune.sh (play-time archive windows).
@@ -60,6 +62,11 @@ function readModState() {
   } catch {
     return null;
   }
+}
+
+// The world rules the server was started with, e.g. "resources more". Absent = default world.
+function readWorldModifiers() {
+  return [...SERVER_ARGS.matchAll(/-modifier\s+(\S+)\s+(\S+)/g)].map(([, name, value]) => ({ name, value }));
 }
 
 // One file per online player, named after the character, written by the game's
@@ -256,6 +263,16 @@ function renderMods(g) {
     `# HELP game_server_mods_info Why mods are or are not loaded; read the reason label.`,
     `# TYPE game_server_mods_info gauge`,
     `game_server_mods_info{game="${g}",reason="${escapeLabel(mods.status)}"} 1`,
+  ];
+}
+
+function renderWorldModifiers(g) {
+  const modifiers = readWorldModifiers();
+  if (!modifiers.length) return [];
+  return [
+    `# HELP game_server_world_modifier A world rule the server runs with; read the name and value labels.`,
+    `# TYPE game_server_world_modifier gauge`,
+    ...modifiers.map((m) => `game_server_world_modifier{game="${g}",name="${escapeLabel(m.name)}",value="${escapeLabel(m.value)}"} 1`),
   ];
 }
 
@@ -461,6 +478,7 @@ function render() {
     ...renderOnlinePlayers(g),
     ...renderPlayersSeen(g),
     ...renderMods(g),
+    ...renderWorldModifiers(g),
     ...renderBackups(g),
     "",
   ].join("\n");
