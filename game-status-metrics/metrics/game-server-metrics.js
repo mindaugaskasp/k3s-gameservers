@@ -7,7 +7,7 @@ const {
   readBuildId,
   readPastSessionsUptimeSeconds,
 } = require("../status-files");
-const { readPlayTimeTotals } = require("../player-database");
+const { readPlayTimeTotals, readDeathCounts, readPlayersSeen } = require("../player-database");
 
 // Only counts while the server answers: a session that ended is already in the baseline.
 function currentSessionSeconds(isServerUp) {
@@ -69,6 +69,16 @@ function gameServerMetricLines(status) {
       "game_server_player_play_time_seconds",
       "Total time a player has spent online, across every session the exporter has seen.",
       readPlayTimeTotals().map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
+    ),
+    ...gaugeLines(
+      "game_server_player_last_seen_timestamp_seconds",
+      "Unix time a player was last seen online.",
+      readPlayersSeen().map((player) => ({ labels: { game, name: player.name }, value: player.at }))
+    ),
+    ...gaugeLines(
+      "game_server_player_deaths",
+      "How many times a player has died on this server, counted from the server log.",
+      readDeathCounts().map((player) => ({ labels: { game, name: player.name }, value: player.count }))
     ),
   ];
 }
