@@ -13,7 +13,9 @@ function getReadPositions() {
   try {
     loadedReadPositions = JSON.parse(fs.readFileSync(LOG_READ_POSITIONS_FILE, "utf8"));
   } catch {
+    // Saved at once: a restart must keep this pod's firstReadAt, not start a later one.
     loadedReadPositions = { firstReadAt: Date.now(), offsets: {} };
+    saveReadPositions();
   }
   return loadedReadPositions;
 }
@@ -37,6 +39,7 @@ function getStartingOffset(fileStats, positions) {
 
 /** Complete lines appended to the file since the last call; a half-written last line waits. */
 function readNewLines(filePath) {
+  const positions = getReadPositions();
   let fileStats;
   try {
     fileStats = fs.statSync(filePath);
@@ -44,7 +47,6 @@ function readNewLines(filePath) {
     return [];
   }
 
-  const positions = getReadPositions();
   const knownOffset = positions.offsets[filePath];
   let offset = knownOffset ?? getStartingOffset(fileStats, positions);
   if (fileStats.size < offset) offset = 0;
