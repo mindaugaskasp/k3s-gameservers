@@ -5,14 +5,13 @@ const { DatabaseSync } = require("node:sqlite");
 const { DATABASE_DIR, PLAYERS_DATABASE_FILE } = require("./config");
 const { runMigrations } = require("./database-migrations");
 
-/** Enough names for a leaderboard; every row is kept either way. */
 const RANKED_PLAYER_LIMIT = 10;
 const SEEN_PLAYER_LIMIT = 50;
 // A gap longer than this means the exporter was not watching, and nobody knows who
 // stayed online across it, so it is credited to no one.
 const MAX_CREDITED_GAP_SECONDS = 60;
 
-// WAL so the game's log hook can record a death while a scrape is reading:
+// WAL lets anyone inspecting the file read it without blocking the exporter's writes:
 // https://sqlite.org/wal.html
 const CONNECTION_SETTINGS = `
   PRAGMA journal_mode = WAL;
@@ -22,25 +21,26 @@ const CONNECTION_SETTINGS = `
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
 
 let database = null;
-let reportedOpenFailure = false;
+let reportedDatabaseFailure = false;
 
-/**
- * One connection, opened on first use. This process is the database's only writer:
- * a second one running as another user would create -wal and -shm this one cannot
- * write, and every read would then fail with "readonly database".
- */
+// Never worth failing a scrape over, but reported once so a broken database is visible.
+function reportDatabaseFailure(problem, error) {
+  if (!reportedDatabaseFailure) console.error(`player database ${problem}: ${error.message}`);
+  reportedDatabaseFailure = true;
+}
+
+// This process is the database's only writer: a second one running as another user
+// would create -wal and -shm files this one cannot write.
 function openDatabase() {
   if (database) return database;
   try {
     fs.mkdirSync(DATABASE_DIR, { recursive: true });
-    const opened = new DatabaseSync(PLAYERS_DATABASE_FILE);
-    opened.exec(CONNECTION_SETTINGS);
-    runMigrations(opened);
-    database = opened;
+    const openedDatabase = new DatabaseSync(PLAYERS_DATABASE_FILE);
+    openedDatabase.exec(CONNECTION_SETTINGS);
+    runMigrations(openedDatabase);
+    database = openedDatabase;
   } catch (error) {
-    // Never worth failing a scrape over, but silence here once cost three metrics.
-    if (!reportedOpenFailure) console.error(`player database unavailable: ${error.message}`);
-    reportedOpenFailure = true;
+    reportDatabaseFailure("unavailable", error);
     database = null;
   }
 
@@ -48,43 +48,41 @@ function openDatabase() {
 }
 
 function readRows(sql, ...parameters) {
-  const db = openDatabase();
+  const openedDatabase = openDatabase();
   try {
-    return db ? db.prepare(sql).all(...parameters) : [];
+    return openedDatabase ? openedDatabase.prepare(sql).all(...parameters) : [];
   } catch {
     return [];
   }
 }
 
-function runForEachPlayer(sql, names, value) {
-  const db = openDatabase();
-  if (!db || !names.length) return;
+function runStatementForEachRow(sql, parameterRows) {
+  const openedDatabase = openDatabase();
+  if (!openedDatabase || !parameterRows.length) return;
   try {
-    const statement = db.prepare(sql);
-    for (const name of names) statement.run(name, value);
+    const statement = openedDatabase.prepare(sql);
+    for (const parameters of parameterRows) statement.run(...parameters);
   } catch (error) {
-    // A database that opens but will not take writes: report it like a failed open.
-    if (!reportedOpenFailure) console.error(`player database not writable: ${error.message}`);
-    reportedOpenFailure = true;
+    reportDatabaseFailure("not writable", error);
   }
 }
 
 /** Stamped every scrape rather than on disconnect: a missed disconnect line then costs nothing. */
 function recordPlayersSeen(names) {
-  runForEachPlayer(
+  const seenAt = nowInSeconds();
+  runStatementForEachRow(
     `INSERT INTO player (name, last_seen_at) VALUES (?, ?)
        ON CONFLICT(name) DO UPDATE SET last_seen_at = excluded.last_seen_at`,
-    names,
-    nowInSeconds()
+    names.map((name) => [name, seenAt])
   );
 }
 
-/** Seconds since the last credit, and stamps this one, so every scrape is counted once. */
-function secondsSinceLastCredit(database_) {
+/** Stamping each credit means every scrape is counted exactly once. */
+function recordCreditAndGetElapsedSeconds(openedDatabase) {
   const key = "play_time_credited_at";
   const now = nowInSeconds();
-  const lastCreditedAt = database_.prepare("SELECT value FROM exporter_state WHERE key = ?").get(key)?.value ?? 0;
-  database_
+  const lastCreditedAt = openedDatabase.prepare("SELECT value FROM exporter_state WHERE key = ?").get(key)?.value ?? 0;
+  openedDatabase
     .prepare("INSERT INTO exporter_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
     .run(key, now);
   const elapsed = now - lastCreditedAt;
@@ -92,36 +90,48 @@ function secondsSinceLastCredit(database_) {
   return lastCreditedAt > 0 && elapsed > 0 && elapsed <= MAX_CREDITED_GAP_SECONDS ? elapsed : 0;
 }
 
-/**
- * Adds the time since the previous scrape to every player online now. Counting up as
- * they play rather than on disconnect means a missed disconnect line costs nothing.
- */
+/** Counting up while they play rather than on disconnect means a missed disconnect line costs nothing. */
 function creditPlayTime(names) {
-  const db = openDatabase();
-  if (!db) return;
+  const openedDatabase = openDatabase();
+  if (!openedDatabase) return;
   let seconds = 0;
   try {
-    seconds = secondsSinceLastCredit(db);
-  } catch {
+    seconds = recordCreditAndGetElapsedSeconds(openedDatabase);
+  } catch (error) {
+    reportDatabaseFailure("not writable", error);
     return;
   }
   if (!seconds) return;
 
-  runForEachPlayer(
+  runStatementForEachRow(
     `INSERT INTO player (name, play_time_seconds) VALUES (?, ?)
        ON CONFLICT(name) DO UPDATE SET play_time_seconds = play_time_seconds + excluded.play_time_seconds`,
-    names,
-    seconds
+    names.map((name) => [name, seconds])
   );
 }
 
-/** One row per death the log hook reported, so two deaths in one scrape both count. */
+/** A name listed twice died twice. */
 function recordDeaths(names) {
-  runForEachPlayer(
-    `INSERT INTO player (name, death_count) VALUES (?, ?)
-       ON CONFLICT(name) DO UPDATE SET death_count = death_count + excluded.death_count`,
-    names,
-    1
+  runStatementForEachRow(
+    `INSERT INTO player (name, death_count) VALUES (?, 1)
+       ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1`,
+    names.map((name) => [name])
+  );
+}
+
+// A rise in a character's count adds the difference; a drop means the character died
+// and a new one started from 0, so its whole count is new.
+function recordZombieKills(players) {
+  runStatementForEachRow(
+    `INSERT INTO player (name, zombie_kill_count, current_character_zombie_kills) VALUES (?, ?, ?)
+       ON CONFLICT(name) DO UPDATE SET
+         zombie_kill_count = zombie_kill_count + CASE
+           WHEN excluded.current_character_zombie_kills >= current_character_zombie_kills
+             THEN excluded.current_character_zombie_kills - current_character_zombie_kills
+           ELSE excluded.current_character_zombie_kills
+         END,
+         current_character_zombie_kills = excluded.current_character_zombie_kills`,
+    players.map((player) => [player.name, player.zombieKills, player.zombieKills])
   );
 }
 
@@ -141,7 +151,7 @@ function readPlayTimeTotals() {
   );
 }
 
-/** Most deaths first; the game's log hook counts them. */
+/** Most deaths first. */
 function readDeathCounts() {
   return readRows(
     "SELECT name, death_count AS count FROM player WHERE death_count > 0 ORDER BY count DESC, name LIMIT ?",
@@ -149,4 +159,21 @@ function readDeathCounts() {
   );
 }
 
-module.exports = { recordPlayersSeen, creditPlayTime, recordDeaths, readPlayersSeen, readPlayTimeTotals, readDeathCounts };
+/** Most zombies killed first, across every character a player has had. */
+function readZombieKillCounts() {
+  return readRows(
+    "SELECT name, zombie_kill_count AS count FROM player WHERE zombie_kill_count > 0 ORDER BY count DESC, name LIMIT ?",
+    RANKED_PLAYER_LIMIT
+  );
+}
+
+module.exports = {
+  recordPlayersSeen,
+  creditPlayTime,
+  recordDeaths,
+  recordZombieKills,
+  readPlayersSeen,
+  readPlayTimeTotals,
+  readDeathCounts,
+  readZombieKillCounts,
+};

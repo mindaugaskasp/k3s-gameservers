@@ -51,3 +51,10 @@ RCON reports 0 players.
 PZ runs on [ZGC](https://wiki.openjdk.org/display/zgc), which commits the
 whole heap up front, so the container uses about `Xmx + 1GB`. Size the
 memory request to match.
+
+## Player stats
+
+- **Online, session length, zombie kills:** from the Steam query, which reports each
+  player's name, time connected and kills (as the score). Kills restart with each
+  character, so the sidecar keeps a lifetime total.
+- **Deaths:** from the `user` and `pvp` logs in `Logs/`.
