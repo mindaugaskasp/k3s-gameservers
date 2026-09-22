@@ -32,6 +32,8 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 - `database-migrations.js` + `migrations/`: one file per schema version, applied
   in filename order on connect and recorded in the `migration` table. Add a file,
   never edit one that has shipped.
+- `reset-player-stats.js`: run by `make reset-player-stats`; saves a copy of the
+  database first. `make read-player-db` opens a read-only `sqlite3` shell on it.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
 - `backup-files.js`: backup archives on disk, oldest first.
 - `backup-archive.js`: the `.play-clock` index and play-time retention

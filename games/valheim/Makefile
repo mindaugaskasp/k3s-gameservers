@@ -15,7 +15,7 @@ include ../metrics-image.mk
 	restart scale-down-zero scale-up shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image push-metrics-image players backups \
 	sync sync-data sync-backups install-sync-timer restore-backup _restore-run \
-	mods-status approve-mods download-backups
+	mods-status approve-mods download-backups read-player-db reset-player-stats
 
 help:
 	@echo "make lint                  helm lint this chart+values"
@@ -44,6 +44,8 @@ help:
 	@echo "                           so the fail-safe stops holding them back"
 	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
 	@echo "make dashboards            ship grafana/dashboards/ as a ConfigMap Grafana picks up"
+	@echo "make read-player-db        read-only SQLite shell on the player database; SQL='...' runs one query"
+	@echo "make reset-player-stats    zero every player's time played, deaths and zombie kills (asks first)"
 	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
 
 lint:
@@ -216,3 +218,5 @@ dashboards:
 
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)
+
+include ../player-database.mk
