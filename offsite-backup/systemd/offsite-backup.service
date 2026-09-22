@@ -1,0 +1,11 @@
+[Unit]
+Description=Copy game worlds and backups off the host with rclone
+After=k3s.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__REPO__
+Environment=KUBECONFIG=__HOME__/.kube/config
+ExecStart=/usr/bin/make -s offsite-backup

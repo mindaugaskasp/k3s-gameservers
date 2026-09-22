@@ -4,6 +4,8 @@ A single-node k3s cluster runs three namespaces:
 
 - `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`)
 - `monitoring`, `registry`: the platform, see [platform.md](platform.md)
+- off the cluster, a host timer copies worlds and backups to an rclone remote
+  ([offsite-backups.md](offsite-backups.md))
 - other namespaces: apps like servers-web, which only report to the platform
 
 ## Workloads
@@ -40,7 +42,7 @@ That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
   touched its source, so changing it replaces the pod and leaving it alone does not.
 - **Metric names:** `valheim_*` for what only Valheim reports, `game_server_*` for
   what every game reports, separated by the `game` label.
-- **Prometheus:** plain manifests on NodePort 30090 with 7 days of history.
+- **Prometheus:** plain manifests, LAN-only Ingress, 7 days of history.
   It scrapes the sidecars, kubelet and cAdvisor.
 - **Dashboards:** `make dashboards` applies `games/<game>/grafana/dashboards/`
   as a labeled ConfigMap ([platform.md](platform.md#reporting-from-an-app)).

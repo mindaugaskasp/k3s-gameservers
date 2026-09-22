@@ -6,9 +6,10 @@ their own namespace and report to it.
 | Piece | Where | Install |
 |---|---|---|
 | k3s, Traefik config, registry mirror, clock drop-in | `install/k3s/` | `install/k3s.sh` |
-| Image registry, NodePort 30500 | `registry/` | `install/registry.sh` |
+| Image registry, localhost:30500 only | `registry/` | `install/registry.sh` |
 | Prometheus, Loki, Alloy, Grafana | `monitoring/` | `install/monitoring.sh` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
+| Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make install-offsite-backup-timer` |
 
 ## k3s
 
@@ -32,9 +33,9 @@ controller owns them, and the controller recreates them.
 
 ## Monitoring
 
-- **Host values** (Grafana/Loki hostnames, LAN CIDR) go in the gitignored
+- **Host values** (Grafana/Loki/Prometheus hostnames, LAN CIDR) go in the gitignored
   `monitoring/.env` (see `.env.example`).
-- **Access:** Grafana and Loki's push path are LAN-only, via the
+- **Access:** Grafana, Prometheus and Loki's push path are LAN-only, via the
   `monitoring-lan-only@kubernetescrd` Traefik middleware.
 - **Admin password:** `make grafana-password`.
 - **Logs:** Alloy ships every pod's stdout/stderr to Loki (7 days). Loki has

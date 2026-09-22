@@ -1,0 +1,11 @@
+[Unit]
+Description=Off-host game backup every 6 hours
+
+[Timer]
+OnCalendar=00/6:30
+RandomizedDelaySec=600
+# Catches up after downtime.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

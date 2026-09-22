@@ -157,10 +157,32 @@ metadata:
   name: prometheus
   namespace: monitoring
 spec:
-  type: NodePort
   selector:
     app: prometheus
   ports:
-    - port: 9090
+    - name: http
+      port: 9090
       targetPort: 9090
-      nodePort: 30090
+---
+# Prometheus has no auth, so the UI is LAN-only like Grafana.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus
+  namespace: monitoring
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: monitoring-lan-only@kubernetescrd
+spec:
+  rules:
+    - host: PROMETHEUS_HOST # from .env
+      http: &prometheus-backend
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  name: http
+    - host: prometheus.lan
+      http: *prometheus-backend
