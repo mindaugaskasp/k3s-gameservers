@@ -14,7 +14,7 @@ OFFSITE_BACKUP_REMOTE ?=
 GAMES := $(patsubst games/%/Makefile,%,$(wildcard games/*/Makefile))
 
 .PHONY: help copy-to-vm copy-to-host check-vm-host grafana-password \
-	setup check-site-env k3s registry monitoring maintenance dashboards \
+	setup check-site-env k3s firewall registry monitoring maintenance dashboards \
 	offsite-backup setup-offsite-backup
 
 check-vm-host:
@@ -23,8 +23,8 @@ check-vm-host:
 		echo "or pass it directly: VM_HOST=user@host make ..." >&2; exit 1; }
 
 help:
-	@echo "make setup                  k3s + registry + monitoring + maintenance + dashboards (on the VM)"
-	@echo "make k3s | registry | monitoring | maintenance   one install step"
+	@echo "make setup                  k3s + firewall + registry + monitoring + maintenance + dashboards (on the VM)"
+	@echo "make k3s | firewall | registry | monitoring | maintenance   one install step"
 	@echo "make dashboards             ship Grafana dashboards for: $(GAMES)"
 	@echo "make copy-to-vm   FILE=<local path>  DEST=<path on the VM>   scp a file up to the VM"
 	@echo "make copy-to-host FILE=<path on VM>   DEST=<local path>      scp a file down from the VM"
@@ -47,7 +47,7 @@ copy-to-host: check-vm-host
 grafana-password:
 	@KUBECONFIG=$${KUBECONFIG:-$$HOME/.kube/config} kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.password}' | base64 -d; echo
 
-setup: check-site-env k3s registry monitoring maintenance dashboards
+setup: check-site-env k3s firewall registry monitoring maintenance dashboards
 	@echo "Platform ready. Deploy a game: cd games/<game> && make push-metrics-image deploy"
 
 check-site-env:
@@ -56,6 +56,9 @@ check-site-env:
 
 k3s:
 	./install/k3s.sh
+
+firewall: check-site-env
+	./install/firewall.sh
 
 registry:
 	./install/registry.sh

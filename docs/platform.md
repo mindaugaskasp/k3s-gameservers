@@ -6,6 +6,7 @@ their own namespace and report to it.
 | Piece | Where | Install |
 |---|---|---|
 | k3s, Traefik config, registry mirror, clock drop-in | `install/k3s/` | `install/k3s.sh` |
+| Host firewall (ufw): SSH, LAN and pods in; game ports and 80/443 routed | `install/firewall.sh` | `make firewall` |
 | Image registry, localhost:30500 only | `registry/` | `install/registry.sh` |
 | Prometheus, Loki, Alloy, Grafana | `monitoring/` | `install/monitoring.sh` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |

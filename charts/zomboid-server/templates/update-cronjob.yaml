@@ -8,6 +8,9 @@ metadata:
   labels:
     {{- include "zomboid-server.labels" . | nindent 4 }}
 spec:
+  # Paused while the game is scaled to 0 (make scale-down-zero), and kept so across upgrades.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "zomboid-server.fullname" .) }}
+  suspend: {{ if $live }}{{ eq (int $live.spec.replicas) 0 }}{{ else }}false{{ end }}
   schedule: {{ .Values.updates.cron | quote }}
   timeZone: {{ .Values.updates.timeZone | quote }}
   concurrencyPolicy: Forbid

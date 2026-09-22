@@ -24,11 +24,6 @@ printf '[[registry]]\nlocation = "localhost:30500"\ninsecure = true\n' > "$HOME/
 # Traefik must see real client IPs for the lan-only middleware.
 sudo install -D -m 644 "$HERE/traefik-config.yaml" /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
 
-if sudo ufw status 2>/dev/null | grep -q '^Status: active'; then
-  sudo ufw allow from 10.42.0.0/16 comment 'k3s pods'
-  sudo ufw allow from 10.43.0.0/16 comment 'k3s services'
-fi
-
 # In config.yaml, not installer flags: re-running the k3s installer rewrites flags only.
 NODE_NAME="${NODE_NAME:-$(hostname -s)}"
 K3S_CONFIG=/etc/rancher/k3s/config.yaml

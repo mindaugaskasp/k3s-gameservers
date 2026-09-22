@@ -26,7 +26,7 @@ The game's own `ZipBackup` writes
 
 The image runs steamcmd on every start, so restarting is how updates apply.
 The `zomboid-update` CronJob restarts the server at 05:00 UTC, but only if
-RCON reports 0 players.
+RCON reports 0 players. `make scale-down-zero` suspends it; `scale-up` resumes it.
 
 ## Alerts and probes
 
