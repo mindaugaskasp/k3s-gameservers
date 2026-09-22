@@ -17,8 +17,19 @@ if ! command -v rclone >/dev/null; then
 fi
 
 if ! rclone listremotes 2>/dev/null | grep -qx "$remote_name:"; then
-  echo "Creating Google Drive remote \"$remote_name\". Over SSH, connect with"
-  echo "-L 53682:localhost:53682 and open the link below in your local browser."
+  cat <<EOF
+Creating Google Drive remote "$remote_name" (one-time login).
+
+After you log in, Google redirects your browser to http://127.0.0.1:53682, where
+rclone on this host waits for the token. From your own machine that address
+only reaches this host through an SSH tunnel, so if you're on SSH without one:
+  1. Ctrl+C, reconnect with: ssh -L 53682:localhost:53682 <your usual target>
+  2. Re-run: make setup-offsite-backup
+No tunnel possible: run 'rclone authorize "drive"' on a machine with a browser,
+then paste the token into 'rclone config' here and re-run.
+
+Open the link below in your local browser:
+EOF
   rclone config create "$remote_name" drive scope=drive.file
 fi
 rclone lsd "$remote_name:" >/dev/null \

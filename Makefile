@@ -30,7 +30,8 @@ help:
 	@echo "make copy-to-host FILE=<path on VM>   DEST=<local path>      scp a file down from the VM"
 	@echo "                  (needs VM_HOST=user@host -- see check-vm-host)"
 	@echo "make grafana-password                                       Grafana admin password (on the VM)"
-	@echo "make setup-offsite-backup    rclone + Drive login + first backup + 6-hourly timer (re-runnable)"
+	@echo "make setup-offsite-backup    rclone + Drive login + first backup + 6-hourly timer (re-runnable;"
+	@echo "                             over SSH, connect with -L 53682:localhost:53682 for the login)"
 	@echo "make offsite-backup          sync running games and rclone them off the host now"
 
 copy-to-vm: check-vm-host

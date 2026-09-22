@@ -9,7 +9,8 @@ An empty local folder is skipped, never mirrored as a wipe.
 
 ## Setup (Google Drive)
 
-Over SSH, connect with `-L 53682:localhost:53682` (rclone's login callback), then:
+Over SSH, connect with `-L 53682:localhost:53682` first: after login Google redirects
+your browser to `127.0.0.1:53682`, and the tunnel carries that to rclone on the host. Then:
 
 ```sh
 make setup-offsite-backup
