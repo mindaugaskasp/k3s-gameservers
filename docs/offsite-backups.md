@@ -9,19 +9,23 @@ An empty local folder is skipped, never mirrored as a wipe.
 
 ## Setup (Google Drive)
 
-1. Install rclone on the k3s host: `sudo apt-get install -y rclone`
-   or the [official script](https://rclone.org/install/).
-2. Create the remote: `rclone config` -> `n` -> name `gdrive` -> `drive`.
-   - **Scope:** `drive.file`, so the token only sees files rclone made,
-     not the rest of the Drive.
-   - **Headless host, SSH tunnel:** connect with `ssh -L 53682:localhost:53682 ...`,
-     answer `y` to "use web browser" and open the printed `127.0.0.1:53682` link locally.
-   - **Or** answer `n`, run the printed `rclone authorize "drive" ...` on a machine
-     with rclone and a browser, and paste the token back ([remote setup](https://rclone.org/remote_setup/)).
-3. Set `OFFSITE_BACKUP_REMOTE=gdrive:k3s-gameservers-backups` in the root
-   `.env` (see `.env.example`), then check it: `make offsite-backup`.
-4. Every 6 hours from then on: `make install-offsite-backup-timer`.
-   Last run: `journalctl -u offsite-backup --since today`.
+Over SSH, connect with `-L 53682:localhost:53682` (rclone's login callback), then:
+
+```sh
+make setup-offsite-backup
+```
+
+Each step is skipped once done, so it is safe to re-run:
+
+1. Adds `OFFSITE_BACKUP_REMOTE=gdrive:k3s-gameservers-backups` to the root `.env`.
+2. Installs rclone with apt.
+3. Creates the `gdrive` remote with scope `drive.file` (the token only sees
+   files rclone made): open the printed `127.0.0.1:53682` link locally and log in.
+4. Runs `make offsite-backup`, then installs the 6-hourly systemd timer.
+
+No tunnel possible: `rclone config` by hand with the
+[remote setup](https://rclone.org/remote_setup/) steps, then re-run.
+Last run: `journalctl -u offsite-backup --since today`.
 
 The rclone token lives in `~/.config/rclone/rclone.conf`; keep it `600`.
 For encryption at rest, wrap the remote in [crypt](https://rclone.org/crypt/)

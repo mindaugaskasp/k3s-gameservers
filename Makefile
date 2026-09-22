@@ -15,7 +15,7 @@ GAMES := $(patsubst games/%/Makefile,%,$(wildcard games/*/Makefile))
 
 .PHONY: help copy-to-vm copy-to-host check-vm-host grafana-password \
 	setup check-site-env k3s registry monitoring maintenance dashboards \
-	offsite-backup install-offsite-backup-timer
+	offsite-backup setup-offsite-backup
 
 check-vm-host:
 	@test -n "$(VM_HOST)" || { \
@@ -30,7 +30,8 @@ help:
 	@echo "make copy-to-host FILE=<path on VM>   DEST=<local path>      scp a file down from the VM"
 	@echo "                  (needs VM_HOST=user@host -- see check-vm-host)"
 	@echo "make grafana-password                                       Grafana admin password (on the VM)"
-	@echo "make offsite-backup | install-offsite-backup-timer          sync running games, rclone them off the host"
+	@echo "make setup-offsite-backup    rclone + Drive login + first backup + 6-hourly timer (re-runnable)"
+	@echo "make offsite-backup          sync running games and rclone them off the host now"
 
 copy-to-vm: check-vm-host
 	@test -n "$(FILE)" && test -n "$(DEST)" || { \
@@ -71,11 +72,5 @@ offsite-backup:
 	@command -v rclone >/dev/null || { echo "rclone not installed, see docs/offsite-backups.md" >&2; exit 1; }
 	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) ./offsite-backup/offsite-backup.sh
 
-install-offsite-backup-timer:
-	@test -d /run/systemd/system || { echo "systemd not found; run this on the k3s host" >&2; exit 1; }
-	@sed -e "s|__REPO__|$(CURDIR)|g" -e "s|__USER__|$$(id -un)|g" -e "s|__HOME__|$$HOME|g" \
-		offsite-backup/systemd/offsite-backup.service | sudo tee /etc/systemd/system/offsite-backup.service >/dev/null
-	@sudo cp offsite-backup/systemd/offsite-backup.timer /etc/systemd/system/offsite-backup.timer
-	sudo systemctl daemon-reload
-	sudo systemctl enable --now offsite-backup.timer
-	systemctl list-timers offsite-backup.timer --no-pager
+setup-offsite-backup:
+	./install/offsite-backup.sh

@@ -9,7 +9,7 @@ their own namespace and report to it.
 | Image registry, localhost:30500 only | `registry/` | `install/registry.sh` |
 | Prometheus, Loki, Alloy, Grafana | `monitoring/` | `install/monitoring.sh` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
-| Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make install-offsite-backup-timer` |
+| Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make setup-offsite-backup` |
 
 ## k3s
 
