@@ -181,6 +181,8 @@ spec:
               value: "/var/run/valheim-status"
             - name: PERSIST_DIR
               value: "/config"
+            - name: ADMIN_LIST_FILE
+              value: "/config/adminlist.txt"
             - name: DATABASE_DIR
               value: "/database/sqlite"
             - name: BACKUP_DIR

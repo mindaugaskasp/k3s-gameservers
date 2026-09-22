@@ -9,6 +9,7 @@ const {
 } = require("../status-files");
 const { readPlayTimeTotals, readDeathCounts, readPlayersSeen } = require("../player-database");
 const { readOnlinePlayerSessions } = require("../online-players");
+const { readOnlineAdminNames } = require("../admin-players");
 
 // Only counts while the server answers: a session that ended is already in the baseline.
 function currentSessionSeconds(isServerUp) {
@@ -77,6 +78,11 @@ function gameServerMetricLines(status) {
       "game_server_player_session_seconds",
       "How long a player online now has been connected; named from the game's log where the query reports no names.",
       readPlayerSessions(status).map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
+    ),
+    ...gaugeLines(
+      "game_server_player_admin",
+      "1 for an online player on the server's admin list, matched by platform ID, not name.",
+      readOnlineAdminNames().map((name) => ({ labels: { game, name }, value: 1 }))
     ),
     ...gaugeLines(
       "game_server_player_play_time_seconds",
