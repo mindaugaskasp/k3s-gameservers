@@ -25,7 +25,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: update
-              image: bitnami/kubectl:latest
+              image: docker.io/alpine/kubectl:1.36.4@sha256:8c43e5a81f279abdcb795516afd0c4f6012fdf41e92568b04fa2b08b14be00e5 # match the k3s minor version
               command: ["/bin/sh", "-c"]
               args:
                 - |

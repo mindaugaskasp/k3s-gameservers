@@ -8,6 +8,6 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "gamedig": "^5.1.4"
+    "gamedig": "5.3.3"
   }
 }
