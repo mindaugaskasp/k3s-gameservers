@@ -23,6 +23,30 @@ function readOnlinePlayerSessions() {
   });
 }
 
+// Named like the Valheim log hook names them: one file per player, "/" dropped so a
+// name stays one file. An existing file is left alone, keeping its session start.
+function convertPlayerNameToFilePath(name) {
+  return `${ONLINE_PLAYERS_DIR}/${name.replaceAll("/", "")}`;
+}
+
+function markPlayerOnline(name) {
+  const filePath = convertPlayerNameToFilePath(name);
+  try {
+    fs.mkdirSync(ONLINE_PLAYERS_DIR, { recursive: true });
+    fs.writeFileSync(filePath, "", { flag: "wx" });
+  } catch {
+    // Already online, or no status dir to write in.
+  }
+}
+
+function markPlayerOffline(name) {
+  try {
+    fs.unlinkSync(convertPlayerNameToFilePath(name));
+  } catch {
+    // Was not listed as online.
+  }
+}
+
 // The server says nobody is on, so any name still listed missed its disconnect line.
 function clearOnlinePlayers() {
   for (const name of readOnlinePlayers()) {
@@ -34,4 +58,4 @@ function clearOnlinePlayers() {
   }
 }
 
-module.exports = { readOnlinePlayers, readOnlinePlayerSessions, clearOnlinePlayers };
+module.exports = { readOnlinePlayers, readOnlinePlayerSessions, markPlayerOnline, markPlayerOffline, clearOnlinePlayers };

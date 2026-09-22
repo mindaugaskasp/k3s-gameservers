@@ -8,12 +8,25 @@ const {
   readPastSessionsUptimeSeconds,
 } = require("../status-files");
 const { readPlayTimeTotals, readDeathCounts, readPlayersSeen } = require("../player-database");
+const { readOnlinePlayerSessions } = require("../online-players");
 
 // Only counts while the server answers: a session that ended is already in the baseline.
 function currentSessionSeconds(isServerUp) {
   const startedAt = readStatusTimestamp("last-started.timestamp");
   if (!isServerUp || !startedAt) return 0;
   return Math.max(0, Math.floor(Date.now() / 1000) - startedAt);
+}
+
+// The log's online list names players where the query reports none (Valheim, Enshrouded);
+// without one, the query's own sessions stand, placeholder names and all.
+function readPlayerSessions(status) {
+  const now = Math.floor(Date.now() / 1000);
+  const sessionsFromLog = readOnlinePlayerSessions().map((player) => ({
+    name: player.name,
+    seconds: Math.max(0, now - player.startedAt),
+  }));
+
+  return sessionsFromLog.length ? sessionsFromLog : status.playerSessions;
 }
 
 /** What every game reports, told apart by the `game` label. */
@@ -62,8 +75,8 @@ function gameServerMetricLines(status) {
     ),
     ...gaugeLines(
       "game_server_player_session_seconds",
-      "Session duration of a currently-connected player (name is a placeholder if the game's query protocol doesn't report one, e.g. Valheim).",
-      status.playerSessions.map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
+      "How long a player online now has been connected; named from the game's log where the query reports no names.",
+      readPlayerSessions(status).map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
     ),
     ...gaugeLines(
       "game_server_player_play_time_seconds",

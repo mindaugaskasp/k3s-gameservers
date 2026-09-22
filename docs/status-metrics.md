@@ -19,12 +19,14 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 
 - `status-files.js`: `STATUS_DIR` files -- start/update timestamps, build id,
   mod state, last player activity.
-- `online-players.js`: who is online now, one `STATUS_DIR` file per player
-  written by the log hooks; the file's mtime is when the session started.
+- `online-players.js`: who is online now, one `STATUS_DIR` file per player from
+  the game's log (Valheim's hooks, Enshrouded's reader); mtime is when they joined.
 - `log-follower.js`: the lines a log file gained since the last read. Offsets are
-  kept in `STATUS_DIR`, so an exporter restart neither replays nor skips a line.
+  kept in `STATUS_DIR`, so an exporter restart neither replays nor skips a line; a
+  new inode at the same path, a log the game moved away, starts over.
 - `death-log-reader.js`: deaths the log hooks appended to the shared death log.
 - `zomboid-log-reader.js`: deaths from Zomboid's `user` and `pvp` logs.
+- `enshrouded-log-reader.js`: players joining and leaving, and the world's base count.
 - `player-database.js`: `<DATABASE_DIR>/<game>-players.db` on the PVC, one per
   game -- time online, deaths, zombie kills, last seen. This process is its only writer: one
   running as another user would leave [WAL](https://sqlite.org/wal.html) files
@@ -48,8 +50,9 @@ type named on every `# TYPE` line of the
 
 - `metrics/game-server-metrics.js`: `game_server_*`, what every game answers.
 - `metrics/backup-metrics.js`: `game_server_backup_*`.
-- `metrics/valheim-metrics.js`: `valheim_*` online players, mods and world modifiers.
+- `metrics/valheim-metrics.js`: `valheim_*` mods and world modifiers.
 - `metrics/zomboid-metrics.js`: `zomboid_*` zombie kills per player.
+- `metrics/enshrouded-metrics.js`: `enshrouded_*` player-built bases in the world.
 - `metrics/backup-archive-metrics.js`: `valheim_backup_*` archive windows.
 
 Metric naming rules live in [CLAUDE.md](../CLAUDE.md); a published name is an

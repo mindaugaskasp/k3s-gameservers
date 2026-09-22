@@ -5,7 +5,7 @@ const { LOG_READ_POSITIONS_FILE } = require("./config");
 
 const NEWLINE = 0x0a;
 
-// { firstReadAt, offsets: { [filePath]: bytesAlreadyRead } }, loaded once per process.
+// { firstReadAt, files: { [filePath]: { inode, offset } } }, loaded once per process.
 let loadedReadPositions = null;
 
 function getReadPositions() {
@@ -14,7 +14,7 @@ function getReadPositions() {
     loadedReadPositions = JSON.parse(fs.readFileSync(LOG_READ_POSITIONS_FILE, "utf8"));
   } catch {
     // Saved at once: a restart must keep this pod's firstReadAt, not start a later one.
-    loadedReadPositions = { firstReadAt: Date.now(), offsets: {} };
+    loadedReadPositions = { firstReadAt: Date.now(), files: {} };
     saveReadPositions();
   }
   return loadedReadPositions;
@@ -47,8 +47,10 @@ function readNewLines(filePath) {
     return [];
   }
 
-  const knownOffset = positions.offsets[filePath];
-  let offset = knownOffset ?? getStartingOffset(fileStats, positions);
+  // A new inode at a known path is a new file: the game moved its old log away.
+  const known = positions.files[filePath];
+  const isKnownFile = known !== undefined && known.inode === fileStats.ino;
+  let offset = isKnownFile ? known.offset : getStartingOffset(fileStats, positions);
   if (fileStats.size < offset) offset = 0;
 
   let unreadBytes = Buffer.alloc(0);
@@ -64,8 +66,11 @@ function readNewLines(filePath) {
   }
 
   const completeLength = unreadBytes.lastIndexOf(NEWLINE) + 1;
-  positions.offsets[filePath] = offset + completeLength;
-  if (positions.offsets[filePath] !== knownOffset) saveReadPositions();
+  const nextOffset = offset + completeLength;
+  if (!isKnownFile || nextOffset !== known.offset) {
+    positions.files[filePath] = { inode: fileStats.ino, offset: nextOffset };
+    saveReadPositions();
+  }
 
   return unreadBytes.subarray(0, completeLength).toString("utf8").split("\n").filter(Boolean);
 }
