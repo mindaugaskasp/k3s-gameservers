@@ -51,6 +51,11 @@ data:
         static_configs:
           - targets: ["enshrouded-metrics.games.svc.cluster.local:9101"]
 
+      # Certificate expiry for the platform's alert rules.
+      - job_name: cert-manager
+        static_configs:
+          - targets: ["cert-manager.cert-manager.svc:9402"]
+
       - job_name: kubelet-cadvisor
         scheme: https
         tls_config:

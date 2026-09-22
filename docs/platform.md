@@ -39,6 +39,8 @@ controller owns them, and the controller recreates them.
 - **Access:** Grafana, Prometheus and Loki's push path are LAN-only, via the
   `monitoring-lan-only@kubernetescrd` Traefik middleware.
 - **Admin password:** `make grafana-password`.
+- **Alerts:** `config/alerting.yaml` posts to Discord (`ALERTS_DISCORD_WEBHOOK_URL`): disk,
+  crash loops, silent games, certificates, off-host backups. Each links to Grafana, never a command.
 - **Logs:** Alloy ships every pod's stdout/stderr to Loki (7 days). Loki has
   no auth.
 - **Datasources:** Loki (uid `loki`) and Prometheus (uid `ffyierrb4yl8gd`).
