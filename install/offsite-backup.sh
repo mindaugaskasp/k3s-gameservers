@@ -11,25 +11,36 @@ fi
 remote=$(sed -n 's/^OFFSITE_BACKUP_REMOTE=//p' .env | tail -1)
 remote_name=${remote%%:*}
 
+needs_login=false
+command -v rclone >/dev/null && rclone listremotes 2>/dev/null | grep -qx "$remote_name:" || needs_login=true
+
+if $needs_login; then
+  cat <<EOF
+One-time Google Drive login for rclone remote "$remote_name".
+
+After you log in, Google redirects your browser to http://127.0.0.1:53682, where
+rclone on this host waits for the token. From your own machine that address only
+reaches this host through an SSH tunnel. Before continuing, open a SECOND terminal
+on your machine and leave this running there:
+
+  ssh -N -L 53682:localhost:53682 $(id -un)@$(hostname -I | awk '{print $1}')
+
+  (-N forwards the port only and seems to hang; that is expected.
+   PuTTY: Connection > SSH > Tunnels, source 53682, destination localhost:53682.)
+
+No tunnel possible: Ctrl+C, run 'rclone authorize "drive"' on a machine with a
+browser, paste the token into 'rclone config' here, then re-run.
+EOF
+  [ -t 0 ] && read -r -p "Press Enter once the tunnel is open... "
+fi
+
 if ! command -v rclone >/dev/null; then
   sudo apt-get update
   sudo apt-get install -y rclone
 fi
 
-if ! rclone listremotes 2>/dev/null | grep -qx "$remote_name:"; then
-  cat <<EOF
-Creating Google Drive remote "$remote_name" (one-time login).
-
-After you log in, Google redirects your browser to http://127.0.0.1:53682, where
-rclone on this host waits for the token. From your own machine that address
-only reaches this host through an SSH tunnel, so if you're on SSH without one:
-  1. Ctrl+C, reconnect with: ssh -L 53682:localhost:53682 <your usual target>
-  2. Re-run: make setup-offsite-backup
-No tunnel possible: run 'rclone authorize "drive"' on a machine with a browser,
-then paste the token into 'rclone config' here and re-run.
-
-Open the link below in your local browser:
-EOF
+if $needs_login; then
+  echo "Open the link below in your local browser and log in:"
   rclone config create "$remote_name" drive scope=drive.file
 fi
 rclone lsd "$remote_name:" >/dev/null \
