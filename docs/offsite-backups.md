@@ -14,9 +14,10 @@ An empty local folder is skipped, never mirrored as a wipe.
 2. Create the remote: `rclone config` -> `n` -> name `gdrive` -> `drive`.
    - **Scope:** `drive.file`, so the token only sees files rclone made,
      not the rest of the Drive.
-   - **Headless host:** answer `n` to "use web browser", run the printed
-     `rclone authorize "drive" ...` on a machine with a browser and paste
-     the token back ([remote setup](https://rclone.org/remote_setup/)).
+   - **Headless host, SSH tunnel:** connect with `ssh -L 53682:localhost:53682 ...`,
+     answer `y` to "use web browser" and open the printed `127.0.0.1:53682` link locally.
+   - **Or** answer `n`, run the printed `rclone authorize "drive" ...` on a machine
+     with rclone and a browser, and paste the token back ([remote setup](https://rclone.org/remote_setup/)).
 3. Set `OFFSITE_BACKUP_REMOTE=gdrive:k3s-gameservers-backups` in the root
    `.env` (see `.env.example`), then check it: `make offsite-backup`.
 4. Every 6 hours from then on: `make install-offsite-backup-timer`.
