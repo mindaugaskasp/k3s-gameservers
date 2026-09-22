@@ -14,7 +14,7 @@ BACKUP_RETENTION_DAYS := 5
 .PHONY: help lint template deploy status logs logs-metrics \
 	restart scale-down-zero scale-up shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image push-metrics-image players backups announce \
-	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups
+	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups read-player-db reset-player-stats
 
 help:
 	@echo "make lint                  helm lint this chart+values"
@@ -41,6 +41,8 @@ help:
 	@echo "make restore-backup        pick a backup from a numbered list, restore it, start server again"
 	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
 	@echo "make dashboards            ship grafana/dashboards/ as a ConfigMap Grafana picks up"
+	@echo "make read-player-db        read-only SQLite shell on the player database; SQL='...' runs one query"
+	@echo "make reset-player-stats    zero every player's time played, deaths and zombie kills (asks first)"
 	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
 
 lint:
@@ -198,3 +200,5 @@ dashboards:
 
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)
+
+include ../player-database.mk

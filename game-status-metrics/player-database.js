@@ -135,6 +135,21 @@ function recordZombieKills(players) {
   );
 }
 
+// The count each character last reported is kept: zeroing it would re-credit every kill
+// the current character already has on the next scrape. Throws, unlike the scrape path.
+function resetPlayerStats() {
+  const openedDatabase = openDatabase();
+  if (!openedDatabase) throw new Error("player database unavailable");
+  const takenAt = new Date().toISOString().replace(/[-:]/g, "");
+  const backupFile = PLAYERS_DATABASE_FILE.replace(/\.db$/, `.before-reset-${takenAt}.db`);
+  openedDatabase.prepare("VACUUM INTO ?").run(backupFile);
+  const { changes } = openedDatabase
+    .prepare("UPDATE player SET play_time_seconds = 0, death_count = 0, zombie_kill_count = 0")
+    .run();
+
+  return { resetPlayerCount: changes, backupFile };
+}
+
 /** Most recently seen first. */
 function readPlayersSeen() {
   return readRows(
@@ -172,6 +187,7 @@ module.exports = {
   creditPlayTime,
   recordDeaths,
   recordZombieKills,
+  resetPlayerStats,
   readPlayersSeen,
   readPlayTimeTotals,
   readDeathCounts,
