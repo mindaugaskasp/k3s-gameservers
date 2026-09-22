@@ -3,14 +3,21 @@
 const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, clearOnlinePlayers } = require("./online-players");
-const { recordPlayersSeen, creditPlayTime, recordDeaths } = require("./player-database");
+const { recordPlayersSeen, creditPlayTime, recordDeaths, recordZombieKills } = require("./player-database");
 const { readNewDeaths } = require("./death-log-reader");
+const { readNewZomboidDeaths } = require("./zomboid-log-reader");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".
 function parseGameVersion(state) {
   const versionTag = (state.raw?.tags || []).find((tag) => tag.startsWith("g="));
   return versionTag ? versionTag.slice(2) : state.version || "";
+}
+
+function convertQueriedPlayersToZombieKills(queriedPlayers) {
+  return queriedPlayers
+    .filter((player) => player.name)
+    .map((player) => ({ name: player.name, zombieKills: player.raw?.score ?? 0 }));
 }
 
 /** Queries the game server on demand and keeps the last answer for the next scrape. */
@@ -31,7 +38,8 @@ class GameServerQuery {
   }
 
   async refresh() {
-    recordDeaths(readNewDeaths()); // deaths happen whether or not the query answers
+    // Deaths happen whether or not the query answers.
+    recordDeaths([...readNewDeaths(), ...readNewZomboidDeaths()]);
     const queryStartedAt = Date.now();
     try {
       const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });
@@ -42,6 +50,8 @@ class GameServerQuery {
       ];
       recordPlayersSeen(onlinePlayerNames);
       creditPlayTime(onlinePlayerNames);
+      // Zomboid reports each player's zombie kills as the query score (SteamGameServer.AddPlayer).
+      if (GAME === "projectzomboid") recordZombieKills(convertQueriedPlayersToZombieKills(state.players));
       this.lastStatus = {
         up: 1,
         players: state.players.length,

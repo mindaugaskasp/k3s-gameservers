@@ -21,6 +21,11 @@ const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(
 const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
 // Appended to by the log hooks, one line per death, and folded into the database.
 const DEATH_LOG_FILE = `${STATUS_DIR}/players/deaths`;
+// How far each followed log file has been read. In STATUS_DIR, so it outlives an
+// exporter restart but starts over with a new pod, whose logs are new too.
+const LOG_READ_POSITIONS_FILE = `${STATUS_DIR}/log-read-positions.json`;
+// Where Project Zomboid writes its user and pvp logs; unset for every other game.
+const ZOMBOID_LOG_DIR = process.env.ZOMBOID_LOG_DIR || "";
 // Mounted from the volume but outside the game's own data tree: the game images run
 // as root and reset ownership across their data dir on every start.
 const DATABASE_DIR = process.env.DATABASE_DIR || `${PERSIST_DIR}/database/sqlite`;
@@ -42,6 +47,8 @@ module.exports = {
   BACKUP_WINDOW_ENDS,
   ONLINE_PLAYERS_DIR,
   DEATH_LOG_FILE,
+  LOG_READ_POSITIONS_FILE,
+  ZOMBOID_LOG_DIR,
   DATABASE_DIR,
   PLAYERS_DATABASE_FILE,
 };
