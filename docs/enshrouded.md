@@ -56,3 +56,5 @@ All three are the image's own crons, not Kubernetes CronJobs:
 - **No RCON:** the image is driven with `supervisorctl`
   (`make force-update`, `make backup-now`); in-game moderation needs the
   `canKickBan` role.
+- **Player stats:** the query reports no names, so the sidecar reads joins, leaves
+  and base counts from `logs/enshrouded_server.log`. No log records deaths or kills.

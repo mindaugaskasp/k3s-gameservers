@@ -2,10 +2,12 @@
 
 const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
-const { readOnlinePlayers, clearOnlinePlayers } = require("./online-players");
+const { readOnlinePlayers, markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("./online-players");
 const { recordPlayersSeen, creditPlayTime, recordDeaths, recordZombieKills } = require("./player-database");
 const { readNewDeaths } = require("./death-log-reader");
 const { readNewZomboidDeaths } = require("./zomboid-log-reader");
+const { readNewEnshroudedEvents } = require("./enshrouded-log-reader");
+const { recordEnshroudedBaseCount } = require("./status-files");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".
@@ -18,6 +20,17 @@ function convertQueriedPlayersToZombieKills(queriedPlayers) {
   return queriedPlayers
     .filter((player) => player.name)
     .map((player) => ({ name: player.name, zombieKills: player.raw?.score ?? 0 }));
+}
+
+// Enshrouded's query protocol reports no names, so its log keeps the online list instead,
+// the way Valheim's log hooks do.
+function recordEnshroudedEvents(events) {
+  for (const event of events) {
+    if (event.type === "joined") markPlayerOnline(event.name);
+    if (event.type === "left") markPlayerOffline(event.name);
+    if (event.type === "allLeft") clearOnlinePlayers();
+    if (event.type === "baseCount") recordEnshroudedBaseCount(event.count);
+  }
 }
 
 /** Queries the game server on demand and keeps the last answer for the next scrape. */
@@ -38,8 +51,9 @@ class GameServerQuery {
   }
 
   async refresh() {
-    // Deaths happen whether or not the query answers.
+    // What the logs say happened, whether or not the query answers.
     recordDeaths([...readNewDeaths(), ...readNewZomboidDeaths()]);
+    recordEnshroudedEvents(readNewEnshroudedEvents());
     const queryStartedAt = Date.now();
     try {
       const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });
