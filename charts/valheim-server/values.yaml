@@ -1,7 +1,15 @@
 image:
   repository: ghcr.io/community-valheim-tools/valheim-server
-  tag: latest
+  # Pinned; bump both together from https://github.com/community-valheim-tools/valheim-server/releases.
+  tag: "1.3.0"
+  digest: "sha256:c43502d3b28c8d341f5362f365deb4802018bda9fc49f98c7631b099f597eb49"
   pullPolicy: IfNotPresent
+
+# The image runs the game, updater, backups and hooks as this uid:gid and chowns
+# /config and /opt/valheim to it on start; only cron and its status httpd stay root.
+gameUser:
+  uid: 1000
+  gid: 1000
 
 server:
   displayName: "Valheim Server" # name shown in the in-game server browser
@@ -82,7 +90,7 @@ resources:
 statusMetrics:
   enabled: true
   image:
-    # In-cluster registry (registry/, NodePort 30500); `make push-metrics-image`.
+    # In-cluster registry (registry/, localhost:30500); `make push-metrics-image`.
     repository: localhost:30500/k3s-gameservers/game-status-metrics
     # Set by the game Makefile to the exporter's commit; no default, so a deploy
     # that forgets it fails instead of quietly running an older image.

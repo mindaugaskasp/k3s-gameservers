@@ -17,10 +17,19 @@ spec:
       labels:
         {{- include "valheim-server.labels" . | nindent 8 }}
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: gameserver
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}{{ with .Values.image.digest }}@{{ . }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              # Start-up chown and user switch, signals to the game, httpd on port 80.
+              add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "FSETID", "KILL", "SETUID", "SETGID", "NET_BIND_SERVICE"]
           ports:
             - name: game
               containerPort: {{ .Values.server.port }}
@@ -37,6 +46,10 @@ spec:
               protocol: TCP
             {{- end }}
           env:
+            - name: PUID
+              value: {{ .Values.gameUser.uid | quote }}
+            - name: PGID
+              value: {{ .Values.gameUser.gid | quote }}
             - name: SERVER_NAME
               value: {{ .Values.server.displayName | quote }}
             - name: WORLD_NAME
@@ -181,6 +194,12 @@ spec:
             - name: SERVER_ARGS
               value: {{ .Values.server.extraArgs | quote }}
             {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000 # the image's "node" user, numeric so runAsNonRoot can verify it
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: metrics
               containerPort: {{ .Values.statusMetrics.port }}

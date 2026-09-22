@@ -40,6 +40,10 @@ replacements:
     targets:
       - select: {kind: Ingress, name: loki}
         fieldPaths: [spec.rules.0.host]
+  - source: {kind: ConfigMap, name: site, fieldPath: data.PROMETHEUS_HOST}
+    targets:
+      - select: {kind: Ingress, name: prometheus}
+        fieldPaths: [spec.rules.0.host]
   - source: {kind: ConfigMap, name: site, fieldPath: data.LAN_CIDR}
     targets:
       - select: {kind: Middleware, name: lan-only}

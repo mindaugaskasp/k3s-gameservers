@@ -12,7 +12,7 @@ include ../metrics-image.mk
 BACKUP_RETENTION_DAYS := 5
 
 .PHONY: help lint template deploy status logs logs-metrics \
-	restart scale-down-zero scale-up shell port-forward-metrics dashboards secrets-check \
+	restart scale-down-zero scale-up suspend-update-cron shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image push-metrics-image players backups announce \
 	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups read-player-db reset-player-stats
 
@@ -101,9 +101,16 @@ restart:
 
 scale-down-zero:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=0
+	@$(MAKE) --no-print-directory suspend-update-cron SUSPEND=true
 
 scale-up:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
+	@$(MAKE) --no-print-directory suspend-update-cron SUSPEND=false
+
+# No update restarts while the game is scaled to 0.
+suspend-update-cron:
+	@if kubectl -n $(NAMESPACE) get cronjob/$(RELEASE)-update >/dev/null 2>&1; then \
+		kubectl -n $(NAMESPACE) patch cronjob/$(RELEASE)-update -p '{"spec":{"suspend":$(SUSPEND)}}'; fi
 
 shell:
 	kubectl -n $(NAMESPACE) exec -it $(RELEASE)-0 -c gameserver -- bash

@@ -9,8 +9,8 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 ```
 charts/<game>-server/      Helm chart per game
 games/<game>/              values.override.yaml, Makefile, Grafana dashboards
-install/                   k3s.sh, registry.sh, monitoring.sh, vpa.sh (optional)
-registry/ monitoring/ maintenance/   platform, see docs/platform.md
+install/                   k3s.sh, firewall.sh, registry.sh, monitoring.sh, offsite-backup.sh, vpa.sh
+registry/ monitoring/ maintenance/ offsite-backup/   platform, see docs/platform.md
 game-status-metrics/       player/status exporter sidecar (gamedig)
 docs/                      setup-nodes, platform, architecture, game-setup, per-game
 Makefile                   copy-to-vm / copy-to-host (run from your machine)
@@ -20,7 +20,7 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 
 1. Prepare the VM: [docs/setup-nodes.md](docs/setup-nodes.md).
 2. Install k3s, the registry, monitoring and every game's dashboards
-   (steps: `make k3s`, `registry`, `monitoring`, `maintenance`, `dashboards`):
+   (steps: `make k3s`, `firewall`, `registry`, `monitoring`, `maintenance`, `dashboards`):
    ```sh
    cp monitoring/.env.example monitoring/.env   # then edit
    make setup
@@ -40,8 +40,8 @@ restart, scale-up / scale-down-zero, backups, sync, restore-backup and
 dashboards. Secrets: gitignored `games/<game>/.env` (see `.env.example`).
 
 - **One game at a time:** `make scale-down-zero` in one, `make scale-up` in the other.
-- **Backups:** the world lives on the PVC. `make sync` copies it to the
-  gitignored `data/` and `data-backups/`.
+- **Backups:** the world lives on the PVC. `make sync` copies it to `data/` and
+  `data-backups/`; [offsite-backups.md](docs/offsite-backups.md) pushes them off the host.
 - **Grafana:** `make dashboards` (root: all games) and `make grafana-password`.
 - **Root `Makefile`:** copy-to-vm / copy-to-host; set `VM_HOST` in the root `.env`.
 
