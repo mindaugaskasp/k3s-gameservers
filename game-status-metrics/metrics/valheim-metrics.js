@@ -2,30 +2,16 @@
 
 const { GAME } = require("../config");
 const { gaugeLines } = require("../metric-lines");
-const { readOnlinePlayers, readOnlinePlayerSessions } = require("../online-players");
 const { readModState } = require("../status-files");
 const { readWorldModifiers } = require("../world-modifiers");
 
-// valheim_* metrics come from hooks only the Valheim chart installs (player-event.sh,
-// mod-guard.sh, backup-rename.sh). The prefix is written out, never built from GAME, so
+// valheim_* metrics hold what only Valheim reports: mod state from mod-guard.sh and the
+// world rules on its command line. The prefix is written out, never built from GAME, so
 // every metric name stays greppable.
 function valheimMetricLines() {
   const game = GAME;
   const mods = readModState();
   return [
-    ...gaugeLines(
-      "valheim_player_online",
-      "A player currently online, by character name, from the server log.",
-      readOnlinePlayers().map((name) => ({ labels: { game, name }, value: 1 }))
-    ),
-    ...gaugeLines(
-      "valheim_player_session_seconds",
-      "How long a player currently online has been connected, by character name.",
-      readOnlinePlayerSessions().map((player) => ({
-        labels: { game, name: player.name },
-        value: Math.max(0, Math.floor(Date.now() / 1000) - player.startedAt),
-      }))
-    ),
     ...gaugeLines(
       "valheim_mods_active",
       "Whether the server started with mods loaded (0 = fail-safe dropped them).",
