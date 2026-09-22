@@ -21,6 +21,7 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   mod state, last player activity.
 - `online-players.js`: who is online now, one `STATUS_DIR` file per player from
   the game's log (Valheim's hooks, Enshrouded's reader); mtime is when they joined.
+- `admin-players.js`: online players whose platform ID is on the game's admin list (`ADMIN_LIST_FILE`).
 - `log-follower.js`: the lines a log file gained since the last read. Offsets are
   kept in `STATUS_DIR`, so an exporter restart neither replays nor skips a line; a
   new inode at the same path, a log the game moved away, starts over.

@@ -19,6 +19,8 @@ const BACKUP_WINDOW_ENDS = (process.env.BACKUP_ARCHIVE_WINDOW_DAYS || "").split(
 // One file per online player, named after the character, written by the game's
 // log hooks (games whose query protocol doesn't report names, e.g. Valheim).
 const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
+// The game's admin list, one platform ID per line; unset for games without one.
+const ADMIN_LIST_FILE = process.env.ADMIN_LIST_FILE || "";
 // Appended to by the log hooks, one line per death, and folded into the database.
 const DEATH_LOG_FILE = `${STATUS_DIR}/players/deaths`;
 // How far each followed log file has been read. In STATUS_DIR, so it outlives an
@@ -50,6 +52,7 @@ module.exports = {
   BACKUP_RECENT_DAYS,
   BACKUP_WINDOW_ENDS,
   ONLINE_PLAYERS_DIR,
+  ADMIN_LIST_FILE,
   DEATH_LOG_FILE,
   LOG_READ_POSITIONS_FILE,
   ZOMBOID_LOG_DIR,
