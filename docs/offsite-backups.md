@@ -2,8 +2,8 @@
 
 `make offsite-backup` (repo root) runs `make sync` for every running game,
 then [`rclone sync`](https://rclone.org/commands/rclone_sync/)s each
-`games/<game>/data` and `data-backups` to `OFFSITE_BACKUP_REMOTE` (root `.env`).
-Files a run deletes or overwrites move to `replaced/<run time>/` on the remote
+`games/<game>/data` and `data-backups` to `<OFFSITE_BACKUP_REMOTE>/<game>/` (root `.env`).
+Files a run deletes or overwrites move to `<game>/replaced/<run time>/`
 and each run's folder is purged after 7 days (`OFFSITE_BACKUP_KEEP_REPLACED_DAYS`).
 An empty local folder is skipped, never mirrored as a wipe.
 
@@ -37,9 +37,9 @@ and point `OFFSITE_BACKUP_REMOTE` at the crypt remote.
 Pull a copy back, then use the game's normal restore:
 
 ```sh
-rclone copy gdrive:k3s-gameservers-backups/games/valheim/data-backups \
+rclone copy gdrive:k3s-gameservers-backups/valheim/data-backups \
   games/valheim/data-backups
 cd games/valheim && make restore-backup
 ```
 
-Older versions of a replaced file: `rclone lsf -R gdrive:k3s-gameservers-backups/replaced`.
+Older versions of a replaced file: `rclone lsf -R gdrive:k3s-gameservers-backups/valheim/replaced`.
