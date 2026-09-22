@@ -311,6 +311,105 @@
       "panels": []
     },
     {
+      "id": 21,
+      "title": "Off-host uploads (24h)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Successful uploads of this game's world and backups to the off-host remote in the last 24 hours. It runs every 6 hours, so 4 is healthy.",
+      "gridPos": {
+        "h": 8,
+        "w": 5,
+        "x": 0,
+        "y": 21
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "expr": "sum(count_over_time({job=\"offsite-backup\", game=\"enshrouded\", result=\"success\"}[24h])) or vector(0)"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 22,
+      "title": "Off-host backups (Google Drive)",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Each off-host upload of this game: which folders went up, and how many files and MiB its copy on the remote now holds.",
+      "gridPos": {
+        "h": 8,
+        "w": 19,
+        "x": 5,
+        "y": 21
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"offsite-backup\", game=\"enshrouded\"}"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false
+      }
+    },
+    {
       "id": 9,
       "datasource": {
         "type": "prometheus",
@@ -322,7 +421,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 21
+        "y": 29
       },
       "targets": [
         {
@@ -364,7 +463,7 @@
         "h": 4,
         "w": 5,
         "x": 4,
-        "y": 21
+        "y": 29
       },
       "targets": [
         {
@@ -407,7 +506,7 @@
         "h": 4,
         "w": 5,
         "x": 9,
-        "y": 21
+        "y": 29
       },
       "targets": [
         {
@@ -450,7 +549,7 @@
         "h": 4,
         "w": 5,
         "x": 14,
-        "y": 21
+        "y": 29
       },
       "targets": [
         {
@@ -493,7 +592,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 25
+        "y": 33
       },
       "targets": [
         {
@@ -554,7 +653,7 @@
         "h": 10,
         "w": 16,
         "x": 8,
-        "y": 25
+        "y": 33
       },
       "targets": [
         {
@@ -667,7 +766,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 30
+        "y": 38
       },
       "targets": [
         {
@@ -701,7 +800,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 43
       },
       "targets": [
         {
@@ -737,7 +836,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 41
+        "y": 49
       },
       "targets": [
         {
@@ -789,7 +888,7 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 41
+        "y": 49
       },
       "targets": [
         {

@@ -99,6 +99,12 @@ spec:
               value: "false"
             - name: GF_NEWS_NEWS_FEED_ENABLED
               value: "false"
+            # Read by config/alerting.yaml; install/monitoring.sh creates the Secret.
+            - name: ALERTS_DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-alerts
+                  key: discord-webhook-url
           ports:
             - name: http
               containerPort: 3000
@@ -122,6 +128,8 @@ spec:
               mountPath: /etc/grafana/provisioning/datasources
             - name: dashboard-providers
               mountPath: /etc/grafana/provisioning/dashboards
+            - name: alerting
+              mountPath: /etc/grafana/provisioning/alerting
             - name: dashboards
               mountPath: /etc/grafana/dashboards
             - name: data
@@ -162,6 +170,9 @@ spec:
         - name: dashboard-providers
           configMap:
             name: grafana-dashboard-providers
+        - name: alerting
+          configMap:
+            name: grafana-alerting
         - name: dashboards
           emptyDir: {}
         - name: data

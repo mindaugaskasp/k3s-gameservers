@@ -21,6 +21,8 @@ configMapGenerator:
     files: [config/datasources.yaml]
   - name: grafana-dashboard-providers
     files: [config/dashboard-providers.yaml]
+  - name: grafana-alerting
+    files: [config/alerting.yaml]
   # Host-specific values (gitignored); only feeds the replacements below, never applied.
   - name: site
     envs: [.env]

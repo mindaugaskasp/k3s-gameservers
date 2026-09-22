@@ -9,6 +9,8 @@ SHELL := /bin/bash
 VM_HOST ?=
 # rclone remote:path for off-host backups, e.g. gdrive:k3s-gameservers-backups.
 OFFSITE_BACKUP_REMOTE ?=
+# Loki's LAN push base URL; offsite-backup reports each run's result there for alerting.
+LOKI_URL ?=
 
 # Every games/<game>/ with a Makefile.
 GAMES := $(patsubst games/%/Makefile,%,$(wildcard games/*/Makefile))
@@ -74,7 +76,7 @@ dashboards:
 
 offsite-backup:
 	@command -v rclone >/dev/null || { echo "rclone not installed, see docs/offsite-backups.md" >&2; exit 1; }
-	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) ./offsite-backup/offsite-backup.sh
+	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) LOKI_URL=$(LOKI_URL) ./offsite-backup/offsite-backup.sh
 
 setup-offsite-backup:
 	./install/offsite-backup.sh

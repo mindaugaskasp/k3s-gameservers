@@ -1,0 +1,187 @@
+# Grafana expands $NAME from its environment anywhere in this file, so templates never use $ (.Labels, not $labels).
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: discord
+    receivers:
+      - uid: platform-discord
+        type: discord
+        settings:
+          url: $ALERTS_DISCORD_WEBHOOK_URL
+          title: '{{ template "platform.title" . }}'
+          message: '{{ template "platform.message" . }}'
+
+policies:
+  - orgId: 1
+    receiver: discord
+    group_by: [alertname]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 12h
+
+templates:
+  - orgId: 1
+    name: platform
+    template: |
+      {{ define "platform.title" -}}
+      {{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} {{ .CommonLabels.alertname }}
+      {{- if gt (len .Alerts.Firing) 1 }} ({{ len .Alerts.Firing }}){{ end }}
+      {{- end }}
+
+      {{ define "platform.message" -}}
+      {{ range .Alerts.Firing -}}
+      **{{ .Annotations.summary }}**
+      {{ .Annotations.description }}
+      [Diagnose in Grafana]({{ reReplaceAll `/alerting/.*` "" .GeneratorURL }}/explore?schemaVersion=1&panes={{ printf `{"a":{"datasource":"%s","queries":[{"refId":"A","expr":"%s"}],"range":{"from":"now-6h","to":"now"}}}` .Annotations.logs_datasource (js .Annotations.logs_query) | urlquery }}) · [Alert rule]({{ .GeneratorURL }})
+      -# started <t:{{ .StartsAt.Unix }}:R>
+
+      {{ end -}}
+      {{ range .Alerts.Resolved -}}
+      ~~{{ .Annotations.summary }}~~ resolved <t:{{ .EndsAt.Unix }}:R>
+      {{ end -}}
+      {{- end }}
+
+groups:
+  - orgId: 1
+    name: platform
+    folder: Platform
+    interval: 1m
+    rules:
+      - uid: host-disk-almost-full
+        title: Host disk almost full
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: ffyierrb4yl8gd
+            model: { expr: 'max by (device) (container_fs_usage_bytes{id="/"} / container_fs_limit_bytes{id="/"})', instant: true, refId: A }
+          - refId: B
+            datasourceUid: __expr__
+            model: { type: reduce, expression: A, reducer: last, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: gt, params: [0.85] } }] }
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: 'Host disk {{ .Labels.device }} is {{ humanizePercentage .Values.B.Value }} full'
+          description: Game worlds, backups and images all live on it; past 90% the kubelet starts evicting pods.
+          logs_datasource: ffyierrb4yl8gd
+          logs_query: 'container_fs_usage_bytes{id="/"} / container_fs_limit_bytes{id="/"}'
+
+      - uid: container-restarting
+        title: Container restarting repeatedly
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: ffyierrb4yl8gd
+            model: { expr: 'max by (namespace, pod, container) (changes(container_start_time_seconds{container!="", container!="POD"}[15m]))', instant: true, refId: A }
+          - refId: B
+            datasourceUid: __expr__
+            model: { type: reduce, expression: A, reducer: last, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: gt, params: [2] } }] }
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: '{{ .Labels.container }} in {{ .Labels.namespace }}/{{ .Labels.pod }} restarted {{ humanize .Values.B.Value }} times in 15 minutes'
+          description: A container that keeps restarting is crash-looping or being killed for memory.
+          logs_datasource: loki
+          logs_query: '{namespace="{{ .Labels.namespace }}", pod="{{ .Labels.pod }}", container="{{ .Labels.container }}"}'
+
+      - uid: game-server-not-answering
+        title: Game server not answering
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: ffyierrb4yl8gd
+            model: { expr: 'min by (game) (game_server_up)', instant: true, refId: A }
+          - refId: B
+            datasourceUid: __expr__
+            model: { type: reduce, expression: A, reducer: last, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: lt, params: [1] } }] }
+        for: 15m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: '{{ .Labels.game }} has not answered queries for 15 minutes'
+          description: Its pod is running, so the server itself is down, stuck in an update or out of memory.
+          logs_datasource: loki
+          logs_query: '{namespace="games", container="gameserver"}'
+
+      - uid: tls-certificate-expiring
+        title: TLS certificate expiring
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: ffyierrb4yl8gd
+            model: { expr: 'min by (namespace, name) (certmanager_certificate_expiration_timestamp_seconds - time())', instant: true, refId: A }
+          - refId: B
+            datasourceUid: __expr__
+            model: { type: reduce, expression: A, reducer: last, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: lt, params: [1209600] } }] }
+        for: 1h
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: 'Certificate {{ .Labels.name }} expires in {{ humanizeDuration .Values.B.Value }}'
+          description: cert-manager renews 30 days ahead, so one this close means renewal keeps failing.
+          logs_datasource: loki
+          logs_query: '{namespace="cert-manager"} |= "{{ .Labels.name }}"'
+
+      - uid: offsite-backup-failed
+        title: Off-host backup failed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: loki
+            model: { expr: 'sum(count_over_time({job="offsite-backup", game="", result="failure"}[1h]))', queryType: instant, refId: A }
+          - refId: B
+            datasourceUid: __expr__
+            model: { type: reduce, expression: A, reducer: last, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: gt, params: [0] } }] }
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: The off-host backup run failed
+          description: What already reached the remote is untouched; this run's changes did not all get there.
+          logs_datasource: loki
+          logs_query: '{job="offsite-backup"}'
+
+      - uid: offsite-backup-overdue
+        title: Off-host backup overdue
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 46800, to: 0 }
+            datasourceUid: loki
+            model: { expr: 'sum(count_over_time({job="offsite-backup", game="", result="success"}[13h]))', queryType: instant, refId: A }
+          - refId: B
+            datasourceUid: __expr__
+            model: { type: reduce, expression: A, reducer: last, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: lt, params: [1] } }] }
+        for: 0s
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          summary: No successful off-host backup in 13 hours
+          description: It runs every 6 hours, so two runs in a row failed or never started.
+          logs_datasource: loki
+          logs_query: '{job="offsite-backup"}'
