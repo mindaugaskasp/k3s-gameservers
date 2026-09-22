@@ -226,7 +226,7 @@ spec:
               subPath: config
               readOnly: true
             # The exporter's own path on the volume, off the game's data tree: the game
-            # runs as root and resets ownership across that tree on every start.
+            # resets ownership across that tree to gameUser on every start.
             - name: data
               mountPath: /database/sqlite
               subPath: database/sqlite
