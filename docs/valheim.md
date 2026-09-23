@@ -4,8 +4,8 @@
 
 - **Image:**
   [`valheim-server-docker`](https://github.com/community-valheim-tools/valheim-server-docker).
-  Configuration, update/restart/backup cron and hooks are env vars in the
-  chart's `values.yaml`. All times are UTC.
+  Configuration, cron and hooks are env vars in the chart's `values.yaml`.
+  All times are UTC. Restarts happen on update only; `restart.cron` is off.
 - **Data:** the world and config are on the PVC at `/config` (saves in
   `worlds_local`). The game install is a disposable subPath at `/opt/valheim`.
 - **Backups:** every 10 minutes, only if players were on since the last one

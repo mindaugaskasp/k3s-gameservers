@@ -43,8 +43,11 @@ updates:
   cron: "*/15 * * * *"
   ifIdle: true
 
+# The updater above already restarts the server when a build lands, so no
+# scheduled restart. Keep RESTART_CRON set even when empty: unset brings back
+# the image's own daily default.
 restart:
-  cron: "10 5 * * *"
+  cron: ""
   ifIdle: true
 
 # Surfaced as game_server_backup_* metrics in the Grafana "Backups" row.
