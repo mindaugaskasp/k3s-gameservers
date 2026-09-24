@@ -27,7 +27,8 @@ schema_config:
         period: 24h
 
 limits_config:
-  retention_period: 168h
+  # 31 days: the website dashboard counts returning IPs over the last 30.
+  retention_period: 744h
   # Default 500; per-path tables over bot-probed URLs exceed it.
   max_query_series: 5000
   # Used by Grafana's Logs Drilldown app
