@@ -41,6 +41,7 @@ HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.
   its modules are listed in [status-metrics.md](status-metrics.md).
 - **Image tag:** `games/metrics-image.mk` tags the sidecar with the last commit that
   touched its source, so changing it replaces the pod and leaving it alone does not.
+- **Help:** `make/help.mk` builds `make help [<command>]` from the `## ` lines above each target.
 - **Metric names:** `valheim_*` for what only Valheim reports, `game_server_*` for
   what every game reports, separated by the `game` label.
 - **Prometheus:** plain manifests, LAN-only Ingress, 7 days of history.

@@ -9,6 +9,7 @@ DATA_DIR := data
 BACKUP_DIR := data-backups
 REPO_ROOT := $(abspath ../..)
 include ../metrics-image.mk
+include ../../make/help.mk
 BACKUP_RETENTION_DAYS := 5
 
 .PHONY: help lint template deploy status logs logs-metrics \
@@ -16,38 +17,12 @@ BACKUP_RETENTION_DAYS := 5
 	uninstall build-metrics-image push-metrics-image players backups announce \
 	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups read-player-db reset-player-stats
 
-help:
-	@echo "make lint                  helm lint this chart+values"
-	@echo "make template              render manifests locally (no cluster needed)"
-	@echo "make build-metrics-image   podman build the status-metrics image"
-	@echo "make push-metrics-image    build it and push to the in-cluster registry (no sudo)"
-	@echo "make deploy                helm upgrade --install (needs ZOMBOID_ADMIN_PASSWORD and"
-	@echo "                           ZOMBOID_RCON_PASSWORD; ZOMBOID_SERVER_PASSWORD, ZOMBOID_DISCORD_WEBHOOK,"
-	@echo "                           ZOMBOID_CONNECT_HOST optional)"
-	@echo "make status                pods/pvc/svc for this release"
-	@echo "make logs                  tail the gameserver container"
-	@echo "make logs-metrics          tail the status-metrics sidecar"
-	@echo "make restart               rollout restart the statefulset (also how updates apply)"
-	@echo "make scale-down-zero       scale the statefulset to 0 replicas"
-	@echo "make scale-up              scale the statefulset back to 1 replica"
-	@echo "make shell                 shell into the running gameserver container"
-	@echo "make players               current player count from status-metrics"
-	@echo "make announce MSG=\"...\"    broadcast an in-game message to all connected players via RCON"
-	@echo "make backups               list the game's own period/startup/version backup zips"
-	@echo "make sync                  pull config, install and backups into $(DATA_DIR)/ + $(BACKUP_DIR)/"
-	@echo "make install-sync-timer    run that hourly via systemd (on the k3s host)"
-	@echo "make download-backups      scp every synced backup to your machine's $(BACKUP_DIR)/"
-	@echo "                           (run from your machine, not the VM; needs VM_HOST -- see root Makefile)"
-	@echo "make restore-backup        pick a backup from a numbered list, restore it, start server again"
-	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
-	@echo "make dashboards            ship grafana/dashboards/ as a ConfigMap Grafana picks up"
-	@echo "make read-player-db        read-only SQLite shell on the player database; SQL='...' runs one query"
-	@echo "make reset-player-stats    zero every player's time played, deaths and zombie kills (asks first)"
-	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
 
+## Check the Helm chart and values.override.yaml with helm lint
 lint:
 	helm lint $(CHART) -f $(VALUES) --set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
 
+## Render the manifests locally, with the password redacted; needs no cluster
 template:
 	helm template $(RELEASE) $(CHART) -f $(VALUES) -n $(NAMESPACE) \
 		--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG) \
@@ -59,13 +34,23 @@ secrets-check:
 	test -n "$$ZOMBOID_ADMIN_PASSWORD" || (echo "ZOMBOID_ADMIN_PASSWORD is not set" >&2; exit 1); \
 	test -n "$$ZOMBOID_RCON_PASSWORD" || (echo "ZOMBOID_RCON_PASSWORD is not set" >&2; exit 1)
 
+## Build the status-metrics image with podman
 build-metrics-image:
 	podman build --memory=512m -t $(STATUS_METRICS_IMAGE) $(STATUS_METRICS_DIR)
 
 # Into the in-cluster registry k3s pulls from; the pod picks it up on its next start.
+## Build the status-metrics image and push it to the in-cluster registry
+##   The pod picks it up on its next start.
 push-metrics-image: build-metrics-image
 	podman push $(STATUS_METRICS_IMAGE)
 
+## Install or upgrade the Project Zomboid server with Helm
+##   Reads .env (see .env.example):
+##   ZOMBOID_ADMIN_PASSWORD    required
+##   ZOMBOID_RCON_PASSWORD     required
+##   ZOMBOID_SERVER_PASSWORD   optional, the password players join with
+##   ZOMBOID_DISCORD_WEBHOOK   optional, turns on Discord alerts
+##   ZOMBOID_CONNECT_HOST      optional, the public host name shown to players
 deploy: secrets-check
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@set -a; [ -f .env ] && . ./.env; set +a; \
@@ -87,22 +72,28 @@ deploy: secrets-check
 		--set-string secrets.rconPassword="$$ZOMBOID_RCON_PASSWORD" \
 		"$${extra[@]}"
 
+## Show this game's StatefulSet, pod, volume and services
 status:
 	kubectl -n $(NAMESPACE) get statefulset,pod,pvc,svc,cronjob -l app.kubernetes.io/instance=$(RELEASE)
 
+## Follow the game server log
 logs:
 	kubectl -n $(NAMESPACE) logs -f $(RELEASE)-0 -c gameserver
 
+## Follow the status-metrics sidecar log
 logs-metrics:
 	kubectl -n $(NAMESPACE) logs -f $(RELEASE)-0 -c status-metrics
 
+## Restart the game server pod, which is also how game updates apply
 restart:
 	kubectl -n $(NAMESPACE) rollout restart statefulset/$(RELEASE)
 
+## Stop the game server by scaling it to 0 pods, and pause update restarts; its data is kept
 scale-down-zero:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=0
 	@$(MAKE) --no-print-directory suspend-update-cron SUSPEND=true
 
+## Start the game server again after scale-down-zero, and resume update restarts
 scale-up:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
 	@$(MAKE) --no-print-directory suspend-update-cron SUSPEND=false
@@ -112,22 +103,29 @@ suspend-update-cron:
 	@if kubectl -n $(NAMESPACE) get cronjob/$(RELEASE)-update >/dev/null 2>&1; then \
 		kubectl -n $(NAMESPACE) patch cronjob/$(RELEASE)-update -p '{"spec":{"suspend":$(SUSPEND)}}'; fi
 
+## Open a shell in the running game server container
 shell:
 	kubectl -n $(NAMESPACE) exec -it $(RELEASE)-0 -c gameserver -- bash
 
+## Print the current player count from status-metrics
 players:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c status-metrics -- \
 		wget -qO- http://127.0.0.1:9101/metrics | grep game_server_players
 
+## List the game's own period, startup and version backups
 backups:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
 		sh -c 'cd /project-zomboid-config/backups && ls -la period startup version 2>/dev/null'
 
+## Send an in-game message to every connected player over RCON
+##   MSG="text"   the message
+##   e.g. make announce MSG="Restarting in 5 minutes"
 announce:
 	@test -n "$(MSG)" || { echo "usage: make announce MSG=\"your message\"" >&2; exit 1; }
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- env MSG="$(MSG)" sh -c \
 		'rcon -a 127.0.0.1:$${PORT_TCP_RCON:-27015} -p "$$RCON_PASSWORD" "servermsg \"$$MSG\""'
 
+## Copy config, the install and backups from the pod into data/ and data-backups/
 sync: sync-data sync-backups
 
 sync-data:
@@ -144,11 +142,15 @@ sync-backups:
 	@echo "Synced /project-zomboid-config/backups -> $(BACKUP_DIR)/ (keeping $(BACKUP_RETENTION_DAYS) days)"
 
 VM_REPO_DIR := k3s-gameservers
+## Copy every backup synced on the VM to this machine's data-backups/
+##   Run it from your own machine, not the VM.
+##   VM_HOST=user@host   the VM to reach over SSH, or set it in the root .env
 download-backups:
 	@mkdir -p $(BACKUP_DIR)
 	$(MAKE) -C $(REPO_ROOT) copy-to-host \
 		FILE=$(VM_REPO_DIR)/games/zomboid/$(BACKUP_DIR)/. DEST=$(BACKUP_DIR)
 
+## Run make sync every hour with a systemd timer (on the k3s host; asks for sudo)
 install-sync-timer:
 	@test -d /run/systemd/system || { echo "systemd not found; run this on the k3s host" >&2; exit 1; }
 	@sed -e "s|__REPO__|$(REPO_ROOT)|g" -e "s|__USER__|$$(id -un)|g" -e "s|__HOME__|$$HOME|g" \
@@ -158,6 +160,9 @@ install-sync-timer:
 	sudo systemctl enable --now zomboid-data-sync.timer
 	systemctl list-timers zomboid-data-sync.timer --no-pager
 
+## Replace the live world with a backup from data-backups/, then start the server
+##   Lists the backups, asks for a number, then asks you to type the game name to confirm.
+##   Run make sync or make download-backups first.
 restore-backup:
 	@mapfile -t backups < <(find $(BACKUP_DIR) -name 'backup_*.zip' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-); \
 	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
@@ -195,9 +200,11 @@ _restore-run:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
 	@echo "Restored $(BACKUP). Watch it come up with: make logs"
 
+## Forward localhost:9101 to the status-metrics /metrics endpoint
 port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
+## Ship grafana/dashboards/ as a ConfigMap that Grafana loads
 dashboards:
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	kubectl -n $(NAMESPACE) create configmap $(RELEASE)-dashboards --from-file=grafana/dashboards/ --dry-run=client -o yaml \
@@ -205,6 +212,7 @@ dashboards:
 		| kubectl annotate --local -f - grafana_folder=$(RELEASE) -o yaml \
 		| kubectl apply --server-side -f -
 
+## Remove the Helm release; the data volume is kept, delete it by hand to lose the world
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)
 
