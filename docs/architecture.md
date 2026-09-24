@@ -3,7 +3,7 @@
 A single-node k3s cluster runs three namespaces:
 
 - `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`)
-- `monitoring`, `registry`: the platform, see [platform.md](platform.md)
+- `monitoring`, `registry`, `crowdsec`: the platform, see [platform.md](platform.md)
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
   ([platform.md](platform.md)); a timer copies worlds off-host ([offsite-backups.md](offsite-backups.md))
 - other namespaces: apps like servers-web, which only report to the platform
@@ -29,6 +29,7 @@ Game ports are UDP NodePorts on the same numbers the router forwards:
 - Enshrouded: 15637 (game traffic and Steam queries share it)
 
 That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
+HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).
 
 ## Monitoring
 

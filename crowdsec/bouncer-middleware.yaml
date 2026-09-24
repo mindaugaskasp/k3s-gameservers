@@ -1,0 +1,17 @@
+# Rejects banned IPs on every Traefik entry point (install/k3s/traefik-config.yaml).
+# Fails open: if the LAPI is down, traffic passes unchecked instead of being blocked.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: bouncer
+  namespace: crowdsec
+spec:
+  plugin:
+    crowdsec-bouncer:
+      enabled: true
+      crowdsecMode: stream
+      crowdsecLapiScheme: http
+      crowdsecLapiHost: crowdsec-service.crowdsec.svc.cluster.local:8080
+      crowdsecLapiKey: urn:k8s:secret:bouncer-key:key
+      updateMaxFailure: -1
+      streamStartupBlock: false

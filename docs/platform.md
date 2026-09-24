@@ -9,6 +9,7 @@ their own namespace and report to it.
 | Host firewall (ufw): SSH, LAN and pods in; game ports and 80/443 routed | `install/firewall.sh` | `make firewall` |
 | Image registry, localhost:30500 only | `registry/` | `install/registry.sh` |
 | Prometheus, Loki, Alloy, Grafana | `monitoring/` | `install/monitoring.sh` |
+| CrowdSec, bans scanners at Traefik ([crowdsec.md](crowdsec.md)) | `crowdsec/` | `make crowdsec` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
 | Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make setup-offsite-backup` |
 
@@ -25,12 +26,11 @@ field is immutable ([k3s storage](https://docs.k3s.io/storage)).
 
 Traefik runs with `externalTrafficPolicy: Local`
 ([HelmChartConfig](https://docs.k3s.io/add-ons/helm#customizing-packaged-components-with-helmchartconfig)),
-so middlewares see real client IPs.
+so middlewares see real client IPs, and logs every request for CrowdSec.
 
 **After a reboot**, containerd can leave pods in `CreateContainerError`
-("failed to reserve container name"). The kubelet's retries reuse the
-reserved name, so they never succeed. `maintenance/` deletes such pods if a
-controller owns them, and the controller recreates them.
+("failed to reserve container name") that kubelet retries never clear.
+`maintenance/` deletes such pods if a controller owns them, which recreates them.
 
 ## Monitoring
 

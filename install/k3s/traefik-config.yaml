@@ -9,9 +9,22 @@ spec:
     ports:
       web:
         exposedPort: 80
+        http: &crowdsec-bouncer
+          # Created by install/crowdsec.sh; routes fail while it is missing.
+          middlewares: [crowdsec-bouncer@kubernetescrd]
       websecure:
         exposedPort: 443
+        http: *crowdsec-bouncer
     service:
       spec:
         # Route to a Traefik pod on the receiving node, which keeps the client source IP.
         externalTrafficPolicy: Local
+    # CrowdSec's agent reads the access log from stdout.
+    logs:
+      access:
+        enabled: true
+    experimental:
+      plugins:
+        crowdsec-bouncer:
+          moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+          version: v1.7.1
