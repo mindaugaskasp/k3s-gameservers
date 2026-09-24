@@ -56,6 +56,13 @@ data:
         static_configs:
           - targets: ["cert-manager.cert-manager.svc:9402"]
 
+      # LAPI reports active bans; the agent reports detections and log lines read.
+      - job_name: crowdsec
+        static_configs:
+          - targets:
+              - "crowdsec-service.crowdsec.svc:6060"
+              - "crowdsec-agent-service.crowdsec.svc:6060"
+
       - job_name: kubelet-cadvisor
         scheme: https
         tls_config:

@@ -9,6 +9,7 @@ DATA_DIR := data
 BACKUP_DIR := data-backups
 REPO_ROOT := $(abspath ../..)
 include ../metrics-image.mk
+include ../../make/help.mk
 BACKUP_RETENTION_DAYS := 5
 
 .PHONY: help lint template deploy status logs logs-metrics \
@@ -16,37 +17,12 @@ BACKUP_RETENTION_DAYS := 5
 	uninstall build-metrics-image push-metrics-image players backups backup-now force-update \
 	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups
 
-help:
-	@echo "make lint                  helm lint this chart+values"
-	@echo "make template              render manifests locally (no cluster needed)"
-	@echo "make build-metrics-image   podman build the status-metrics image"
-	@echo "make push-metrics-image    build it and push to the in-cluster registry (no sudo)"
-	@echo "make deploy                helm upgrade --install (needs ENSHROUDED_ADMIN_PASSWORD; server"
-	@echo "                           name, slots, chat, difficulty and the rest are optional .env"
-	@echo "                           overrides -- see .env.example)"
-	@echo "make status                pods/pvc/svc for this release"
-	@echo "make logs                  tail the gameserver container"
-	@echo "make logs-metrics          tail the status-metrics sidecar"
-	@echo "make restart               rollout restart the statefulset"
-	@echo "make force-update          re-run steamcmd now, even if the build looks current"
-	@echo "make scale-down-zero       scale the statefulset to 0 replicas"
-	@echo "make scale-up              scale the statefulset back to 1 replica"
-	@echo "make shell                 shell into the running gameserver container"
-	@echo "make players               current player count from status-metrics"
-	@echo "make backups               list the game's own backup zips"
-	@echo "make backup-now            take a backup right now"
-	@echo "make sync                  pull the save and backups into $(DATA_DIR)/ + $(BACKUP_DIR)/"
-	@echo "make install-sync-timer    run that hourly via systemd (on the k3s host)"
-	@echo "make download-backups      scp every synced backup to your machine's $(BACKUP_DIR)/"
-	@echo "                           (run from your machine, not the VM; needs VM_HOST -- see root Makefile)"
-	@echo "make restore-backup        pick a backup from a numbered list, restore it, start server again"
-	@echo "make port-forward-metrics  forward :9101 to the status-metrics /metrics"
-	@echo "make dashboards            ship grafana/dashboards/ as a ConfigMap Grafana picks up"
-	@echo "make uninstall             helm uninstall (PVC is kept; delete it manually if you want data gone)"
 
+## Check the Helm chart and values.override.yaml with helm lint
 lint:
 	helm lint $(CHART) -f $(VALUES) --set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
 
+## Render the manifests locally, with the password redacted; needs no cluster
 template:
 	helm template $(RELEASE) $(CHART) -f $(VALUES) -n $(NAMESPACE) \
 		--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG) \
@@ -56,13 +32,20 @@ secrets-check:
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	test -n "$$ENSHROUDED_ADMIN_PASSWORD" || (echo "ENSHROUDED_ADMIN_PASSWORD is not set" >&2; exit 1)
 
+## Build the status-metrics image with podman
 build-metrics-image:
 	podman build --memory=512m -t $(STATUS_METRICS_IMAGE) $(STATUS_METRICS_DIR)
 
 # Into the in-cluster registry k3s pulls from; the pod picks it up on its next start.
+## Build the status-metrics image and push it to the in-cluster registry
+##   The pod picks it up on its next start.
 push-metrics-image: build-metrics-image
 	podman push $(STATUS_METRICS_IMAGE)
 
+## Install or upgrade the Enshrouded server with Helm
+##   Reads .env (see .env.example):
+##   ENSHROUDED_ADMIN_PASSWORD   required
+##   Server name, slots, chat, difficulty and the rest are optional .env overrides.
 deploy: secrets-check
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@set -a; [ -f .env ] && . ./.env; set +a; \
@@ -103,43 +86,55 @@ deploy: secrets-check
 		--set-string secrets.rolePasswords.ADMIN_PASS="$$ENSHROUDED_ADMIN_PASSWORD" \
 		"$${extra[@]}"
 
+## Show this game's StatefulSet, pod, volume and services
 status:
 	kubectl -n $(NAMESPACE) get statefulset,pod,pvc,svc -l app.kubernetes.io/instance=$(RELEASE)
 
+## Follow the game server log
 logs:
 	kubectl -n $(NAMESPACE) logs -f $(RELEASE)-0 -c gameserver
 
+## Follow the status-metrics sidecar log
 logs-metrics:
 	kubectl -n $(NAMESPACE) logs -f $(RELEASE)-0 -c status-metrics
 
+## Restart the game server pod
 restart:
 	kubectl -n $(NAMESPACE) rollout restart statefulset/$(RELEASE)
 
+## Run steamcmd now, even if the installed build looks current
 force-update:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
 		supervisorctl start enshrouded-force-update
 
+## Stop the game server by scaling it to 0 pods; its data is kept
 scale-down-zero:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=0
 
+## Start the game server again after scale-down-zero
 scale-up:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
 
+## Open a shell in the running game server container
 shell:
 	kubectl -n $(NAMESPACE) exec -it $(RELEASE)-0 -c gameserver -- bash
 
+## Print the current player count from status-metrics
 players:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c status-metrics -- \
 		wget -qO- http://127.0.0.1:9101/metrics | grep game_server_players
 
+## List the game's own backup zips
 backups:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
 		sh -c 'ls -la /opt/enshrouded/backups 2>/dev/null'
 
+## Take a game backup right now
 backup-now:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
 		supervisorctl start enshrouded-backup
 
+## Copy the save and backups from the pod into data/ and data-backups/
 sync: sync-data sync-backups
 
 # Skips server/, the steamcmd install the updater can always fetch again.
@@ -157,11 +152,15 @@ sync-backups:
 	@echo "Synced /opt/enshrouded/backups -> $(BACKUP_DIR)/ (keeping $(BACKUP_RETENTION_DAYS) days)"
 
 VM_REPO_DIR := k3s-gameservers
+## Copy every backup synced on the VM to this machine's data-backups/
+##   Run it from your own machine, not the VM.
+##   VM_HOST=user@host   the VM to reach over SSH, or set it in the root .env
 download-backups:
 	@mkdir -p $(BACKUP_DIR)
 	$(MAKE) -C $(REPO_ROOT) copy-to-host \
 		FILE=$(VM_REPO_DIR)/games/enshrouded/$(BACKUP_DIR)/. DEST=$(BACKUP_DIR)
 
+## Run make sync every hour with a systemd timer (on the k3s host; asks for sudo)
 install-sync-timer:
 	@test -d /run/systemd/system || { echo "systemd not found; run this on the k3s host" >&2; exit 1; }
 	@sed -e "s|__REPO__|$(REPO_ROOT)|g" -e "s|__USER__|$$(id -un)|g" -e "s|__HOME__|$$HOME|g" \
@@ -171,6 +170,9 @@ install-sync-timer:
 	sudo systemctl enable --now enshrouded-data-sync.timer
 	systemctl list-timers enshrouded-data-sync.timer --no-pager
 
+## Replace the live world with a backup from data-backups/, then start the server
+##   Lists the backups, asks for a number, then asks you to type the game name to confirm.
+##   Run make sync or make download-backups first.
 restore-backup:
 	@mapfile -t backups < <(find $(BACKUP_DIR) -name '*.zip' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-); \
 	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
@@ -207,9 +209,11 @@ _restore-run:
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1
 	@echo "Restored $(BACKUP). Watch it come up with: make logs"
 
+## Forward localhost:9101 to the status-metrics /metrics endpoint
 port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
+## Ship grafana/dashboards/ as a ConfigMap that Grafana loads
 dashboards:
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	kubectl -n $(NAMESPACE) create configmap $(RELEASE)-dashboards --from-file=grafana/dashboards/ --dry-run=client -o yaml \
@@ -217,5 +221,6 @@ dashboards:
 		| kubectl annotate --local -f - grafana_folder=$(RELEASE) -o yaml \
 		| kubectl apply --server-side -f -
 
+## Remove the Helm release; the data volume is kept, delete it by hand to lose the world
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)

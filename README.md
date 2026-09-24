@@ -35,9 +35,9 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 
 ## Day-to-day
 
-Run `make help` in `games/<game>/` for every target: logs, players,
-restart, scale-up / scale-down-zero, backups, sync, restore-backup and
-dashboards. Secrets: gitignored `games/<game>/.env` (see `.env.example`).
+Run `make help` here or in `games/<game>/` for every command (logs, players, restart,
+backups, sync, restore-backup, dashboards), and `make help <command>` for its arguments.
+Secrets: gitignored `games/<game>/.env` (see `.env.example`).
 
 - **One game at a time:** `make scale-down-zero` in one, `make scale-up` in the other.
 - **Backups:** the world lives on the PVC. `make sync` copies it to `data/` and

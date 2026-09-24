@@ -1,0 +1,25 @@
+# Values for the crowdsec/crowdsec chart: https://github.com/crowdsecurity/helm-charts
+# The agent reads Traefik's access log and bans scanners; the LAPI serves bans to the bouncer.
+container_runtime: containerd
+
+agent:
+  acquisition:
+    - namespace: kube-system
+      podName: traefik-*
+      program: traefik
+  env:
+    - name: COLLECTIONS
+      value: crowdsecurity/traefik
+  resources:
+    requests: {cpu: 20m, memory: 96Mi}
+    limits: {cpu: null, memory: 250Mi}
+
+lapi:
+  env:
+    # Registers the Traefik bouncer with the key install/crowdsec.sh generated.
+    - name: BOUNCER_KEY_traefik
+      valueFrom:
+        secretKeyRef: {name: bouncer-key, key: key}
+  resources:
+    requests: {cpu: 20m, memory: 96Mi}
+    limits: {cpu: null, memory: 250Mi}

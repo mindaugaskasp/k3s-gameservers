@@ -3,7 +3,7 @@
 A single-node k3s cluster runs three namespaces:
 
 - `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`)
-- `monitoring`, `registry`: the platform, see [platform.md](platform.md)
+- `monitoring`, `registry`, `crowdsec`: the platform, see [platform.md](platform.md)
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
   ([platform.md](platform.md)); a timer copies worlds off-host ([offsite-backups.md](offsite-backups.md))
 - other namespaces: apps like servers-web, which only report to the platform
@@ -29,6 +29,7 @@ Game ports are UDP NodePorts on the same numbers the router forwards:
 - Enshrouded: 15637 (game traffic and Steam queries share it)
 
 That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
+HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).
 
 ## Monitoring
 
@@ -40,6 +41,7 @@ That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
   its modules are listed in [status-metrics.md](status-metrics.md).
 - **Image tag:** `games/metrics-image.mk` tags the sidecar with the last commit that
   touched its source, so changing it replaces the pod and leaving it alone does not.
+- **Help:** `make/help.mk` builds `make help [<command>]` from the `## ` lines above each target.
 - **Metric names:** `valheim_*` for what only Valheim reports, `game_server_*` for
   what every game reports, separated by the `game` label.
 - **Prometheus:** plain manifests, LAN-only Ingress, 7 days of history.
