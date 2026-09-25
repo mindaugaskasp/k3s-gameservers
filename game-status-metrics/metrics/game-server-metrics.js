@@ -41,6 +41,7 @@ function gameServerMetricLines(status) {
   const game = GAME;
   const sampleForGame = (value) => [{ labels: { game }, value }];
   const sessionSeconds = currentSessionSeconds(status.up);
+  const playerSessions = readPlayerSessions(status);
   return [
     ...gaugeLines("game_server_up", "Whether the last gamedig query against this instance succeeded.", sampleForGame(status.up)),
     ...gaugeLines("game_server_players", "Current player count.", sampleForGame(status.players)),
@@ -83,12 +84,12 @@ function gameServerMetricLines(status) {
     ...gaugeLines(
       "game_server_player_session_seconds",
       "How long a player online now has been connected; named from the game's log where the query reports no names.",
-      readPlayerSessions(status).map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
+      playerSessions.map((player) => ({ labels: { game, name: player.name }, value: player.seconds }))
     ),
     ...gaugeLines(
       "game_server_player_admin",
       "1 for an online player on the server's admin list, matched by platform ID, not name.",
-      readOnlineAdminNames().map((name) => ({ labels: { game, name }, value: 1 }))
+      readOnlineAdminNames(playerSessions.map((player) => player.name)).map((name) => ({ labels: { game, name }, value: 1 }))
     ),
     ...gaugeLines(
       "game_server_player_play_time_seconds",

@@ -10,6 +10,7 @@ const { recordRaids } = require("./raid-database");
 const { readNewZomboidDeaths } = require("./zomboid-log-reader");
 const { readNewEnshroudedEvents } = require("./enshrouded-log-reader");
 const { recordEnshroudedBaseCount } = require("./status-files");
+const { markGameMaster, unmarkGameMaster } = require("./enshrouded-admins");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".
@@ -29,7 +30,13 @@ function convertQueriedPlayersToZombieKills(queriedPlayers) {
 function recordEnshroudedEvents(events) {
   for (const event of events) {
     if (event.type === "joined") markPlayerOnline(event.name);
-    if (event.type === "left") markPlayerOffline(event.name);
+    // Every login lists permissions afresh, so a demoted admin loses the badge.
+    if (event.type === "permissionsListed") unmarkGameMaster(event.name);
+    if (event.type === "gameMaster") markGameMaster(event.name);
+    if (event.type === "left") {
+      markPlayerOffline(event.name);
+      unmarkGameMaster(event.name);
+    }
     if (event.type === "allLeft") clearOnlinePlayers();
     if (event.type === "baseCount") recordEnshroudedBaseCount(event.count);
   }

@@ -1,41 +1,23 @@
 "use strict";
 
-const fs = require("fs");
-const { ADMIN_LIST_FILE, ONLINE_PLAYERS_DIR } = require("./config");
-const { readOnlinePlayers } = require("./online-players");
+const { GAME } = require("./config");
+const { filterValheimAdminNames } = require("./valheim-admins");
+const { filterZomboidAdminNames } = require("./zomboid-admins");
+const { filterEnshroudedAdminNames } = require("./enshrouded-admins");
 
-// Valheim writes crossplay IDs as "Steam_<id>" in some places and bare in others.
-function convertToBareSteamId(platformId) {
-  return platformId.trim().replace(/^Steam_/, "");
-}
+// Each game keeps its game masters its own way: Valheim by Steam ID, Zomboid by account
+// role, Enshrouded by the permissions it logs at login.
+const ADMIN_NAME_FILTERS = {
+  valheim: filterValheimAdminNames,
+  projectzomboid: filterZomboidAdminNames,
+  enshrouded: filterEnshroudedAdminNames,
+};
 
-function readAdminSteamIds() {
-  if (!ADMIN_LIST_FILE) return new Set();
-  try {
-    return new Set(
-      fs.readFileSync(ADMIN_LIST_FILE, "utf8")
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line && !line.startsWith("//"))
-        .map(convertToBareSteamId)
-    );
-  } catch {
-    return new Set();
-  }
-}
+/** The online players who are game masters on this server. */
+function readOnlineAdminNames(onlinePlayerNames) {
+  const filterAdminNames = ADMIN_NAME_FILTERS[GAME];
 
-// Each online player's file holds the platform ID from their handshake (player-event.sh).
-function readOnlineAdminNames() {
-  const adminSteamIds = readAdminSteamIds();
-  if (adminSteamIds.size === 0) return [];
-
-  return readOnlinePlayers().filter((name) => {
-    try {
-      return adminSteamIds.has(convertToBareSteamId(fs.readFileSync(`${ONLINE_PLAYERS_DIR}/${name}`, "utf8")));
-    } catch {
-      return false;
-    }
-  });
+  return filterAdminNames ? filterAdminNames(onlinePlayerNames) : [];
 }
 
 module.exports = { readOnlineAdminNames };

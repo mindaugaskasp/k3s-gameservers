@@ -159,6 +159,8 @@ spec:
               value: "/database/sqlite"
             - name: ENSHROUDED_LOG_FILE
               value: {{ printf "%s/logs/enshrouded_server.log" $data | quote }}
+            - name: ENSHROUDED_CONFIG_FILE
+              value: {{ printf "%s/server/enshrouded_server.json" $data | quote }}
             - name: BACKUP_DIR
               value: {{ printf "%s/backups" $data | quote }}
             - name: BACKUP_MAX_AGE_DAYS
