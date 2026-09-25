@@ -38,7 +38,7 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 - `reset-player-stats.js`: run by `make reset-player-stats`; saves a copy of the
   database first. `make read-player-db` opens a read-only `sqlite3` shell on it.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
-- `world-save.js`: bosses defeated, from the global keys in Valheim's newest `_main.<n>.db2`.
+- `world-save.js`: the `defeated_*` global keys (bosses, and a few creatures) in Valheim's newest `_main.<n>.db2`.
 - `backup-files.js`: backup archives on disk, oldest first.
 - `backup-archive.js`: the `.play-clock` index and play-time retention
   windows, mirroring `backup-prune.sh`.

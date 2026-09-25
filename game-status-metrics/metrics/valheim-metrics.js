@@ -58,7 +58,7 @@ function valheimMetricLines() {
     ),
     ...gaugeLines(
       "valheim_boss_defeated",
-      "1 for each boss this world has defeated, from its latest save; read the boss label.",
+      "1 for each defeated_* key in the latest save: the bosses, plus creatures the game also flags, like writhan.",
       readDefeatedBosses().map((boss) => ({ labels: { game, boss }, value: 1 }))
     ),
   ];
