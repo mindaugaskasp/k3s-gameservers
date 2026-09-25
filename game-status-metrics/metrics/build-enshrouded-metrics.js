@@ -2,7 +2,7 @@
 
 const { GAME } = require("../config");
 const { formatGaugeLines } = require("../format-metric-lines");
-const { readEnshroudedBaseCount } = require("../read-status-files");
+const { readEnshroudedBaseCount } = require("../store-enshrouded-base-count");
 const { readEnshroudedWorldSettings } = require("../read-enshrouded-settings");
 
 // enshrouded_* metrics hold what only Enshrouded reports. The prefix is written out,

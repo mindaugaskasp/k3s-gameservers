@@ -10,7 +10,7 @@ const { recordRaids } = require("./store-raids");
 const { readNewZomboidDeaths } = require("./read-zomboid-deaths");
 const { readCharacterName } = require("./read-zomboid-character-names");
 const { readNewEnshroudedEvents } = require("./read-enshrouded-log");
-const { recordEnshroudedBaseCount } = require("./read-status-files");
+const { recordEnshroudedBaseCount } = require("./store-enshrouded-base-count");
 const { markGameMaster, unmarkGameMaster } = require("./track-enshrouded-game-masters");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
