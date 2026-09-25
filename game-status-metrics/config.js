@@ -23,6 +23,8 @@ const ONLINE_PLAYERS_DIR = `${STATUS_DIR}/players/online`;
 const ADMIN_LIST_FILE = process.env.ADMIN_LIST_FILE || "";
 // Appended to by the log hooks, one line per death, and folded into the database.
 const DEATH_LOG_FILE = `${STATUS_DIR}/players/deaths`;
+// Appended to by Valheim's log hooks, one line per raid, and folded into the database.
+const RAID_LOG_FILE = `${STATUS_DIR}/raids`;
 // How far each followed log file has been read. In STATUS_DIR, so it outlives an
 // exporter restart but starts over with a new pod, whose logs are new too.
 const LOG_READ_POSITIONS_FILE = `${STATUS_DIR}/log-read-positions.json`;
@@ -54,6 +56,7 @@ module.exports = {
   ONLINE_PLAYERS_DIR,
   ADMIN_LIST_FILE,
   DEATH_LOG_FILE,
+  RAID_LOG_FILE,
   LOG_READ_POSITIONS_FILE,
   ZOMBOID_LOG_DIR,
   ENSHROUDED_LOG_FILE,

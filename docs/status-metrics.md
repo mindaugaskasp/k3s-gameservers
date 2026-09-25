@@ -1,8 +1,7 @@
 # Status metrics sidecar
 
-`game-status-metrics/` queries the game server next to it with
-[gamedig](https://github.com/gamedig/node-gamedig) and serves the result as
-Prometheus text on `:9101/metrics` (`/healthz` for probes).
+`game-status-metrics/` queries the game server next to it with [gamedig](https://github.com/gamedig/node-gamedig)
+and serves Prometheus text on `:9101/metrics` (`/healthz` for probes).
 
 Most numbers no query protocol reports -- uptime, mods, backups -- come from
 files the chart's lifecycle hooks write, so each reader below is one file format.
@@ -26,12 +25,15 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   kept in `STATUS_DIR`, so an exporter restart neither replays nor skips a line; a
   new inode at the same path, a log the game moved away, starts over.
 - `death-log-reader.js`: deaths the log hooks appended to the shared death log.
+- `raid-log-reader.js`: Valheim raid starts the log hooks appended to the raid log.
 - `zomboid-log-reader.js`: deaths from Zomboid's `user` and `pvp` logs.
 - `enshrouded-log-reader.js`: players joining and leaving, and the world's base count.
-- `player-database.js`: `<DATABASE_DIR>/<game>-players.db` on the PVC, one per
-  game -- time online, deaths, zombie kills, last seen. This process is its only writer: one
+- `sqlite-database.js`: opens `<DATABASE_DIR>/<game>-players.db` on the PVC, one per
+  game, and runs its statements. This process is its only writer: one
   running as another user would leave [WAL](https://sqlite.org/wal.html) files
   this one cannot write, and every query would fail as "readonly database".
+- `player-database.js`: time online, deaths, zombie kills, last seen per player.
+- `raid-database.js`: every Valheim raid and when it started.
 - `database-migrations.js` + `migrations/`: one file per schema version, applied
   in filename order on connect and recorded in the `migration` table. Add a file,
   never edit one that has shipped.
@@ -44,14 +46,12 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 
 ## Metric lines
 
-`metric-lines.js` escapes label values and builds one gauge's `# HELP`, `# TYPE`
-and sample lines; a gauge with no samples prints nothing. Gauge is the metric
-type named on every `# TYPE` line of the
-[exposition format](https://prometheus.io/docs/instrumenting/exposition_formats/).
+`metric-lines.js` builds one gauge's [exposition](https://prometheus.io/docs/instrumenting/exposition_formats/)
+lines; a gauge with no samples prints nothing.
 
 - `metrics/game-server-metrics.js`: `game_server_*`, what every game answers.
 - `metrics/backup-metrics.js`: `game_server_backup_*`.
-- `metrics/valheim-metrics.js`: `valheim_*` mods and world modifiers.
+- `metrics/valheim-metrics.js`: `valheim_*` mods, world modifiers and raids.
 - `metrics/zomboid-metrics.js`: `zomboid_*` zombie kills per player.
 - `metrics/enshrouded-metrics.js`: `enshrouded_*` player-built bases in the world.
 - `metrics/backup-archive-metrics.js`: `valheim_backup_*` archive windows.

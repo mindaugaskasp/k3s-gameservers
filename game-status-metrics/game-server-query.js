@@ -5,6 +5,8 @@ const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("./online-players");
 const { recordPlayersSeen, creditPlayTime, recordDeaths, recordZombieKills } = require("./player-database");
 const { readNewDeaths } = require("./death-log-reader");
+const { readNewRaids } = require("./raid-log-reader");
+const { recordRaids } = require("./raid-database");
 const { readNewZomboidDeaths } = require("./zomboid-log-reader");
 const { readNewEnshroudedEvents } = require("./enshrouded-log-reader");
 const { recordEnshroudedBaseCount } = require("./status-files");
@@ -53,6 +55,7 @@ class GameServerQuery {
   async refresh() {
     // What the logs say happened, whether or not the query answers.
     recordDeaths([...readNewDeaths(), ...readNewZomboidDeaths()]);
+    recordRaids(readNewRaids());
     recordEnshroudedEvents(readNewEnshroudedEvents());
     const queryStartedAt = Date.now();
     try {
