@@ -156,7 +156,8 @@ groups:
             model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: gt, params: [0] } }] }
         for: 0s
         noDataState: OK
-        execErrState: Error
+        # A Loki outage says nothing about the backup.
+        execErrState: KeepLast
         annotations:
           summary: The off-host backup run failed
           description: What already reached the remote is untouched; this run's changes did not all get there.
@@ -179,7 +180,8 @@ groups:
             model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: lt, params: [1] } }] }
         for: 0s
         noDataState: Alerting
-        execErrState: Error
+        # A Loki outage says nothing about the backup.
+        execErrState: KeepLast
         annotations:
           summary: No successful off-host backup in 13 hours
           description: It runs every 6 hours, so two runs in a row failed or never started.
