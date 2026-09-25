@@ -5,6 +5,7 @@ CHART := ../../charts/zomboid-server
 RELEASE := zomboid
 NAMESPACE := games
 VALUES := values.override.yaml
+MODS_FILE := mods.json
 DATA_DIR := data
 BACKUP_DIR := data-backups
 REPO_ROOT := $(abspath ../..)
@@ -12,7 +13,7 @@ include ../metrics-image.mk
 include ../../make/help.mk
 BACKUP_RETENTION_DAYS := 5
 
-.PHONY: help init-env lint template deploy status logs logs-metrics \
+.PHONY: help init-env mods add-mod disable-mod enable-mod remove-mod lint template deploy status logs logs-metrics \
 	restart scale-down-zero scale-up suspend-update-cron shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image push-metrics-image players backups announce \
 	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups read-player-db reset-player-stats
@@ -20,11 +21,11 @@ BACKUP_RETENTION_DAYS := 5
 
 ## Check the Helm chart and values.override.yaml with helm lint
 lint:
-	helm lint $(CHART) -f $(VALUES) --set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
+	helm lint $(CHART) -f $(VALUES) -f $(MODS_FILE) --set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
 
 ## Render the manifests locally, with the password redacted; needs no cluster
 template:
-	helm template $(RELEASE) $(CHART) -f $(VALUES) -n $(NAMESPACE) \
+	helm template $(RELEASE) $(CHART) -f $(VALUES) -f $(MODS_FILE) -n $(NAMESPACE) \
 		--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG) \
 		--set-string secrets.adminPassword=REDACTED \
 		--set-string secrets.rconPassword=REDACTED
@@ -65,7 +66,7 @@ deploy: secrets-check
 		extra+=(--set-string server.connectHost="$$ZOMBOID_CONNECT_HOST"); \
 	fi; \
 	helm upgrade --install $(RELEASE) $(CHART) \
-		-f $(VALUES) \
+		-f $(VALUES) -f $(MODS_FILE) \
 		-n $(NAMESPACE) \
 		--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG) \
 		--set-string secrets.adminPassword="$$ZOMBOID_ADMIN_PASSWORD" \
@@ -219,3 +220,4 @@ uninstall:
 include ../player-database.mk
 
 include ../env.mk
+include mods.mk

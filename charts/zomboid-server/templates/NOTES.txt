@@ -5,7 +5,7 @@ Check status:
   kubectl -n {{ .Release.Namespace }} logs -f {{ include "zomboid-server.fullname" . }}-0 -c gameserver
 
 Server name, mods and most settings come from values (server.name,
-server.mods/workshopItems, etc). Map selection and anything else not
+server.mods, etc). Map selection and anything else not
 covered by values goes in server.ini/SandboxVars.lua under
 /project-zomboid-config by hand, or over RCON.
 

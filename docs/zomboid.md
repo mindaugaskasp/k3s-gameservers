@@ -44,7 +44,8 @@ RCON reports 0 players. `make scale-down-zero` suspends it; `scale-up` resumes i
 - **Admins:** use `ADMIN_USERNAME` / `ADMIN_PASSWORD`. PZ can't
   pre-authorize a Steam ID as admin
   ([access levels](https://pzwiki.net/wiki/Server_commands)).
-- **Mods:** set `server.mods` / `server.workshopItems` in values.
+- **Mods:** `make add-mod WORKSHOP_ID=<id>` (Mod ID read from the Workshop page), `make mods`,
+  `disable-mod`, `enable-mod`, `remove-mod`. Kept in `games/zomboid/mods.json`; `make deploy` applies.
 
 ## Memory
 

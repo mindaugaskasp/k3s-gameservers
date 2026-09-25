@@ -9,7 +9,7 @@ server:
   pvp: false
   maxPlayers: 8
   memoryXmxGb: 3 # ZGC commits the full heap as shmem; Xmx 2 peaked at 4Gi (~Xmx+2)
-  # mods: ["ModID1"]; workshopItems: ["123456789"]
+  # Mods live in mods.json: `make add-mod WORKSHOP_ID=...`.
 
 persistence:
   storageClassName: local-path

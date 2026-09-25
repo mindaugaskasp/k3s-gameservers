@@ -1,12 +1,12 @@
-{{- $modsFlag := "" }}
-{{- if .Values.server.mods }}
-{{- $modsFlag = printf "-mods \"%s\"" (join ";" .Values.server.mods) }}
+{{- $workshopIds := list }}
+{{- $modIds := list }}
+{{- range .Values.server.mods }}
+{{- if .enabled }}
+{{- $workshopIds = append $workshopIds (toString .workshopId) }}
+{{- $modIds = concat $modIds .modIds }}
 {{- end }}
-{{- $workshopFlag := "" }}
-{{- if .Values.server.workshopItems }}
-{{- $workshopFlag = printf "-workshopitems \"%s\"" (join ";" .Values.server.workshopItems) }}
 {{- end }}
-{{- $extraFlags := list $modsFlag $workshopFlag .Values.server.extraFlags | compact | join " " }}
+{{- $extraFlags := .Values.server.extraFlags }}
 {{- if contains " " .Values.server.name }}
 {{- fail "server.name must not contain spaces (PZ backups would silently skip the world) -- use server.displayName for the browser name" }}
 {{- end }}
@@ -48,11 +48,13 @@ spec:
               }
               set_key PublicName "$DISPLAY_NAME"
               set_key SaveWorldEveryMinutes "$SAVE_WORLD_EVERY_MINUTES"
+              set_key WorkshopItems "$WORKSHOP_ITEMS"
+              set_key Mods "$MOD_IDS"
               set_key BackupsPeriod "$BACKUPS_PERIOD"
               set_key BackupsCount "$BACKUPS_COUNT"
               set_key BackupsOnStart "$BACKUPS_ON_START"
               set_key BackupsOnVersionChange "$BACKUPS_ON_VERSION_CHANGE"
-              grep -E "^(PublicName|SaveWorldEveryMinutes|Backups)" "$ini"
+              grep -E "^(PublicName|SaveWorldEveryMinutes|WorkshopItems|Mods|Backups)=" "$ini"
           env:
             - name: SERVER_NAME
               value: {{ .Values.server.name | quote }}
@@ -60,6 +62,10 @@ spec:
               value: {{ .Values.server.displayName | default .Values.server.name | quote }}
             - name: SAVE_WORLD_EVERY_MINUTES
               value: {{ .Values.server.saveWorldEveryMinutes | quote }}
+            - name: WORKSHOP_ITEMS
+              value: {{ join ";" $workshopIds | quote }}
+            - name: MOD_IDS
+              value: {{ join ";" $modIds | quote }}
             - name: BACKUPS_PERIOD
               value: {{ .Values.backups.periodMinutes | quote }}
             - name: BACKUPS_COUNT
