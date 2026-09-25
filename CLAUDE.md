@@ -35,7 +35,7 @@ Hard rules for code, docs and comments.
   with the `game` label. A prefix there would split one series into three and break
   every query that compares games.
 - **A published name is an interface.** Renaming one breaks its Grafana panels and
-  the website's readers, so grep `grafana/` and the web repo's `game-stats.js`
+  the website's readers, so grep `grafana/` and the web repo's `read-game-stats.js`
   first, and change them in the same commit.
 
 ## Docs and comments
