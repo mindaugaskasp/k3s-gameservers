@@ -33,7 +33,10 @@ function readPlayerSessions(status) {
 function readLastDeathSamples(game) {
   const lastDeath = readLastDeath();
 
-  return lastDeath ? [{ labels: { game, name: lastDeath.name }, value: lastDeath.diedAt }] : [];
+  if (!lastDeath) return [];
+  const characterLabel = lastDeath.characterName ? { character: lastDeath.characterName } : {};
+
+  return [{ labels: { game, name: lastDeath.name, ...characterLabel }, value: lastDeath.diedAt }];
 }
 
 /** What every game reports, told apart by the `game` label. */
@@ -108,7 +111,7 @@ function gameServerMetricLines(status) {
     ),
     ...gaugeLines(
       "game_server_last_death_timestamp_seconds",
-      "Unix time of the most recent death on this server; read the name label for who died.",
+      "Unix time of the most recent death on this server; read name for the player, character for who they played.",
       readLastDeathSamples(game)
     ),
   ];

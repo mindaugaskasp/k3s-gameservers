@@ -8,6 +8,7 @@ const { readNewDeaths } = require("./death-log-reader");
 const { readNewRaids } = require("./raid-log-reader");
 const { recordRaids } = require("./raid-database");
 const { readNewZomboidDeaths } = require("./zomboid-log-reader");
+const { readCharacterName } = require("./zomboid-characters");
 const { readNewEnshroudedEvents } = require("./enshrouded-log-reader");
 const { recordEnshroudedBaseCount } = require("./status-files");
 const { markGameMaster, unmarkGameMaster } = require("./enshrouded-admins");
@@ -61,7 +62,9 @@ class GameServerQuery {
 
   async refresh() {
     // What the logs say happened, whether or not the query answers.
-    recordDeaths([...readNewDeaths(), ...readNewZomboidDeaths()]);
+    recordDeaths(
+      [...readNewDeaths(), ...readNewZomboidDeaths()].map((playerName) => ({ playerName, characterName: readCharacterName(playerName) }))
+    );
     recordRaids(readNewRaids());
     recordEnshroudedEvents(readNewEnshroudedEvents());
     const queryStartedAt = Date.now();

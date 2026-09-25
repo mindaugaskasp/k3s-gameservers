@@ -35,6 +35,8 @@ const ZOMBOID_LOG_DIR = process.env.ZOMBOID_LOG_DIR || "";
 // Project Zomboid's sandbox settings and its accounts database; unset for every other game.
 const ZOMBOID_SANDBOX_FILE = process.env.ZOMBOID_SANDBOX_FILE || "";
 const ZOMBOID_ACCOUNTS_DATABASE_FILE = process.env.ZOMBOID_ACCOUNTS_DATABASE_FILE || "";
+// The world's saved characters, which name each account's current character.
+const ZOMBOID_PLAYERS_DATABASE_FILE = process.env.ZOMBOID_PLAYERS_DATABASE_FILE || "";
 // Enshrouded's server log, which names players as they join and leave; unset elsewhere.
 const ENSHROUDED_LOG_FILE = process.env.ENSHROUDED_LOG_FILE || "";
 // Enshrouded's server config, holding the difficulty preset and game settings; unset elsewhere.
@@ -71,6 +73,7 @@ module.exports = {
   ZOMBOID_LOG_DIR,
   ZOMBOID_SANDBOX_FILE,
   ZOMBOID_ACCOUNTS_DATABASE_FILE,
+  ZOMBOID_PLAYERS_DATABASE_FILE,
   ENSHROUDED_LOG_FILE,
   ENSHROUDED_CONFIG_FILE,
   ENSHROUDED_BASE_COUNT_FILE,

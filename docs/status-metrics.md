@@ -31,6 +31,7 @@ files the chart's lifecycle hooks write, so each reader below is one file format
   process is its only writer: another user's [WAL](https://sqlite.org/wal.html) files would make it "readonly".
 - `player-database.js`: time online, deaths and the last one, zombie kills, last seen per player.
 - `raid-database.js`: every Valheim raid and when it started.
+- `zomboid-characters.js`: a Zomboid account's current character, stored with each of its deaths.
 - `database-migrations.js` + `migrations/`: one file per schema version, applied
   in filename order on connect and recorded in the `migration` table. Add a file,
   never edit one that has shipped.

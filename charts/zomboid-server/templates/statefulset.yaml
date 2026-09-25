@@ -224,6 +224,8 @@ spec:
               value: {{ printf "/project-zomboid-config/Server/%s_SandboxVars.lua" .Values.server.name | quote }}
             - name: ZOMBOID_ACCOUNTS_DATABASE_FILE
               value: {{ printf "/project-zomboid-config/db/%s.db" .Values.server.name | quote }}
+            - name: ZOMBOID_PLAYERS_DATABASE_FILE
+              value: {{ printf "/project-zomboid-config/Saves/Multiplayer/%s/players.db" .Values.server.name | quote }}
             - name: BACKUP_DIR
               value: "/project-zomboid-config/backups/period"
             - name: BACKUP_MAX_AGE_DAYS

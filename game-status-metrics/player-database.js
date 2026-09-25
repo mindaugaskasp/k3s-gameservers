@@ -54,13 +54,14 @@ function creditPlayTime(names) {
   );
 }
 
-/** A name listed twice died twice. Stamped when read, within one query interval of the death. */
-function recordDeaths(names) {
+/** A player listed twice died twice. Stamped when read, within one query interval of the death. */
+function recordDeaths(deaths) {
   const diedAt = nowInSeconds();
   runStatementForEachRow(
-    `INSERT INTO player (name, death_count, last_died_at) VALUES (?, 1, ?)
-       ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1, last_died_at = excluded.last_died_at`,
-    names.map((name) => [name, diedAt])
+    `INSERT INTO player (name, death_count, last_died_at, last_death_character_name) VALUES (?, 1, ?, ?)
+       ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1, last_died_at = excluded.last_died_at,
+         last_death_character_name = excluded.last_death_character_name`,
+    deaths.map((death) => [death.playerName, diedAt, death.characterName])
   );
 }
 
@@ -89,7 +90,7 @@ function resetPlayerStats() {
   const backupFile = PLAYERS_DATABASE_FILE.replace(/\.db$/, `.before-reset-${takenAt}.db`);
   openedDatabase.prepare("VACUUM INTO ?").run(backupFile);
   const { changes } = openedDatabase
-    .prepare("UPDATE player SET play_time_seconds = 0, death_count = 0, last_died_at = NULL, zombie_kill_count = 0")
+    .prepare("UPDATE player SET play_time_seconds = 0, death_count = 0, last_died_at = NULL, last_death_character_name = NULL, zombie_kill_count = 0")
     .run();
 
   return { resetPlayerCount: changes, backupFile };
@@ -121,7 +122,8 @@ function readDeathCounts() {
 
 function readLastDeath() {
   return readRows(
-    "SELECT name, last_died_at AS diedAt FROM player WHERE last_died_at IS NOT NULL ORDER BY last_died_at DESC, name LIMIT 1"
+    `SELECT name, last_died_at AS diedAt, last_death_character_name AS characterName
+       FROM player WHERE last_died_at IS NOT NULL ORDER BY last_died_at DESC, name LIMIT 1`
   )[0] ?? null;
 }
 
