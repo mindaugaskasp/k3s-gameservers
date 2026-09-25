@@ -28,7 +28,7 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
 3. Deploy a game (read each script before running it):
    ```sh
    cd games/valheim
-   cp .env.example .env   # then edit: password, Discord webhook, DDNS name
+   make init-env          # creates .env; then edit: password, Discord webhook, DDNS name
    make push-metrics-image
    make deploy
    ```

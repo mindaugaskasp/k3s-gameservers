@@ -12,7 +12,7 @@ include ../metrics-image.mk
 include ../../make/help.mk
 BACKUP_RETENTION_DAYS := 5
 
-.PHONY: help lint template deploy status logs logs-metrics \
+.PHONY: help init-env lint template deploy status logs logs-metrics \
 	restart scale-down-zero scale-up suspend-update-cron shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image push-metrics-image players backups announce \
 	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups read-player-db reset-player-stats
@@ -217,3 +217,5 @@ uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)
 
 include ../player-database.mk
+
+include ../env.mk

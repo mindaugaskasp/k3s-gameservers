@@ -12,7 +12,7 @@ include ../metrics-image.mk
 include ../../make/help.mk
 BACKUP_RETENTION_DAYS := 5
 
-.PHONY: help lint template deploy status logs logs-metrics \
+.PHONY: help init-env lint template deploy status logs logs-metrics \
 	restart scale-down-zero scale-up shell port-forward-metrics dashboards secrets-check \
 	uninstall build-metrics-image push-metrics-image players backups backup-now force-update \
 	sync sync-data sync-backups install-sync-timer restore-backup _restore-run download-backups
@@ -224,3 +224,5 @@ dashboards:
 ## Remove the Helm release; the data volume is kept, delete it by hand to lose the world
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)
+
+include ../env.mk

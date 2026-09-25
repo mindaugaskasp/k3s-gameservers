@@ -21,7 +21,7 @@ decide how much the chart has to do.
 ## 3. Game directory
 
 Add `games/<game>/` with `values.override.yaml` (site settings, sizing),
-`.env.example` (secrets), `Makefile` (same target names as the other games),
+`.env.example` (secrets; `make init-env` copies it), `Makefile` (same targets as the other games),
 `restore-helper-pod.yaml` and the systemd data-sync units.
 
 ## 4. Monitoring
