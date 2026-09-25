@@ -25,13 +25,9 @@ Makefile                   copy-to-vm / copy-to-host (run from your machine)
    cp monitoring/.env.example monitoring/.env   # then edit
    make setup
    ```
-3. Deploy a game (read each script before running it):
-   ```sh
-   cd games/valheim
-   make init-env          # creates .env; then edit: password, Discord webhook, DDNS name
-   make push-metrics-image
-   make deploy
-   ```
+3. Set up a game, step by step (passwords, settings, joining, mods, memory):
+   [Valheim](games/valheim/setup.md), [Project Zomboid](games/zomboid/setup.md),
+   [Enshrouded](games/enshrouded/setup.md). Read each script before running it.
 
 ## Day-to-day
 
