@@ -3,7 +3,7 @@
 const fs = require("fs");
 const { DatabaseSync } = require("node:sqlite");
 const { DATABASE_DIR, PLAYERS_DATABASE_FILE } = require("./config");
-const { runMigrations } = require("./database-migrations");
+const { applyMigrations } = require("./apply-database-migrations");
 
 // WAL lets anyone inspecting the file read it without blocking the exporter's writes:
 // https://sqlite.org/wal.html
@@ -29,7 +29,7 @@ function openDatabase() {
     fs.mkdirSync(DATABASE_DIR, { recursive: true });
     const openedDatabase = new DatabaseSync(PLAYERS_DATABASE_FILE);
     openedDatabase.exec(CONNECTION_SETTINGS);
-    runMigrations(openedDatabase);
+    applyMigrations(openedDatabase);
     database = openedDatabase;
   } catch (error) {
     reportDatabaseFailure("unavailable", error);
@@ -48,7 +48,7 @@ function readRows(sql, ...parameters) {
   }
 }
 
-function runStatementForEachRow(sql, parameterRows) {
+function writeRows(sql, parameterRows) {
   const openedDatabase = openDatabase();
   if (!openedDatabase || !parameterRows.length) return;
   try {
@@ -59,4 +59,4 @@ function runStatementForEachRow(sql, parameterRows) {
   }
 }
 
-module.exports = { openDatabase, readRows, runStatementForEachRow, reportDatabaseFailure };
+module.exports = { openDatabase, readRows, writeRows, reportDatabaseFailure };

@@ -1,7 +1,7 @@
 "use strict";
 
 const { DEATH_LOG_FILE } = require("./config");
-const { readNewLines } = require("./log-follower");
+const { readNewLines } = require("./read-new-log-lines");
 
 /** One name per death the log hooks appended since the last call. */
 function readNewDeaths() {

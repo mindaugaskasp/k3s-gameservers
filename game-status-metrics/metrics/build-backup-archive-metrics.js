@@ -1,13 +1,13 @@
 "use strict";
 
 const { GAME, BACKUP_DIR } = require("../config");
-const { gaugeLines } = require("../metric-lines");
-const { isArchived } = require("../backup-files");
-const { classifyBackups } = require("../backup-archive");
-const { readLastPlayerActivityTimestamp } = require("../status-files");
+const { formatGaugeLines } = require("../format-metric-lines");
+const { isArchived } = require("../read-backups");
+const { classifyBackups } = require("../classify-backups");
+const { readLastPlayerActivityTimestamp } = require("../read-status-files");
 
 /** How backup-prune.sh's play-time retention sees each backup (Valheim only). */
-function backupArchiveMetricLines(backups) {
+function buildBackupArchiveMetricLines(backups) {
   const game = GAME;
   const { problem, newestPlaySeconds, windowCounts, files } = classifyBackups(backups);
   const lastActivityAt = readLastPlayerActivityTimestamp();
@@ -17,22 +17,22 @@ function backupArchiveMetricLines(backups) {
       value: readValue(file),
     }));
   return [
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_backup_play_clock_ok",
       "1 if backup-prune.sh's play-time index is usable; 0 means pruning is stopped.",
       [{ labels: { game, problem }, value: problem ? 0 : 1 }]
     ),
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_backup_play_clock_seconds",
       "Play time recorded up to the newest backup (idle gaps count at most a day).",
       newestPlaySeconds === undefined ? [] : [{ labels: { game }, value: newestPlaySeconds }]
     ),
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_backup_archive_window_files",
       "Archived backups per play-time window (days).",
       [...windowCounts].map(([window, count]) => ({ labels: { game, window }, value: count }))
     ),
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_backup_file_info",
       "Where each backup sits: recent/archive, and its play-time window.",
       files.map((file) => ({
@@ -45,22 +45,22 @@ function backupArchiveMetricLines(backups) {
         value: 1,
       }))
     ),
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_backup_file_game_day",
       "In-game day of the world in each backup (from its name).",
       sampleForEachBackup((file) => file.gameDay !== undefined, (file) => file.gameDay)
     ),
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_backup_file_play_age_seconds",
       "Play time between each backup and the newest one.",
       sampleForEachBackup((file) => file.ageDays !== undefined, (file) => Math.round(file.ageDays * 86400))
     ),
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_backup_file_window_left_seconds",
       "Play time until each backup leaves its window (then archived, moved on or deleted).",
       sampleForEachBackup((file) => file.endDays !== undefined, (file) => Math.round((file.endDays - file.ageDays) * 86400))
     ),
-    ...gaugeLines(
+    ...formatGaugeLines(
       "valheim_last_player_activity_timestamp_seconds",
       "Last join/leave/online-check that saw a player.",
       lastActivityAt ? [{ labels: { game }, value: lastActivityAt }] : []
@@ -68,4 +68,4 @@ function backupArchiveMetricLines(backups) {
   ];
 }
 
-module.exports = { backupArchiveMetricLines };
+module.exports = { buildBackupArchiveMetricLines };

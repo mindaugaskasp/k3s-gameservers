@@ -29,7 +29,7 @@ function createEmptyComment() {
   return { choiceLabels: new Map(), choiceDefault: null, numberDefault: null };
 }
 
-function readCommentLine(line, comment) {
+function recordCommentLine(line, comment) {
   const choice = CHOICE_LABEL.exec(line);
   if (choice) comment.choiceLabels.set(choice[1], choice[2]);
   comment.choiceDefault = CHOICE_DEFAULT.exec(line)?.[1] ?? comment.choiceDefault;
@@ -50,7 +50,7 @@ function readChangedSandboxSettings() {
   let comment = createEmptyComment();
   for (const line of lines.slice(1)) {
     if (line.trim().startsWith("--")) {
-      readCommentLine(line, comment);
+      recordCommentLine(line, comment);
       continue;
     }
     const tableStart = TABLE_START.exec(line);

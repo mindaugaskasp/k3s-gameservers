@@ -1,7 +1,7 @@
 "use strict";
 
 // Run by `make reset-player-stats`, inside the status-metrics container.
-const { resetPlayerStats } = require("./player-database");
+const { resetPlayerStats } = require("./store-player-history");
 
 try {
   const { resetPlayerCount, backupFile } = resetPlayerStats();

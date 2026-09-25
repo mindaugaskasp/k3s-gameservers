@@ -1,7 +1,7 @@
 "use strict";
 
 const { PLAYERS_DATABASE_FILE } = require("./config");
-const { openDatabase, readRows, runStatementForEachRow, reportDatabaseFailure } = require("./sqlite-database");
+const { openDatabase, readRows, writeRows, reportDatabaseFailure } = require("./open-sqlite-database");
 
 const RANKED_PLAYER_LIMIT = 10;
 const SEEN_PLAYER_LIMIT = 50;
@@ -9,12 +9,12 @@ const SEEN_PLAYER_LIMIT = 50;
 // stayed online across it, so it is credited to no one.
 const MAX_CREDITED_GAP_SECONDS = 60;
 
-const nowInSeconds = () => Math.floor(Date.now() / 1000);
+const getCurrentUnixSeconds = () => Math.floor(Date.now() / 1000);
 
 /** Stamped every scrape rather than on disconnect: a missed disconnect line then costs nothing. */
 function recordPlayersSeen(names) {
-  const seenAt = nowInSeconds();
-  runStatementForEachRow(
+  const seenAt = getCurrentUnixSeconds();
+  writeRows(
     `INSERT INTO player (name, last_seen_at) VALUES (?, ?)
        ON CONFLICT(name) DO UPDATE SET last_seen_at = excluded.last_seen_at`,
     names.map((name) => [name, seenAt])
@@ -24,7 +24,7 @@ function recordPlayersSeen(names) {
 /** Stamping each credit means every scrape is counted exactly once. */
 function recordCreditAndGetElapsedSeconds(openedDatabase) {
   const key = "play_time_credited_at";
-  const now = nowInSeconds();
+  const now = getCurrentUnixSeconds();
   const lastCreditedAt = openedDatabase.prepare("SELECT value FROM exporter_state WHERE key = ?").get(key)?.value ?? 0;
   openedDatabase
     .prepare("INSERT INTO exporter_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
@@ -47,7 +47,7 @@ function creditPlayTime(names) {
   }
   if (!seconds) return;
 
-  runStatementForEachRow(
+  writeRows(
     `INSERT INTO player (name, play_time_seconds) VALUES (?, ?)
        ON CONFLICT(name) DO UPDATE SET play_time_seconds = play_time_seconds + excluded.play_time_seconds`,
     names.map((name) => [name, seconds])
@@ -56,8 +56,8 @@ function creditPlayTime(names) {
 
 /** A player listed twice died twice. Stamped when read, within one query interval of the death. */
 function recordDeaths(deaths) {
-  const diedAt = nowInSeconds();
-  runStatementForEachRow(
+  const diedAt = getCurrentUnixSeconds();
+  writeRows(
     `INSERT INTO player (name, death_count, last_died_at, last_death_character_name) VALUES (?, 1, ?, ?)
        ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1, last_died_at = excluded.last_died_at,
          last_death_character_name = excluded.last_death_character_name`,
@@ -68,7 +68,7 @@ function recordDeaths(deaths) {
 // A rise in a character's count adds the difference; a drop means the character died
 // and a new one started from 0, so its whole count is new.
 function recordZombieKills(players) {
-  runStatementForEachRow(
+  writeRows(
     `INSERT INTO player (name, zombie_kill_count, current_character_zombie_kills) VALUES (?, ?, ?)
        ON CONFLICT(name) DO UPDATE SET
          zombie_kill_count = zombie_kill_count + CASE

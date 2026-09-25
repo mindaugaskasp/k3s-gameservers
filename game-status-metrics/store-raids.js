@@ -1,11 +1,11 @@
 "use strict";
 
-const { readRows, runStatementForEachRow } = require("./sqlite-database");
+const { readRows, writeRows } = require("./open-sqlite-database");
 
 function recordRaids(raids) {
-  runStatementForEachRow(
+  writeRows(
     "INSERT INTO raid (name, started_at) VALUES (?, ?)",
-    raids.map((raid) => [raid.name, raid.startedAt])
+    raids.map((raid) => [raid.eventId, raid.startedAt])
   );
 }
 
@@ -14,7 +14,7 @@ function readRaidCount() {
 }
 
 function readLatestRaid() {
-  return readRows("SELECT name, started_at AS startedAt FROM raid ORDER BY started_at DESC, id DESC LIMIT 1")[0] ?? null;
+  return readRows("SELECT name AS eventId, started_at AS startedAt FROM raid ORDER BY started_at DESC, id DESC LIMIT 1")[0] ?? null;
 }
 
 module.exports = { recordRaids, readRaidCount, readLatestRaid };

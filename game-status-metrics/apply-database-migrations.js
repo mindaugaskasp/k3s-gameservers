@@ -28,7 +28,7 @@ function readMigrations() {
  * returns the versions applied. Adding a migration means adding a file, never editing
  * one that has shipped.
  */
-function runMigrations(database) {
+function applyMigrations(database) {
   database.exec(MIGRATION_TABLE);
   const applied = new Set(database.prepare("SELECT version FROM migration").all().map((row) => row.version));
   const record = database.prepare("INSERT INTO migration (version, executed_at) VALUES (?, ?)");
@@ -49,4 +49,4 @@ function runMigrations(database) {
   return pending.map((migration) => migration.version);
 }
 
-module.exports = { runMigrations };
+module.exports = { applyMigrations };

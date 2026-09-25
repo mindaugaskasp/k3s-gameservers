@@ -1,9 +1,9 @@
 "use strict";
 
 const { GAME } = require("./config");
-const { filterValheimAdminNames } = require("./valheim-admins");
-const { filterZomboidAdminNames } = require("./zomboid-admins");
-const { filterEnshroudedAdminNames } = require("./enshrouded-admins");
+const { filterValheimAdminNames } = require("./read-valheim-admins");
+const { filterZomboidAdminNames } = require("./read-zomboid-admins");
+const { filterEnshroudedAdminNames } = require("./track-enshrouded-game-masters");
 
 // Each game keeps its game masters its own way: Valheim by Steam ID, Zomboid by account
 // role, Enshrouded by the permissions it logs at login.

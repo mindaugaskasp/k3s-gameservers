@@ -2,9 +2,9 @@
 
 const fs = require("fs");
 const { BACKUP_DIR, BACKUP_RECENT_DAYS, BACKUP_WINDOW_ENDS } = require("./config");
-const { isArchived } = require("./backup-files");
+const { isArchived } = require("./read-backups");
 
-const fileName = (backup) => backup.name.replace(/.*\//, "");
+const convertBackupToFileName = (backup) => backup.name.replace(/.*\//, "");
 
 // Mirrors backup-prune.sh: same index checks, same windows, so the dashboard
 // shows what the next prune will do and whether it will run at all.
@@ -25,13 +25,13 @@ function readPlayClock(backups) {
     problem = "missing";
   }
   const archived = backups.filter(isArchived);
-  const unindexed = archived.find((backup) => !playSecondsByFile.has(fileName(backup)));
-  if (!problem && unindexed) problem = `no entry for ${fileName(unindexed)}`;
+  const unindexed = archived.find((backup) => !playSecondsByFile.has(convertBackupToFileName(backup)));
+  if (!problem && unindexed) problem = `no entry for ${convertBackupToFileName(unindexed)}`;
   if (problem && !archived.length) problem = ""; // prune rebuilds it while nothing is archived
   return { playSecondsByFile, problem };
 }
 
-function windowFor(ageDays) {
+function findRetentionWindow(ageDays) {
   let start = BACKUP_RECENT_DAYS;
   if (ageDays < start) return "recent";
   for (const end of BACKUP_WINDOW_ENDS) {
@@ -41,7 +41,7 @@ function windowFor(ageDays) {
   return "expired";
 }
 
-function windowEndDays(window) {
+function readRetentionWindowEndDays(window) {
   if (window.includes("-")) return Number(window.split("-")[1]);
   return window === "recent" ? BACKUP_RECENT_DAYS : undefined;
 }
@@ -49,23 +49,23 @@ function windowEndDays(window) {
 /** Each backup's play-time age and retention window, plus how full each window is. */
 function classifyBackups(backups) {
   const { playSecondsByFile, problem } = readPlayClock(backups);
-  const newestPlaySeconds = backups.length ? playSecondsByFile.get(fileName(backups[backups.length - 1])) : undefined;
+  const newestPlaySeconds = backups.length ? playSecondsByFile.get(convertBackupToFileName(backups[backups.length - 1])) : undefined;
   const windowCounts = new Map(
     BACKUP_WINDOW_ENDS.map((end, index) => [`${index ? BACKUP_WINDOW_ENDS[index - 1] : BACKUP_RECENT_DAYS}-${end}`, 0])
   );
   const files = [];
   for (const backup of backups) {
-    const playSeconds = playSecondsByFile.get(fileName(backup));
+    const playSeconds = playSecondsByFile.get(convertBackupToFileName(backup));
     const ageDays =
       newestPlaySeconds !== undefined && playSeconds !== undefined ? (newestPlaySeconds - playSeconds) / 86400 : undefined;
-    const window = ageDays === undefined ? "unindexed" : windowFor(ageDays);
+    const window = ageDays === undefined ? "unindexed" : findRetentionWindow(ageDays);
     const gameDay = /-game-day-([0-9]+)\.zip$/.exec(backup.name);
     if (isArchived(backup) && windowCounts.has(window)) windowCounts.set(window, windowCounts.get(window) + 1);
     files.push({
       backup,
       ageDays,
       window,
-      endDays: windowEndDays(window),
+      endDays: readRetentionWindowEndDays(window),
       gameDay: gameDay ? Number(gameDay[1]) : undefined,
     });
   }

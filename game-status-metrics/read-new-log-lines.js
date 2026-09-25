@@ -33,7 +33,7 @@ function saveReadPositions() {
 
 // A file last written before this pod's first read is an earlier session's, so its
 // lines are history rather than news and it is followed from its end.
-function getStartingOffset(fileStats, positions) {
+function chooseStartingOffset(fileStats, positions) {
   return fileStats.mtimeMs < positions.firstReadAt ? fileStats.size : 0;
 }
 
@@ -50,7 +50,7 @@ function readNewLines(filePath) {
   // A new inode at a known path is a new file: the game moved its old log away.
   const known = positions.files[filePath];
   const isKnownFile = known !== undefined && known.inode === fileStats.ino;
-  let offset = isKnownFile ? known.offset : getStartingOffset(fileStats, positions);
+  let offset = isKnownFile ? known.offset : chooseStartingOffset(fileStats, positions);
   if (fileStats.size < offset) offset = 0;
 
   let unreadBytes = Buffer.alloc(0);

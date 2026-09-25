@@ -2,8 +2,8 @@
 
 const http = require("http");
 const { GAME, HOST, PORT, METRICS_PORT } = require("./config");
-const { GameServerQuery } = require("./game-server-query");
-const { metricsText } = require("./metrics-text");
+const { GameServerQuery } = require("./query-game-server");
+const { buildMetricsText } = require("./build-metrics-text");
 
 const QUERY_INTERVAL_MILLISECONDS = 15000;
 
@@ -17,7 +17,7 @@ const query = new GameServerQuery();
 const server = http.createServer((req, res) => {
   if (req.url === "/metrics") {
     res.writeHead(200, { "Content-Type": "text/plain; version=0.0.4" });
-    res.end(metricsText(query.lastStatus));
+    res.end(buildMetricsText(query.lastStatus));
     return;
   }
   if (req.url === "/healthz") {
@@ -29,8 +29,8 @@ const server = http.createServer((req, res) => {
   res.end();
 });
 
-query.refresh();
-setInterval(() => query.refresh(), QUERY_INTERVAL_MILLISECONDS);
+query.refreshLastStatus();
+setInterval(() => query.refreshLastStatus(), QUERY_INTERVAL_MILLISECONDS);
 server.listen(METRICS_PORT, () => {
   console.log(`game-status-metrics listening on :${METRICS_PORT}, querying ${GAME} at ${HOST}:${PORT}`);
 });

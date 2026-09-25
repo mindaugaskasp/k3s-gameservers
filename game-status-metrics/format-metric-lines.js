@@ -2,18 +2,18 @@
 
 // A raw newline in a label value corrupts the whole exposition, so a server
 // name or failure reason containing one would break every metric.
-function escapeLabel(value) {
+function escapeLabelValue(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
 function formatLabels(labels) {
   return Object.entries(labels)
-    .map(([name, value]) => `${name}="${escapeLabel(value)}"`)
+    .map(([name, value]) => `${name}="${escapeLabelValue(value)}"`)
     .join(",");
 }
 
 /** One gauge's HELP, TYPE and samples; nothing at all when there is no sample to report. */
-function gaugeLines(metricName, helpText, samples) {
+function formatGaugeLines(metricName, helpText, samples) {
   if (!samples.length) return [];
   return [
     `# HELP ${metricName} ${helpText}`,
@@ -22,4 +22,4 @@ function gaugeLines(metricName, helpText, samples) {
   ];
 }
 
-module.exports = { escapeLabel, gaugeLines };
+module.exports = { escapeLabelValue, formatGaugeLines };

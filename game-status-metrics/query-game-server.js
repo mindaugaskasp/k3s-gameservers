@@ -2,16 +2,16 @@
 
 const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
-const { readOnlinePlayers, markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("./online-players");
-const { recordPlayersSeen, creditPlayTime, recordDeaths, recordZombieKills } = require("./player-database");
-const { readNewDeaths } = require("./death-log-reader");
-const { readNewRaids } = require("./raid-log-reader");
-const { recordRaids } = require("./raid-database");
-const { readNewZomboidDeaths } = require("./zomboid-log-reader");
-const { readCharacterName } = require("./zomboid-characters");
-const { readNewEnshroudedEvents } = require("./enshrouded-log-reader");
-const { recordEnshroudedBaseCount } = require("./status-files");
-const { markGameMaster, unmarkGameMaster } = require("./enshrouded-admins");
+const { readOnlinePlayers, markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("./track-online-players");
+const { recordPlayersSeen, creditPlayTime, recordDeaths, recordZombieKills } = require("./store-player-history");
+const { readNewDeaths } = require("./read-death-log");
+const { readNewRaids } = require("./read-raid-log");
+const { recordRaids } = require("./store-raids");
+const { readNewZomboidDeaths } = require("./read-zomboid-deaths");
+const { readCharacterName } = require("./read-zomboid-character-names");
+const { readNewEnshroudedEvents } = require("./read-enshrouded-log");
+const { recordEnshroudedBaseCount } = require("./read-status-files");
+const { markGameMaster, unmarkGameMaster } = require("./track-enshrouded-game-masters");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".
@@ -60,7 +60,7 @@ class GameServerQuery {
     };
   }
 
-  async refresh() {
+  async refreshLastStatus() {
     // What the logs say happened, whether or not the query answers.
     recordDeaths(
       [...readNewDeaths(), ...readNewZomboidDeaths()].map((playerName) => ({ playerName, characterName: readCharacterName(playerName) }))
