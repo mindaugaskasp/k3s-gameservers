@@ -137,6 +137,11 @@ spec:
             - name: ON_VALHEIM_LOG_FILTER_CONTAINS_Player{{ $name }}
               value: "/etc/valheim-hooks/player-event.sh"
             {{- end }}
+            # Raid starts, for valheim_raids: see raid-event.sh.
+            - name: VALHEIM_LOG_FILTER_CONTAINS_RaidStarted
+              value: "Random event set:"
+            - name: ON_VALHEIM_LOG_FILTER_CONTAINS_RaidStarted
+              value: "/etc/valheim-hooks/raid-event.sh"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.status.enabled }}

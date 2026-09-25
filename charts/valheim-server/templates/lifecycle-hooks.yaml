@@ -49,6 +49,14 @@ data:
         done ;;
     esac
     exit 0
+  # Run by ON_VALHEIM_LOG_FILTER_CONTAINS_RaidStarted. One "<unix time> <event name>"
+  # line per raid; status-metrics folds them into its database and nothing else writes it.
+  raid-event.sh: |
+    #!/bin/sh
+    IFS= read -r l || exit 0
+    name=$(printf '%s' "${l##*Random event set:}" | tr -d '\r ')
+    [ -n "$name" ] && printf '%s %s\n' "$(date +%s)" "$name" >> /var/run/valheim-status/raids
+    exit 0
   # Exit 0 if players are on (A2S backs up the log hook) or were since the
   # newest backup. As a post-backup hook, $1 is the backup to ignore.
   backup-gate.sh: |
