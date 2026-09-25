@@ -54,12 +54,13 @@ function creditPlayTime(names) {
   );
 }
 
-/** A name listed twice died twice. */
+/** A name listed twice died twice. Stamped when read, within one query interval of the death. */
 function recordDeaths(names) {
+  const diedAt = nowInSeconds();
   runStatementForEachRow(
-    `INSERT INTO player (name, death_count) VALUES (?, 1)
-       ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1`,
-    names.map((name) => [name])
+    `INSERT INTO player (name, death_count, last_died_at) VALUES (?, 1, ?)
+       ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1, last_died_at = excluded.last_died_at`,
+    names.map((name) => [name, diedAt])
   );
 }
 
@@ -88,7 +89,7 @@ function resetPlayerStats() {
   const backupFile = PLAYERS_DATABASE_FILE.replace(/\.db$/, `.before-reset-${takenAt}.db`);
   openedDatabase.prepare("VACUUM INTO ?").run(backupFile);
   const { changes } = openedDatabase
-    .prepare("UPDATE player SET play_time_seconds = 0, death_count = 0, zombie_kill_count = 0")
+    .prepare("UPDATE player SET play_time_seconds = 0, death_count = 0, last_died_at = NULL, zombie_kill_count = 0")
     .run();
 
   return { resetPlayerCount: changes, backupFile };
@@ -118,6 +119,12 @@ function readDeathCounts() {
   );
 }
 
+function readLastDeath() {
+  return readRows(
+    "SELECT name, last_died_at AS diedAt FROM player WHERE last_died_at IS NOT NULL ORDER BY last_died_at DESC, name LIMIT 1"
+  )[0] ?? null;
+}
+
 /** Most zombies killed first, across every character a player has had. */
 function readZombieKillCounts() {
   return readRows(
@@ -135,5 +142,6 @@ module.exports = {
   readPlayersSeen,
   readPlayTimeTotals,
   readDeathCounts,
+  readLastDeath,
   readZombieKillCounts,
 };

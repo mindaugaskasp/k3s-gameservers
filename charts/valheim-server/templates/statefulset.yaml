@@ -188,6 +188,8 @@ spec:
               value: "/config"
             - name: ADMIN_LIST_FILE
               value: "/config/adminlist.txt"
+            - name: WORLD_SAVE_DIR
+              value: {{ printf "/config/worlds_local/%s" .Values.server.worldName | quote }}
             - name: DATABASE_DIR
               value: "/database/sqlite"
             - name: BACKUP_DIR

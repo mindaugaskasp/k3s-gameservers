@@ -5,6 +5,7 @@ const { gaugeLines } = require("../metric-lines");
 const { readModState } = require("../status-files");
 const { readWorldModifiers } = require("../world-modifiers");
 const { readRaidCount, readLatestRaid } = require("../raid-database");
+const { readDefeatedBosses } = require("../world-save");
 
 // The log marks only a raid's start. The longest lasts 150s, longer while nobody is near:
 // https://valheim.weirdgloop.org/w/Events
@@ -19,7 +20,7 @@ function readRaidActiveSamples(game) {
 }
 
 // valheim_* metrics hold what only Valheim reports: mod state from mod-guard.sh, the world
-// rules on its command line and raids from its log. The prefix is written out, never built
+// rules on its command line, raids from its log and bosses from its save. The prefix is written out, never built
 // from GAME, so every metric name stays greppable.
 function valheimMetricLines() {
   const game = GAME;
@@ -54,6 +55,11 @@ function valheimMetricLines() {
       "valheim_raid_active",
       "1 while the latest raid is likely still on, from its start in the log; read the name label.",
       readRaidActiveSamples(game)
+    ),
+    ...gaugeLines(
+      "valheim_boss_defeated",
+      "1 for each boss this world has defeated, from its latest save; read the boss label.",
+      readDefeatedBosses().map((boss) => ({ labels: { game, boss }, value: 1 }))
     ),
   ];
 }

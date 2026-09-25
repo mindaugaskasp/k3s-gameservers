@@ -7,7 +7,7 @@ const {
   readBuildId,
   readPastSessionsUptimeSeconds,
 } = require("../status-files");
-const { readPlayTimeTotals, readDeathCounts, readPlayersSeen } = require("../player-database");
+const { readPlayTimeTotals, readDeathCounts, readLastDeath, readPlayersSeen } = require("../player-database");
 const { readOnlinePlayerSessions } = require("../online-players");
 const { readOnlineAdminNames } = require("../admin-players");
 
@@ -28,6 +28,12 @@ function readPlayerSessions(status) {
   }));
 
   return sessionsFromLog.length ? sessionsFromLog : status.playerSessions;
+}
+
+function readLastDeathSamples(game) {
+  const lastDeath = readLastDeath();
+
+  return lastDeath ? [{ labels: { game, name: lastDeath.name }, value: lastDeath.diedAt }] : [];
 }
 
 /** What every game reports, told apart by the `game` label. */
@@ -98,6 +104,11 @@ function gameServerMetricLines(status) {
       "game_server_player_deaths",
       "How many times a player has died on this server, counted from the server log.",
       readDeathCounts().map((player) => ({ labels: { game, name: player.name }, value: player.count }))
+    ),
+    ...gaugeLines(
+      "game_server_last_death_timestamp_seconds",
+      "Unix time of the most recent death on this server; read the name label for who died.",
+      readLastDeathSamples(game)
     ),
   ];
 }

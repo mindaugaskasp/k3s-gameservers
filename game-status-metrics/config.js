@@ -34,6 +34,8 @@ const ZOMBOID_LOG_DIR = process.env.ZOMBOID_LOG_DIR || "";
 const ENSHROUDED_LOG_FILE = process.env.ENSHROUDED_LOG_FILE || "";
 // The world's base count from Enshrouded's latest load or save line.
 const ENSHROUDED_BASE_COUNT_FILE = `${STATUS_DIR}/enshrouded-base-count`;
+// Valheim's folder for this world's save files; unset for every other game.
+const WORLD_SAVE_DIR = process.env.WORLD_SAVE_DIR || "";
 // Mounted from the volume but outside the game's own data tree: the game images run
 // as root and reset ownership across their data dir on every start.
 const DATABASE_DIR = process.env.DATABASE_DIR || `${PERSIST_DIR}/database/sqlite`;
@@ -61,6 +63,7 @@ module.exports = {
   ZOMBOID_LOG_DIR,
   ENSHROUDED_LOG_FILE,
   ENSHROUDED_BASE_COUNT_FILE,
+  WORLD_SAVE_DIR,
   DATABASE_DIR,
   PLAYERS_DATABASE_FILE,
 };

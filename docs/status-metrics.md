@@ -28,11 +28,9 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 - `raid-log-reader.js`: Valheim raid starts the log hooks appended to the raid log.
 - `zomboid-log-reader.js`: deaths from Zomboid's `user` and `pvp` logs.
 - `enshrouded-log-reader.js`: players joining and leaving, and the world's base count.
-- `sqlite-database.js`: opens `<DATABASE_DIR>/<game>-players.db` on the PVC, one per
-  game, and runs its statements. This process is its only writer: one
-  running as another user would leave [WAL](https://sqlite.org/wal.html) files
-  this one cannot write, and every query would fail as "readonly database".
-- `player-database.js`: time online, deaths, zombie kills, last seen per player.
+- `sqlite-database.js`: opens `<DATABASE_DIR>/<game>-players.db` on the PVC, one per game. This
+  process is its only writer: another user's [WAL](https://sqlite.org/wal.html) files would make it "readonly".
+- `player-database.js`: time online, deaths and the last one, zombie kills, last seen per player.
 - `raid-database.js`: every Valheim raid and when it started.
 - `database-migrations.js` + `migrations/`: one file per schema version, applied
   in filename order on connect and recorded in the `migration` table. Add a file,
@@ -40,6 +38,7 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 - `reset-player-stats.js`: run by `make reset-player-stats`; saves a copy of the
   database first. `make read-player-db` opens a read-only `sqlite3` shell on it.
 - `world-modifiers.js`: world rules parsed out of the server's command line.
+- `world-save.js`: bosses defeated, from the global keys in Valheim's newest `_main.<n>.db2`.
 - `backup-files.js`: backup archives on disk, oldest first.
 - `backup-archive.js`: the `.play-clock` index and play-time retention
   windows, mirroring `backup-prune.sh`.
@@ -51,7 +50,7 @@ lines; a gauge with no samples prints nothing.
 
 - `metrics/game-server-metrics.js`: `game_server_*`, what every game answers.
 - `metrics/backup-metrics.js`: `game_server_backup_*`.
-- `metrics/valheim-metrics.js`: `valheim_*` mods, world modifiers and raids.
+- `metrics/valheim-metrics.js`: `valheim_*` mods, world modifiers, raids and bosses.
 - `metrics/zomboid-metrics.js`: `zomboid_*` zombie kills per player.
 - `metrics/enshrouded-metrics.js`: `enshrouded_*` player-built bases in the world.
 - `metrics/backup-archive-metrics.js`: `valheim_backup_*` archive windows.
