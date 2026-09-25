@@ -47,16 +47,19 @@ spec:
                 grep -q "^$1=" "$ini" && sed -i "s|^$1=.*|$1=$v|" "$ini" || printf '%s=%s\n' "$1" "$2" >> "$ini"
               }
               set_key PublicName "$DISPLAY_NAME"
+              set_key SaveWorldEveryMinutes "$SAVE_WORLD_EVERY_MINUTES"
               set_key BackupsPeriod "$BACKUPS_PERIOD"
               set_key BackupsCount "$BACKUPS_COUNT"
               set_key BackupsOnStart "$BACKUPS_ON_START"
               set_key BackupsOnVersionChange "$BACKUPS_ON_VERSION_CHANGE"
-              grep -E "^(PublicName|Backups)" "$ini"
+              grep -E "^(PublicName|SaveWorldEveryMinutes|Backups)" "$ini"
           env:
             - name: SERVER_NAME
               value: {{ .Values.server.name | quote }}
             - name: DISPLAY_NAME
               value: {{ .Values.server.displayName | default .Values.server.name | quote }}
+            - name: SAVE_WORLD_EVERY_MINUTES
+              value: {{ .Values.server.saveWorldEveryMinutes | quote }}
             - name: BACKUPS_PERIOD
               value: {{ .Values.backups.periodMinutes | quote }}
             - name: BACKUPS_COUNT

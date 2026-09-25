@@ -20,6 +20,8 @@ server:
   # Appended verbatim after -mods/-workshopitems on the launch command.
   extraFlags: ""
   memoryXmxGb: 12 # GB of JVM heap; must fit under resources.limits.memory
+  # 0 saves only on a clean shutdown, so a crash or OOM kill loses the whole session.
+  saveWorldEveryMinutes: 10
   branch: "" # unstable | outdatedunstable | "" (stable)
   connectHost: "" # public join address shown in Discord alerts
   display:
