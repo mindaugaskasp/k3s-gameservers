@@ -42,7 +42,7 @@ If the node can't fit two games, `make scale-down-zero` in the running one first
 
 To remove a mod, delete its DLL (`make shell`, then `rm /config/bepinex/plugins/MyMod.dll`) and
 `make restart`. To turn all mods off, set `mods.enabled: false` and `make deploy`.
-Admins also need the mod on their own PC for devcommands: `client-mods.ps1`.
+Admins also need the mod on their own PC for devcommands: `client/client-mods.ps1`.
 
 ## 5. Memory and CPU
 
@@ -56,4 +56,4 @@ hard cap) in `values.override.yaml`, then `make deploy`. CPU has no limit on pur
 - `.env`: `make deploy`, then `make restart` (a new password is read only at start).
 - Check `make players` first: a restart disconnects everyone.
 
-More: [docs/valheim.md](../../docs/valheim.md) (backups, restores, alerts).
+More: [README.md](README.md) (backups, restores, alerts).

@@ -53,4 +53,4 @@ Hard rules for code, docs and comments.
 - **Comments:** 2-3 lines at most.
 - **Docs:** aim for 60 lines per Markdown file, never more than 100; split by topic.
   This file is exempt: rules live in one place, however long that makes it.
-- **Check:** `wc -l *.md docs/*.md` (ignoring CLAUDE.md)
+- **Check:** `wc -l *.md docs/*.md games/*/*.md games/*/status-metrics/*.md` (ignoring CLAUDE.md)

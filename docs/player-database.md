@@ -16,7 +16,7 @@ In `game-server/status-metrics/`:
 - `reset-player-stats.js`: run by `make reset-player-stats`; saves a copy of the
   database first, then clears the shared stats and the plugin's `playerStatResetValues`.
 
-Each game's own stores are listed in [status-metrics-games.md](status-metrics-games.md).
+Each game's own stores are listed in its `games/<game>/status-metrics/README.md`.
 
 ## Migrations
 

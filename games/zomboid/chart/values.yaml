@@ -74,7 +74,7 @@ persistence:
   storageClassName: local-path
   size: 15Gi
 
-# Container uses ~Xmx + 1GB (ZGC); see docs/zomboid.md "Memory".
+# Container uses ~Xmx + 1GB (ZGC); see games/zomboid/README.md "Memory".
 resources:
   requests:
     cpu: "1"

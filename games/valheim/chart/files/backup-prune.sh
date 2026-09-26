@@ -1,5 +1,5 @@
 #!/bin/sh
-# backup-prune.sh DIR RECENT_DAYS WINDOW_END_DAYS... -- see docs/valheim.md.
+# backup-prune.sh DIR RECENT_DAYS WINDOW_END_DAYS... -- see games/valheim/README.md.
 # Ages are play time, from DIR/.play-clock; without a usable index nothing
 # is touched, since it cannot be rebuilt once files are gone.
 set -eu

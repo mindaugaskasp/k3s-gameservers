@@ -2,7 +2,7 @@
 .SYNOPSIS
   Installs, disables or removes Valheim client mods on Windows.
   Actions: install (default), status, disable, enable, uninstall.
-  Full instructions: docs/valheim.md, "Client mods".
+  Full instructions: games/valheim/README.md, "Client mods".
 .EXAMPLE
   .\client-mods.ps1
   .\client-mods.ps1 -Action disable

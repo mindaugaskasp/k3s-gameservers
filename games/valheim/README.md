@@ -25,7 +25,7 @@ Valheim's query protocol reports only a player count. For names,
 [log-filter hooks](https://github.com/community-valheim-tools/valheim-server-docker#log-filters)
 and keeps one file per online character. The sidecar exports them as
 `game_server_player_session_seconds{name}`, and clears them when the count is 0.
-Each scrape also records them in the player database ([player-database.md](player-database.md)), exported
+Each scrape also records them in the player database ([player-database.md](../../docs/player-database.md)), exported
 as `game_server_player_last_seen_timestamp_seconds{name}` so names outlive restarts.
 
 ## Alerts
@@ -55,6 +55,6 @@ make approve-mods && make restart
 ## Client mods (admin's Windows PC)
 
 The Server Devcommands console only works if the admin's own client has the
-mod too. `games/valheim/client-mods.ps1` installs or removes it; see
+mod too. `client/client-mods.ps1` installs or removes it; see
 `Get-Help .\client-mods.ps1`. [r2modman](https://thunderstore.io/package/ebkr/r2modman/)
 does the same job with a UI.

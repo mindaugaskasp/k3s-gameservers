@@ -6,7 +6,7 @@ with [gamedig](https://github.com/gamedig/node-gamedig) and serves Prometheus te
 
 - `game-server/status-metrics/`: what every game shares. It names no game.
 - `games/<game>/status-metrics/`: what only that game records and reports, its
-  `config.js` and its migrations. See [status-metrics-games.md](status-metrics-games.md).
+  `config.js` and its migrations, listed in its `status-metrics/README.md`.
 
 ## Image
 

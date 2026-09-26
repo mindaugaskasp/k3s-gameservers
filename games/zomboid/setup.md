@@ -53,4 +53,4 @@ raise `resources.requests.cpu` (there is no CPU limit). Then `make deploy`.
 `values.override.yaml` and mods: `make deploy`. `.env`: `make deploy`, then `make restart`.
 Check `make players` first: a restart disconnects everyone.
 
-More: [docs/zomboid.md](../../docs/zomboid.md) (backups, updates, RCON).
+More: [README.md](README.md) (backups, updates, RCON).

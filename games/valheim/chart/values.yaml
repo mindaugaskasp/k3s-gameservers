@@ -58,7 +58,7 @@ backups:
   cron: "*/10 * * * *"
   # files/backup-prune.sh: backups younger than recentDays stay put, then
   # the newest and oldest per window (days) go to backups/archive. Ages are
-  # play time, not calendar. See docs/valheim.md.
+  # play time, not calendar. See games/valheim/README.md.
   recentDays: 3
   backupArchiveWindowDays: [7, 14, 21, 28, 48]
   zip: true

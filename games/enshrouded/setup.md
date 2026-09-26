@@ -52,4 +52,4 @@ hard cap) in `values.override.yaml`, then `make deploy`. CPU has no limit on pur
 `values.override.yaml` and `.env`: `make deploy`; if only `.env` passwords changed, also
 `make restart`. Check `make players` first: a restart disconnects everyone.
 
-More: [docs/enshrouded.md](../../docs/enshrouded.md) (updates, backups, roles).
+More: [README.md](README.md) (updates, backups, roles).
