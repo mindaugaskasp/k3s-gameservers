@@ -27,6 +27,7 @@ A single-node k3s cluster runs three namespaces:
 - **`chart/`:** a Helm [library chart](https://helm.sh/docs/topics/library_charts/) each game's chart
   depends on: helpers, labels, VPA, the Discord secret, the status-metrics sidecar and its Service.
 - **`make/game.mk`:** every game's shared make targets; the game Makefile sets its paths and includes it.
+  `world-data.mk` holds its sync, download and restore targets.
 - **`status-metrics/`:** the exporter's shared core ([status-metrics.md](status-metrics.md)).
 - **`systemd/`, `restore-helper-pod.yaml`:** the hourly sync timer and the restore pod, one per game instance.
 - **`grafana/`:** dashboards a game ships as its own unless its Makefile clears `SHARED_DASHBOARDS`.
