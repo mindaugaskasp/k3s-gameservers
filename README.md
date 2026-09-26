@@ -7,8 +7,8 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 ## Layout
 
 ```
-charts/<game>-server/      Helm chart per game
-games/<game>/              values.override.yaml, Makefile, Grafana dashboards, status-metrics/
+games/<game>/              everything about one game: chart/, status-metrics/, grafana/, Makefile,
+                           values.override.yaml, setup.md
 platform/<piece>/          the cluster: k3s, firewall, registry, monitoring, crowdsec, maintenance,
                            offsite-backup, vpa; each with its install.sh, see docs/platform.md
 game-server/               what every game shares: library chart, status-metrics core, make, systemd

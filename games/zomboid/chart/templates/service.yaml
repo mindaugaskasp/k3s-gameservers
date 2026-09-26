@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  selector:
+    {{- include "game-server.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: game
+      port: {{ .Values.server.port }}
+      targetPort: {{ .Values.server.port }}
+      protocol: UDP
+      nodePort: {{ .Values.service.nodePorts.game }}
+    - name: raknet
+      port: {{ add .Values.server.port 1 }}
+      targetPort: {{ add .Values.server.port 1 }}
+      protocol: UDP
+      nodePort: {{ .Values.service.nodePorts.raknet }}
+    - name: rcon
+      port: {{ .Values.server.rconPort }}
+      targetPort: {{ .Values.server.rconPort }}
+      protocol: TCP
+      nodePort: {{ .Values.service.nodePorts.rcon }}

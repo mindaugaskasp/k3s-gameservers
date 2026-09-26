@@ -1,4 +1,4 @@
-# Overrides charts/enshrouded-server/values.yaml. Secrets never go here.
+# Overrides chart/values.yaml. Secrets never go here.
 # Sizing: see the resources comment in games/valheim/values.override.yaml.
 
 server:

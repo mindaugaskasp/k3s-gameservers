@@ -1,0 +1,5 @@
+apiVersion: v2
+name: game-server
+description: What every game's chart shares, as named templates. Each games/<game>/chart depends on it.
+type: library
+version: 0.1.0

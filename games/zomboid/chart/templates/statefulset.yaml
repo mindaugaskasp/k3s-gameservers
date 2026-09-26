@@ -1,0 +1,264 @@
+{{- $workshopIds := list }}
+{{- $modIds := list }}
+{{- range .Values.server.mods }}
+{{- if .enabled }}
+{{- $workshopIds = append $workshopIds (toString .workshopId) }}
+{{- $modIds = concat $modIds .modIds }}
+{{- end }}
+{{- end }}
+{{- $extraFlags := .Values.server.extraFlags }}
+{{- if contains " " .Values.server.name }}
+{{- fail "server.name must not contain spaces (PZ backups would silently skip the world) -- use server.displayName for the browser name" }}
+{{- end }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "game-server.fullname" . }}
+  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
+  replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
+  selector:
+    matchLabels:
+      {{- include "game-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "game-server.labels" . | nindent 8 }}
+    spec:
+      # Image runs RCON save+quit on SIGTERM, plus our preStop hook first.
+      terminationGracePeriodSeconds: 90
+      # entrypoint.sh patches only its own ini keys; this sets the rest before the
+      # game reads the ini. No-op on a brand-new volume until the game has written one.
+      initContainers:
+        - name: ini-config
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              ini="/project-zomboid-config/Server/${SERVER_NAME}.ini"
+              [ -f "$ini" ] || { echo "no $ini yet -- first boot, skipping"; exit 0; }
+              set_key() {
+                v=$(printf '%s' "$2" | sed 's/[&|\\]/\\&/g')
+                grep -q "^$1=" "$ini" && sed -i "s|^$1=.*|$1=$v|" "$ini" || printf '%s=%s\n' "$1" "$2" >> "$ini"
+              }
+              set_key PublicName "$DISPLAY_NAME"
+              set_key SaveWorldEveryMinutes "$SAVE_WORLD_EVERY_MINUTES"
+              set_key WorkshopItems "$WORKSHOP_ITEMS"
+              set_key Mods "$MOD_IDS"
+              set_key BackupsPeriod "$BACKUPS_PERIOD"
+              set_key BackupsCount "$BACKUPS_COUNT"
+              set_key BackupsOnStart "$BACKUPS_ON_START"
+              set_key BackupsOnVersionChange "$BACKUPS_ON_VERSION_CHANGE"
+              grep -E "^(PublicName|SaveWorldEveryMinutes|WorkshopItems|Mods|Backups)=" "$ini"
+          env:
+            - name: SERVER_NAME
+              value: {{ .Values.server.name | quote }}
+            - name: DISPLAY_NAME
+              value: {{ .Values.server.displayName | default .Values.server.name | quote }}
+            - name: SAVE_WORLD_EVERY_MINUTES
+              value: {{ .Values.server.saveWorldEveryMinutes | quote }}
+            - name: WORKSHOP_ITEMS
+              value: {{ join ";" $workshopIds | quote }}
+            - name: MOD_IDS
+              value: {{ join ";" $modIds | quote }}
+            - name: BACKUPS_PERIOD
+              value: {{ .Values.backups.periodMinutes | quote }}
+            - name: BACKUPS_COUNT
+              value: {{ .Values.backups.count | quote }}
+            - name: BACKUPS_ON_START
+              value: {{ .Values.backups.onStart | quote }}
+            - name: BACKUPS_ON_VERSION_CHANGE
+              value: {{ .Values.backups.onVersionChange | quote }}
+          resources:
+            limits:
+              memory: 32Mi
+          volumeMounts:
+            - name: data
+              mountPath: /project-zomboid-config
+              subPath: config
+      containers:
+        - name: gameserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: game
+              containerPort: {{ .Values.server.port }}
+              protocol: UDP
+            - name: raknet
+              containerPort: {{ add .Values.server.port 1 }}
+              protocol: UDP
+            - name: rcon
+              containerPort: {{ .Values.server.rconPort }}
+              protocol: TCP
+          env:
+            - name: SERVER_NAME
+              value: {{ .Values.server.name | quote }}
+            - name: ADMIN_USERNAME
+              value: {{ .Values.server.adminUsername | quote }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: ADMIN_PASS
+            - name: RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: RCON_PASS
+            {{- if .Values.secrets.serverPassword }}
+            - name: SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: SERVER_PASS
+            {{- end }}
+            - name: PUBLIC
+              value: {{ .Values.server.public | quote }}
+            - name: PVP
+              value: {{ .Values.server.pvp | quote }}
+            - name: MAX_PLAYERS
+              value: {{ .Values.server.maxPlayers | quote }}
+            - name: MEMORY_XMX_GB
+              value: {{ .Values.server.memoryXmxGb | quote }}
+            {{- if .Values.server.branch }}
+            - name: SERVER_BRANCH
+              value: {{ .Values.server.branch | quote }}
+            {{- end }}
+            - name: UPDATE_ON_START
+              value: {{ .Values.updates.onStart | quote }}
+            - name: PORT_UDP_MAIN
+              value: {{ .Values.server.port | quote }}
+            - name: PORT_UDP_DIRECT
+              value: {{ add .Values.server.port 1 | quote }}
+            - name: PORT_TCP_RCON
+              value: {{ .Values.server.rconPort | quote }}
+            {{- if $extraFlags }}
+            - name: EXTRA_FLAGS
+              value: {{ $extraFlags | quote }}
+            {{- end }}
+            {{- if .Values.server.connectHost }}
+            - name: CONNECT_HOST
+              value: {{ .Values.server.connectHost | quote }}
+            {{- end }}
+            - name: MOUSE_OVER_DISPLAY_NAME
+              value: {{ .Values.server.display.mouseOverName | quote }}
+            - name: DISPLAY_USER_NAME
+              value: {{ .Values.server.display.userName | quote }}
+            - name: SHOW_FIRST_LAST_NAME
+              value: {{ .Values.server.display.firstLastName | quote }}
+            - name: SNEAK_HIDE_PLAYERS
+              value: {{ .Values.server.display.sneakHidePlayers | quote }}
+            - name: MAP_REMOTE_VISIBILITY
+              value: {{ .Values.server.display.mapRemoteVisibility | quote }}
+            - name: ALLOW_MINIMAP
+              value: {{ .Values.server.display.minimap | quote }}
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            {{- if .Values.alerts.enabled }}
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.discordSecretName" . }}
+                  key: DISCORD_WEBHOOK_URL
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # Matches the vendor's own Dockerfile HEALTHCHECK -- no HTTP status endpoint here.
+          startupProbe:
+            exec:
+              command: ["pgrep", "ProjectZomboid"]
+            periodSeconds: 10
+            failureThreshold: 180
+          livenessProbe:
+            exec:
+              command: ["pgrep", "ProjectZomboid"]
+            periodSeconds: 30
+            failureThreshold: 3
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/etc/zomboid-hooks/started.sh"]
+            preStop:
+              exec:
+                command: ["/bin/sh", "/etc/zomboid-hooks/down.sh"]
+          volumeMounts:
+            - name: data
+              mountPath: /project-zomboid-config
+              subPath: config
+            - name: data
+              mountPath: /project-zomboid
+              subPath: install
+            - name: hooks
+              mountPath: /etc/zomboid-hooks
+            - name: status-share
+              mountPath: /var/run/zomboid-status
+        {{- if .Values.statusMetrics.enabled }}
+        {{- include "game-server.statusMetricsContainer" . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.gameLogs.enabled }}
+        # New files appear per server start with a timestamp prefix; old ones get
+        # moved to logs_<date>/. Files present at sidecar start aren't replayed.
+        - name: game-logs
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              dir=/project-zomboid-config/Logs
+              declare -A seen; first=1
+              while :; do
+                for f in "$dir"/*.txt; do
+                  [ -e "$f" ] || continue
+                  b=${f##*/}
+                  case "$b" in *DebugLog*) continue ;; esac
+                  [ -n "${seen[$b]}" ] && continue
+                  seen[$b]=1
+                  type=${b#????-??-??_??-??_}; type=${type%.txt}
+                  n=+1; [ "$first" = 1 ] && n=0
+                  tail -n "$n" -F "$f" 2>/dev/null \
+                    | while IFS= read -r l; do printf '[%s] %s\n' "$type" "$l"; done &
+                done
+                first=0; sleep 5
+              done
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              memory: 32Mi
+          volumeMounts:
+            - name: data
+              mountPath: /project-zomboid-config
+              subPath: config
+              readOnly: true
+        {{- end }}
+      volumes:
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        - name: hooks
+          configMap:
+            name: {{ include "game-server.fullname" . }}-hooks
+            defaultMode: 0755
+        - name: status-share
+          emptyDir: {}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

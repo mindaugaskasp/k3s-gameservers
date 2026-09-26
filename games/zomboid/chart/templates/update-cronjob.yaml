@@ -1,0 +1,52 @@
+{{- if .Values.updates.cron }}
+# The image updates on start, so this restarts the StatefulSet on a schedule,
+# skipping the day if players are online (same idle gate as Valheim's image).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "game-server.fullname" . }}-update
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  # Paused while the game is scaled to 0 (make scale-down-zero), and kept so across upgrades.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
+  suspend: {{ if $live }}{{ eq (int $live.spec.replicas) 0 }}{{ else }}false{{ end }}
+  schedule: {{ .Values.updates.cron | quote }}
+  timeZone: {{ .Values.updates.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: {{ include "game-server.fullname" . }}-maintenance
+          restartPolicy: Never
+          containers:
+            - name: update
+              image: docker.io/alpine/kubectl:1.36.4@sha256:8c43e5a81f279abdcb795516afd0c4f6012fdf41e92568b04fa2b08b14be00e5 # match the k3s minor version
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  POD="{{ include "game-server.fullname" . }}-0"
+                  NS="{{ .Release.Namespace }}"
+
+                  {{- if .Values.updates.ifIdle }}
+                  out=$(kubectl exec -n "$NS" "$POD" -c gameserver -- sh -c \
+                    'rcon -a 127.0.0.1:${PORT_TCP_RCON:-27015} -p "$RCON_PASSWORD" players') || {
+                    echo "RCON unreachable -- server not up, skipping update" >&2; exit 0; }
+                  echo "$out"
+                  count=$(echo "$out" | sed -n 's/.*Players connected (\([0-9]*\)).*/\1/p')
+                  if [ -z "$count" ]; then
+                    echo "could not read player count -- skipping update to be safe" >&2; exit 0
+                  fi
+                  if [ "$count" -gt 0 ]; then
+                    echo "$count player(s) online -- skipping today's update"; exit 0
+                  fi
+                  {{- end }}
+
+                  echo "Restarting to apply game updates"
+                  kubectl rollout restart -n "$NS" statefulset/{{ include "game-server.fullname" . }}
+{{- end }}

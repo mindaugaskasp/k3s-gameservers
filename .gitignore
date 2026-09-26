@@ -13,3 +13,7 @@ secrets*.yaml
 *.kubeconfig
 kubeconfig
 .DS_Store
+
+# The shared library chart, copied in by helm dependency update
+games/*/chart/charts/
+games/*/chart/Chart.lock

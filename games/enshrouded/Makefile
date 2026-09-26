@@ -1,5 +1,4 @@
 RELEASE := enshrouded
-CHART := ../../charts/enshrouded-server
 GAME_DATA_PATH := /opt/enshrouded
 GAME_BACKUP_PATH := /opt/enshrouded/backups
 GAME_SHELL := bash

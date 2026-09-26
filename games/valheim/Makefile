@@ -1,5 +1,4 @@
 RELEASE := valheim
-CHART := ../../charts/valheim-server
 GAME_DATA_PATH := /config
 GAME_BACKUP_PATH := /config/backups
 TEMPLATE_SECRET_FLAGS := --set-string secrets.serverPassword=REDACTED

@@ -15,10 +15,20 @@ A single-node k3s cluster runs three namespaces:
 - **Replicas** come from the live object (`lookup`), so `helm upgrade`
   doesn't undo a scale to 0.
 - **Deploying:** use
-  `helm upgrade <g> charts/<g>-server -n games --reuse-values -f games/<g>/values.override.yaml`
+  `helm upgrade <g> games/<g>/chart -n games --reuse-values -f games/<g>/values.override.yaml`
   to keep existing secrets.
 - **Secrets** (passwords, Discord webhooks) are set from env vars at deploy
   time and never committed.
+
+## Shared game pieces
+
+`game-server/` holds what every game uses, so a new game is one `games/<game>/` folder:
+
+- **`chart/`:** a Helm [library chart](https://helm.sh/docs/topics/library_charts/) each game's chart
+  depends on: helpers, labels, VPA, the Discord secret, the status-metrics sidecar and its Service.
+- **`make/game.mk`:** every game's shared make targets; the game Makefile sets its paths and includes it.
+- **`status-metrics/`:** the exporter's shared core ([status-metrics.md](status-metrics.md)).
+- **`systemd/`, `restore-helper-pod.yaml`:** the hourly sync timer and the restore pod, one per game instance.
 
 ## Networking
 

@@ -1,0 +1,121 @@
+image:
+  repository: ghcr.io/community-valheim-tools/valheim-server
+  # Pinned; bump both together from https://github.com/community-valheim-tools/valheim-server/releases.
+  tag: "1.3.0"
+  digest: "sha256:c43502d3b28c8d341f5362f365deb4802018bda9fc49f98c7631b099f597eb49"
+  pullPolicy: IfNotPresent
+
+# The image runs the game, updater, backups and hooks as this uid:gid and chowns
+# /config and /opt/valheim to it on start; only cron and its status httpd stay root.
+gameUser:
+  uid: 1000
+  gid: 1000
+
+server:
+  displayName: "Valheim Server" # name shown in the in-game server browser
+  worldName: "Dedicated" # save-file name on disk; changing it starts a NEW world
+  public: true # list in the public server browser
+  crossplay: false
+  port: 2456 # query is port+1, RPC is port+2
+  extraArgs: "" # appended to the server command line, e.g. world modifiers
+  connectHost: "" # public join address shown in Discord alerts, e.g. a DDNS hostname
+
+# UDP. Outside the default NodePort range; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 2456
+    query: 2457
+    rpc: 2458
+
+# Pass at deploy time with --set-string, or point secretRef at an existing
+# Secret with key SERVER_PASS. Never commit a real password.
+secrets:
+  serverPassword: ""
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+updates:
+  cron: "*/15 * * * *"
+  ifIdle: true
+
+# The updater above already restarts the server when a build lands, so no
+# scheduled restart. Keep RESTART_CRON set even when empty: unset brings back
+# the image's own daily default.
+restart:
+  cron: ""
+  ifIdle: true
+
+# Surfaced as game_server_backup_* metrics in the Grafana "Backups" row.
+backups:
+  enabled: true
+  # Checked on this schedule; a backup is taken only if players were on
+  # since the last one (backup-gate.sh), so an idle server makes none.
+  cron: "*/10 * * * *"
+  # files/backup-prune.sh: backups younger than recentDays stay put, then
+  # the newest and oldest per window (days) go to backups/archive. Ages are
+  # play time, not calendar. See docs/valheim.md.
+  recentDays: 3
+  backupArchiveWindowDays: [7, 14, 21, 28, 48]
+  zip: true
+
+status:
+  enabled: true
+  port: 80
+
+# BepInEx is installed and re-merged after game updates by the image itself;
+# put plugin DLLs in /config/bepinex/plugins on the PVC.
+mods:
+  enabled: false
+  # Start the server unmodded instead of crash-looping when BepInEx cannot
+  # load. Costs nothing when mods are off.
+  failSafe: true
+  # BepInEx is pulled unpinned, so a game update can outrun it: drop mods
+  # after an update until `make approve-mods` confirms they still work.
+  requireApprovedBuild: true
+
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    memory: 4Gi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (platform/registry/, localhost:30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/valheim-status-metrics
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
+    pullPolicy: Always
+  port: 9101
+  queryPort: "2457"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+# Requires the VPA CRDs; platform/vpa/install.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto
+  # The range the recommender may suggest for the game container.
+  minAllowed:
+    cpu: 100m
+    memory: 256Mi
+  maxAllowed:
+    cpu: "4"
+    memory: 4Gi

@@ -1,4 +1,4 @@
-# Overrides charts/valheim-server/values.yaml. Secrets never go here.
+# Overrides chart/values.yaml. Secrets never go here.
 
 server:
   displayName: "Valheim Kaunas"

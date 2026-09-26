@@ -10,7 +10,9 @@ decide how much the chart has to do.
 
 ## 2. Chart
 
-1. Copy the closest `charts/<game>-server/` and rename everything in it.
+1. Copy the closest `games/<game>/chart/` and rename everything in it. It depends on the
+   `game-server/chart` library for helpers, VPA, the Discord secret and the status-metrics sidecar;
+   define `status-metrics.env` and `status-metrics.volumeMounts` for the sidecar's own part.
 2. Map the image's env vars to values: server settings, passwords, alerts,
    updates, backups, ports, persistence, resources.
 3. Keep the shared pieces: live-replica `lookup`, status-metrics sidecar,

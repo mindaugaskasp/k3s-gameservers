@@ -43,7 +43,7 @@ HELM_RELEASE_FLAGS = $(RELEASE) $(CHART) $(addprefix -f ,$(VALUE_FILES)) -n $(NA
 
 # The shared library chart is copied into the game's chart/charts/ before any helm command.
 chart-dependencies:
-	@helm dependency build $(CHART) >/dev/null
+	@helm dependency update $(CHART) >/dev/null
 
 ## Check the Helm chart and values.override.yaml with helm lint
 lint: chart-dependencies

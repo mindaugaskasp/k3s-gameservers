@@ -1,0 +1,20 @@
+apiVersion: v2
+name: zomboid-server
+description: Project Zomboid dedicated server as a single-replica StatefulSet, backed by the Terule pz-dedicated-server image.
+type: application
+version: 0.1.0
+# Tracks the image tag in values.yaml. Unlike valheim-server-docker this
+# image has no in-container update cron -- SERVER_BRANCH just picks which
+# Steam branch is installed/reinstalled on container (re)start.
+appVersion: "latest"
+keywords:
+  - project-zomboid
+  - game-server
+  - k3s
+home: https://github.com/Terule/pz-dedicated-server
+
+dependencies:
+  # Copied into charts/ by `make` (helm dependency update) before every helm command.
+  - name: game-server
+    version: 0.1.0
+    repository: file://../../../game-server/chart
