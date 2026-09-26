@@ -1,0 +1,8 @@
+Minecraft deployed as StatefulSet "{{ include "game-server.fullname" . }}".
+
+Check status:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs -f {{ include "game-server.fullname" . }}-0 -c gameserver
+
+Players join on TCP {{ .Values.service.nodePorts.game }}. The first start downloads the server and
+generates the world, so it stays unreachable for a few minutes.

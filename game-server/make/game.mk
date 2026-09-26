@@ -24,10 +24,13 @@ STATUS_KINDS ?= statefulset,pod,pvc,svc
 SYNC_DATA_EXCLUDES ?= backups
 # Empty: data-backups/ mirrors the server's. A number: keeps what was synced for that many days.
 BACKUP_SYNC_RETENTION_DAYS ?=
-# A path every restorable backup zip holds; `make restore-backup` refuses a zip without it.
-RESTORE_REQUIRED_ZIP_ENTRY ?=
+# The game's backup files, and how to list what an archive holds.
+BACKUP_FILE_PATTERN ?= *.zip
+BACKUP_ARCHIVE_LIST_COMMAND ?= unzip -l
+# A path every restorable archive holds; empty skips the check, e.g. for a bare world file.
+RESTORE_REQUIRED_ARCHIVE_ENTRY ?=
 # Dashboards from game-server/grafana/ shipped beside grafana/dashboards/, and the name they show.
-SHARED_DASHBOARDS ?= process-health
+SHARED_DASHBOARDS ?= process-health game-stats-logs
 GAME_TITLE ?= $(RELEASE)
 # Run after scale-down-zero and scale-up, e.g. to pause the game's own CronJobs.
 AFTER_SCALE_DOWN_ZERO ?= true
@@ -114,7 +117,7 @@ GAMEDIG_GAME = $(shell sed -n '/name: GAMEDIG_GAME/{n;s/.*value: "\(.*\)"/\1/p;}
 ## Ship grafana/dashboards/ and the shared ones as a ConfigMap that Grafana loads
 dashboards:
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@folder=$$(mktemp -d) && trap 'rm -rf "$$folder"' EXIT && cp grafana/dashboards/*.json "$$folder"/ && \
+	@folder=$$(mktemp -d) && trap 'rm -rf "$$folder"' EXIT && { [ ! -d grafana/dashboards ] || cp grafana/dashboards/*.json "$$folder"/; } && \
 	for dashboard in $(SHARED_DASHBOARDS); do \
 		sed -e 's/__GAME_TITLE__/$(GAME_TITLE)/g' -e 's/__RELEASE__/$(RELEASE)/g' -e 's/__GAMEDIG_GAME__/$(GAMEDIG_GAME)/g' \
 			$(GAME_SERVER_DIR)/grafana/$$dashboard.json > "$$folder/$$dashboard.json"; \

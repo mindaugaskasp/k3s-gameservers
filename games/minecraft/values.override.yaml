@@ -1,0 +1,12 @@
+# Overrides chart/values.yaml. Secrets never go here.
+# Sizing rules: docs/architecture.md#sizing.
+
+server:
+  motd: "Minecraft"
+  difficulty: normal
+  maxPlayers: 10
+
+# updateMode stays "Off" (chart default) -- recommendations only, never
+# evictions. See docs/architecture.md and platform/vpa/install.sh.
+verticalPodAutoscaler:
+  enabled: true

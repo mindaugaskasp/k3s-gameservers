@@ -1,6 +1,6 @@
 {
-  "title": "Enshrouded / Game Stats & Logs",
-  "uid": "enshrouded-game-stats-logs",
+  "title": "__GAME_TITLE__ / Game Stats & Logs",
+  "uid": "__RELEASE__-game-stats-logs",
   "tags": [
     "k3s-gameservers"
   ],
@@ -25,7 +25,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_players{game=\"enshrouded\"}",
+          "expr": "game_server_players{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "players",
           "datasource": {
             "type": "prometheus",
@@ -50,7 +50,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_players_max{game=\"enshrouded\"}",
+          "expr": "game_server_players_max{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "max",
           "datasource": {
             "type": "prometheus",
@@ -75,7 +75,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_query_duration_seconds{game=\"enshrouded\"}",
+          "expr": "game_server_query_duration_seconds{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "seconds",
           "datasource": {
             "type": "prometheus",
@@ -105,7 +105,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_players{game=\"enshrouded\"}",
+          "expr": "game_server_players{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "players",
           "datasource": {
             "type": "prometheus",
@@ -130,7 +130,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_player_session_seconds{game=\"enshrouded\"}",
+          "expr": "game_server_player_session_seconds{game=\"__GAMEDIG_GAME__\"}",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -182,7 +182,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{namespace=\"games\", pod=~\"enshrouded-.*\", container=\"gameserver\"}"
+          "expr": "{namespace=\"games\", pod=~\"__RELEASE__-.*\", container=\"gameserver\"}"
         }
       ],
       "options": {
@@ -203,7 +203,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_info{game=\"enshrouded\"}",
+          "expr": "game_server_info{game=\"__GAMEDIG_GAME__\"}",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -243,7 +243,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_last_started_timestamp_seconds{game=\"enshrouded\"} * 1000",
+          "expr": "game_server_last_started_timestamp_seconds{game=\"__GAMEDIG_GAME__\"} * 1000",
           "instant": true,
           "legendFormat": "last started",
           "datasource": {
@@ -284,7 +284,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_last_updated_timestamp_seconds{game=\"enshrouded\"} * 1000",
+          "expr": "game_server_last_updated_timestamp_seconds{game=\"__GAMEDIG_GAME__\"} * 1000",
           "instant": true,
           "legendFormat": "last updated",
           "datasource": {
@@ -325,7 +325,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_ping_seconds{game=\"enshrouded\"}",
+          "expr": "game_server_ping_seconds{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "ping",
           "datasource": {
             "type": "prometheus",
@@ -356,7 +356,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_uptime_current_seconds{game=\"enshrouded\"}",
+          "expr": "game_server_uptime_current_seconds{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "current session",
           "datasource": {
             "type": "prometheus",
@@ -387,7 +387,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_uptime_total_seconds{game=\"enshrouded\"}",
+          "expr": "game_server_uptime_total_seconds{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "lifetime total",
           "datasource": {
             "type": "prometheus",

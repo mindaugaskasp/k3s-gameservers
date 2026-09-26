@@ -6,7 +6,8 @@ const { GAME_DIR } = require("./config");
 // Every member a game's plugin must have; the core calls nothing else.
 const PLUGIN_MEMBERS = [
   "recordNewLogEvents", // () => void, each query, before the server is asked
-  "recordQueriedPlayers", // (gamedig players) => void, after the server answered
+  "gamedigQueryOptions", // extra GameDig.query options, e.g. a REST token
+  "recordQueryAnswer", // (gamedig state) => void, after the server answered
   "filterAdminNames", // (online player names) => the game masters among them
   "readLastDeathLabels", // (last death's player row) => extra labels for game_server_last_death_*
   "buildMetricLines", // () => the game's own exposition lines, e.g. valheim_*

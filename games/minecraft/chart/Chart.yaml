@@ -1,0 +1,18 @@
+apiVersion: v2
+name: minecraft-server
+description: Minecraft Java (Paper) server as a single-replica StatefulSet, backed by the itzg minecraft-server image.
+type: application
+version: 0.1.0
+# Tracks the image tag in values.yaml; server.version picks the Minecraft release.
+appVersion: "java21"
+keywords:
+  - minecraft
+  - game-server
+  - k3s
+home: https://github.com/itzg/docker-minecraft-server
+
+dependencies:
+  # Copied into charts/ by `make` (helm dependency update) before every helm command.
+  - name: game-server
+    version: 0.1.0
+    repository: file://../../../game-server/chart

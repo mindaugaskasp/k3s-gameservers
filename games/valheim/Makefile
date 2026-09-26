@@ -4,7 +4,7 @@ SHARED_DASHBOARDS :=
 GAME_DATA_PATH := /config
 GAME_BACKUP_PATH := /config/backups
 TEMPLATE_SECRET_FLAGS := --set-string secrets.serverPassword=REDACTED
-RESTORE_REQUIRED_ZIP_ENTRY := config/worlds_local/
+RESTORE_REQUIRED_ARCHIVE_ENTRY := config/worlds_local/
 include ../../game-server/make/game.mk
 
 .PHONY: deploy secrets-check mods-status approve-mods

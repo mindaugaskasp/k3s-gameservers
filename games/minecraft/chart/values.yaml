@@ -1,0 +1,94 @@
+image:
+  # https://docker-minecraft-server.readthedocs.io/en/latest/versions/java/
+  repository: itzg/minecraft-server
+  tag: java21
+  pullPolicy: IfNotPresent
+
+# Each key maps to one of the image's env vars:
+# https://docker-minecraft-server.readthedocs.io/en/latest/configuration/server-properties/
+server:
+  type: PAPER # PAPER | VANILLA | ...
+  version: LATEST # a release like 1.21.8, or LATEST
+  motd: "A Minecraft Server" # shown under the name in the server list
+  difficulty: normal # peaceful | easy | normal | hard
+  mode: survival # survival | creative | adventure | spectator
+  maxPlayers: 10
+  viewDistance: 10
+  # Java heap; keep resources.limits.memory about 1Gi above it.
+  memory: 2G
+  operators: "" # comma-separated player names, set from .env
+  whitelist: "" # comma-separated player names; empty lets anyone join
+  connectHost: "" # public join address shown in Discord alerts
+  timeZone: "Etc/UTC"
+
+# Pass at deploy time with --set-string, or point secretRef at an existing
+# Secret holding RCON_PASSWORD. Never commit real passwords.
+secrets:
+  rconPassword: ""
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+# The mc-backup sidecar tars the world over RCON, and skips a run while nobody is on.
+# https://github.com/itzg/docker-mc-backup
+backups:
+  interval: 1h
+  pruneDays: 7
+
+# TCP. The NodePort range starts low enough for it; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 25565
+
+# The server (world, plugins, config) and the backups, in folders of their own.
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 10Gi
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 3Gi
+  limits:
+    memory: 3Gi
+
+backupResources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 512Mi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (platform/registry/, localhost:30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/minecraft-status-metrics
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
+    pullPolicy: Always
+  port: 9101
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+# Requires the VPA CRDs; platform/vpa/install.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto
+  # The range the recommender may suggest for the game container.
+  minAllowed:
+    cpu: 250m
+    memory: 1Gi
+  maxAllowed:
+    cpu: "4"
+    memory: 8Gi

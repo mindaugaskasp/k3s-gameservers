@@ -1,0 +1,72 @@
+image:
+  # TShock's server, which vanilla clients join. https://github.com/ryansheehan/terraria
+  repository: ryshe/terraria
+  tag: latest
+  pullPolicy: IfNotPresent
+
+server:
+  # The world file is <worldName>.wld; a missing one is generated at the next start.
+  worldName: "world"
+  worldSize: 2 # 1 small | 2 medium | 3 large, used only when generating
+  maxSlots: 8
+  connectHost: "" # public join address shown in the Discord alert
+  timeZone: "Etc/UTC"
+
+# serverPassword is optional; set it from .env, never here. The REST tokens are made once
+# by the chart and kept in the Secret: one lets status-metrics read the server's status,
+# the other lets the pod save and stop the server before it shuts down.
+secrets:
+  serverPassword: ""
+secretRef: ""
+
+# TShock copies the world file on this interval and deletes copies older than keepDays.
+backups:
+  intervalMinutes: 60
+  keepDays: 7
+
+# TCP. The NodePort range starts low enough for it; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 7777
+
+# Worlds, TShock's config and database, its backups, logs and plugins, each in a folder of its own.
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    memory: 2Gi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (platform/registry/, localhost:30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/terraria-status-metrics
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
+    pullPolicy: Always
+  port: 9101
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+# Requires the VPA CRDs; platform/vpa/install.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto
+  # The range the recommender may suggest for the game container.
+  minAllowed:
+    cpu: 100m
+    memory: 256Mi
+  maxAllowed:
+    cpu: "2"
+    memory: 4Gi

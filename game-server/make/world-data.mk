@@ -19,7 +19,7 @@ ifeq ($(BACKUP_SYNC_RETENTION_DAYS),)
 	@rm -rf $(BACKUP_DIR).new && mkdir -p $(BACKUP_DIR).new
 	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
 		tar cf - -C $(GAME_BACKUP_PATH) . | tar xf - -C $(BACKUP_DIR).new
-	@ls $(BACKUP_DIR).new/*.zip >/dev/null 2>&1 || { \
+	@ls $(BACKUP_DIR).new/$(BACKUP_FILE_PATTERN) >/dev/null 2>&1 || { \
 		echo "server has no backups; keeping $(BACKUP_DIR)/ unchanged" >&2; rm -rf $(BACKUP_DIR).new; exit 1; }
 	@rm -rf $(BACKUP_DIR).old; if [ -d $(BACKUP_DIR) ]; then mv $(BACKUP_DIR) $(BACKUP_DIR).old; fi
 	@mv $(BACKUP_DIR).new $(BACKUP_DIR) && rm -rf $(BACKUP_DIR).old
@@ -55,7 +55,7 @@ install-sync-timer:
 ##   Lists the backups, asks for a number, then asks you to type the game name to confirm.
 ##   Run make sync or make download-backups first.
 restore-backup:
-	@mapfile -t backups < <(find $(BACKUP_DIR) -name '*.zip' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-); \
+	@mapfile -t backups < <(find $(BACKUP_DIR) -name '$(BACKUP_FILE_PATTERN)' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-); \
 	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
 	echo "Available backups (newest first):"; \
 	for i in "$${!backups[@]}"; do \
@@ -81,16 +81,16 @@ start-volume-helper:
 stop-volume-helper:
 	$(RESTORE_HELPER_POD) | kubectl -n $(NAMESPACE) delete --wait -f -
 
-# The game's restore-backup.sh unpacks the zip over the volume, inside the helper pod.
+# The game's restore-backup.sh puts the backup over the volume, inside the helper pod.
 _restore-run:
-	@test -n "$(BACKUP)" || { echo "usage: make _restore-run BACKUP=$(BACKUP_DIR)/<file>.zip" >&2; exit 1; }
+	@test -n "$(BACKUP)" || { echo "usage: make _restore-run BACKUP=$(BACKUP_DIR)/<file>" >&2; exit 1; }
 	@test -f "$(BACKUP)" || { echo "no such file: $(BACKUP)" >&2; exit 1; }
-	@unzip -l "$(BACKUP)" | grep -q -- "$(RESTORE_REQUIRED_ZIP_ENTRY)" \
-		|| { echo "$(BACKUP) has no $(RESTORE_REQUIRED_ZIP_ENTRY) in it -- refusing" >&2; exit 1; }
+	@[ -z "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" ] || $(BACKUP_ARCHIVE_LIST_COMMAND) "$(BACKUP)" | grep -q -- "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" \
+		|| { echo "$(BACKUP) has no $(RESTORE_REQUIRED_ARCHIVE_ENTRY) in it -- refusing" >&2; exit 1; }
 	@echo "This REPLACES the live world of '$(RELEASE)' with $(BACKUP)."
 	@read -r -p "Type $(RELEASE) to confirm: " a; [ "$$a" = "$(RELEASE)" ] || { echo "aborted" >&2; exit 1; }
 	@$(MAKE) --no-print-directory start-volume-helper
-	kubectl -n $(NAMESPACE) cp "$(BACKUP)" $(RELEASE)-restore-helper:/tmp/restore.zip
+	kubectl -n $(NAMESPACE) cp "$(BACKUP)" $(RELEASE)-restore-helper:/tmp/restore-backup
 	kubectl -n $(NAMESPACE) exec -i $(RELEASE)-restore-helper -- sh < restore-backup.sh
 	@$(MAKE) --no-print-directory stop-volume-helper
 	kubectl -n $(NAMESPACE) scale statefulset/$(RELEASE) --replicas=1

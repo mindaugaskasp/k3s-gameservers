@@ -35,7 +35,7 @@ class GameServerQuery {
     this.gamePlugin.recordNewLogEvents();
     const queryStartedAt = Date.now();
     try {
-      const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });
+      const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1, ...this.gamePlugin.gamedigQueryOptions });
       if (state.players.length === 0) clearOnlinePlayers();
       // The log hooks and the query protocol each know names the other doesn't.
       const onlinePlayerNames = [
@@ -43,7 +43,7 @@ class GameServerQuery {
       ];
       recordPlayersSeen(onlinePlayerNames);
       creditPlayTime(onlinePlayerNames);
-      this.gamePlugin.recordQueriedPlayers(state.players);
+      this.gamePlugin.recordQueryAnswer(state);
       this.lastStatus = {
         up: 1,
         players: state.players.length,

@@ -1,0 +1,177 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "game-server.fullname" . }}
+  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
+  replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
+  selector:
+    matchLabels:
+      {{- include "game-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "game-server.labels" . | nindent 8 }}
+    spec:
+      # The image stops the server over RCON and waits STOP_DURATION for it to save.
+      terminationGracePeriodSeconds: 90
+      initContainers:
+        {{- include "game-server.volumeFoldersInitContainer" (list "minecraft" "backups" "database/sqlite") | nindent 8 }}
+      containers:
+        - name: gameserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: game
+              containerPort: 25565
+              protocol: TCP
+          # https://docker-minecraft-server.readthedocs.io/en/latest/variables/
+          env:
+            - name: EULA
+              value: "TRUE"
+            - name: TYPE
+              value: {{ .Values.server.type | quote }}
+            - name: VERSION
+              value: {{ .Values.server.version | quote }}
+            - name: MEMORY
+              value: {{ .Values.server.memory | quote }}
+            - name: MOTD
+              value: {{ .Values.server.motd | quote }}
+            - name: DIFFICULTY
+              value: {{ .Values.server.difficulty | quote }}
+            - name: MODE
+              value: {{ .Values.server.mode | quote }}
+            - name: MAX_PLAYERS
+              value: {{ .Values.server.maxPlayers | quote }}
+            - name: VIEW_DISTANCE
+              value: {{ .Values.server.viewDistance | quote }}
+            {{- if .Values.server.operators }}
+            - name: OPS
+              value: {{ .Values.server.operators | quote }}
+            {{- end }}
+            {{- if .Values.server.whitelist }}
+            - name: WHITELIST
+              value: {{ .Values.server.whitelist | quote }}
+            - name: ENFORCE_WHITELIST
+              value: "TRUE"
+            {{- end }}
+            # mc-backup pauses saving over RCON while it tars the world.
+            - name: RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: RCON_PASSWORD
+            - name: STOP_DURATION
+              value: "60"
+            - name: TZ
+              value: {{ .Values.server.timeZone | quote }}
+            {{- if .Values.server.connectHost }}
+            - name: CONNECT_HOST
+              value: {{ .Values.server.connectHost | quote }}
+            {{- end }}
+            {{- if .Values.alerts.enabled }}
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.discordSecretName" . }}
+                  key: DISCORD_WEBHOOK_URL
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # The first start downloads the server and generates the world.
+          startupProbe:
+            exec:
+              command: ["mc-health"]
+            periodSeconds: 10
+            failureThreshold: 90
+          livenessProbe:
+            exec:
+              command: ["mc-health"]
+            periodSeconds: 30
+            failureThreshold: 5
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/started.sh"]
+            preStop:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/down.sh"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              subPath: minecraft
+            - name: data
+              mountPath: /backups
+              subPath: backups
+            - name: hooks
+              mountPath: /etc/game-hooks
+            - name: status-share
+              mountPath: /var/run/minecraft-status
+        - name: backup
+          image: itzg/mc-backup:latest
+          imagePullPolicy: IfNotPresent
+          # https://github.com/itzg/docker-mc-backup#environment-variables
+          env:
+            - name: SRC_DIR
+              value: /data
+            - name: DEST_DIR
+              value: /backups
+            - name: BACKUP_INTERVAL
+              value: {{ .Values.backups.interval | quote }}
+            - name: PRUNE_BACKUPS_DAYS
+              value: {{ .Values.backups.pruneDays | quote }}
+            - name: PAUSE_IF_NO_PLAYERS
+              value: "true"
+            - name: EXCLUDES
+              value: "*.jar,cache,logs,libraries,versions,*.tmp"
+            - name: RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: RCON_PASSWORD
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000 # the server's own uid, so it can read the world and write backups
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.backupResources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              subPath: minecraft
+              readOnly: true
+            - name: data
+              mountPath: /backups
+              subPath: backups
+        {{- if .Values.statusMetrics.enabled }}
+        {{- include "game-server.statusMetricsContainer" . | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        - name: hooks
+          configMap:
+            name: {{ include "game-server.fullname" . }}-hooks
+            defaultMode: 0755
+        - name: status-share
+          emptyDir: {}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

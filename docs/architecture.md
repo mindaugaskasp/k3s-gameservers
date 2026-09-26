@@ -2,7 +2,7 @@
 
 A single-node k3s cluster runs three namespaces:
 
-- `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`)
+- `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`, `minecraft`, `terraria`)
 - `monitoring`, `registry`, `crowdsec`: the platform, see [platform.md](platform.md)
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
   ([platform.md](platform.md)); a timer copies worlds off-host ([offsite-backups.md](offsite-backups.md))
@@ -25,7 +25,8 @@ A single-node k3s cluster runs three namespaces:
 `game-server/` holds what every game uses, so a new game is one `games/<game>/` folder:
 
 - **`chart/`:** a Helm [library chart](https://helm.sh/docs/topics/library_charts/) each game's chart
-  depends on: helpers, labels, VPA, the Discord secret, the status-metrics sidecar and its Service.
+  depends on: helpers, labels, VPA, the Discord secret, the status-metrics sidecar and its Service,
+  generic start/stop hooks and an init container for images that run as root.
 - **`make/game.mk`:** every game's shared make targets; the game Makefile sets its paths and includes it.
   `world-data.mk` holds its sync, download and restore targets.
 - **`status-metrics/`:** the exporter's shared core ([status-metrics.md](status-metrics.md)).
@@ -34,11 +35,13 @@ A single-node k3s cluster runs three namespaces:
 
 ## Networking
 
-Game ports are UDP NodePorts on the same numbers the router forwards:
+Game ports are NodePorts on the same numbers the router forwards, UDP unless marked TCP:
 
 - Valheim: 2456-2458
 - Zomboid: 16261-16262, plus RCON on TCP 27015
 - Enshrouded: 15637 (game traffic and Steam queries share it)
+- Minecraft: TCP 25565
+- Terraria: TCP 7777 (TShock's REST API stays inside the pod)
 
 That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).

@@ -1,0 +1,1 @@
+{{- include "game-server.lifecycleHooks" (dict "context" . "statusDir" "/var/run/terraria-status" "persistDir" (include "terraria.worldsPath" .) "readyCheck" "(exec 3<>/dev/tcp/127.0.0.1/7777) 2>/dev/null" "displayName" .Values.server.worldName "connectPort" .Values.service.nodePorts.game) }}

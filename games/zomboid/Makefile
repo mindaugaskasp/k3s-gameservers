@@ -1,5 +1,7 @@
 RELEASE := zomboid
 GAME_TITLE := Project Zomboid
+# Zomboid ships its own game-stats-logs dashboard, with zombie kills and deaths.
+SHARED_DASHBOARDS := process-health
 MODS_FILE := mods.json
 VALUE_FILES := values.override.yaml $(MODS_FILE)
 GAME_DATA_PATH := /project-zomboid-config
@@ -8,7 +10,7 @@ GAME_SHELL := bash
 STATUS_KINDS := statefulset,pod,pvc,svc,cronjob
 TEMPLATE_SECRET_FLAGS := --set-string secrets.adminPassword=REDACTED --set-string secrets.rconPassword=REDACTED
 BACKUP_SYNC_RETENTION_DAYS := 5
-RESTORE_REQUIRED_ZIP_ENTRY := Saves/Multiplayer/
+RESTORE_REQUIRED_ARCHIVE_ENTRY := Saves/Multiplayer/
 # Game updates apply on restart, so none are scheduled while the game is scaled to 0.
 AFTER_SCALE_DOWN_ZERO = $(MAKE) --no-print-directory suspend-update-cron SUSPEND=true
 AFTER_SCALE_UP = $(MAKE) --no-print-directory suspend-update-cron SUSPEND=false

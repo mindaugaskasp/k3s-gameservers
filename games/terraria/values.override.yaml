@@ -1,0 +1,12 @@
+# Overrides chart/values.yaml. Secrets never go here.
+# Sizing rules: docs/architecture.md#sizing.
+
+server:
+  worldName: "world"
+  worldSize: 2
+  maxSlots: 8
+
+# updateMode stays "Off" (chart default) -- recommendations only, never
+# evictions. See docs/architecture.md and platform/vpa/install.sh.
+verticalPodAutoscaler:
+  enabled: true

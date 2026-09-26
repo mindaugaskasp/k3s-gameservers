@@ -66,3 +66,14 @@ spec:
       protocol: TCP
 {{- end }}
 {{- end -}}
+
+{{- /* For a game image that doesn't hand its whole volume to uid 1000: gives the listed folders
+on the volume (the sidecar's database, a backup folder) to that user. Called with a list of paths. */ -}}
+{{- define "game-server.volumeFoldersInitContainer" -}}
+- name: volume-folders
+  image: alpine:3.20
+  command: ["sh", "-c", {{ printf "for folder in %s; do mkdir -p /volume/$folder && chown 1000:1000 /volume/$folder; done" (join " " .) | quote }}]
+  volumeMounts:
+    - name: data
+      mountPath: /volume
+{{- end -}}

@@ -1,0 +1,1 @@
+{{- include "game-server.lifecycleHooks" (dict "context" . "statusDir" "/var/run/minecraft-status" "persistDir" "/data" "readyCheck" "mc-health >/dev/null 2>&1" "displayName" .Values.server.motd "connectPort" .Values.service.nodePorts.game) }}

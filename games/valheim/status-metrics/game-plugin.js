@@ -20,7 +20,8 @@ function recordNewLogEvents() {
 /** What only Valheim records and reports; game-server/status-metrics/load-game-plugin.js lists each member. */
 module.exports = {
   recordNewLogEvents,
-  recordQueriedPlayers: () => {}, // Valheim's query reports nothing the core doesn't record.
+  gamedigQueryOptions: {},
+  recordQueryAnswer: () => {}, // Valheim's query reports nothing the core doesn't record.
   filterAdminNames: filterValheimAdminNames,
   readLastDeathLabels: () => ({}),
   buildMetricLines: buildValheimMetricLines,

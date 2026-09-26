@@ -26,7 +26,8 @@ function recordNewLogEvents() {
 /** What only Enshrouded records and reports; game-server/status-metrics/load-game-plugin.js lists each member. */
 module.exports = {
   recordNewLogEvents,
-  recordQueriedPlayers: () => {}, // Enshrouded's query reports nothing the core doesn't record.
+  gamedigQueryOptions: {},
+  recordQueryAnswer: () => {}, // Enshrouded's query reports nothing the core doesn't record.
   filterAdminNames: filterEnshroudedAdminNames,
   readLastDeathLabels: () => ({}),
   buildMetricLines: buildEnshroudedMetricLines,

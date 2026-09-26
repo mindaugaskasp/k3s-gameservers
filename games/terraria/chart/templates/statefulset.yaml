@@ -1,0 +1,153 @@
+{{- $worlds := include "terraria.worldsPath" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "game-server.fullname" . }}
+  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
+  replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
+  selector:
+    matchLabels:
+      {{- include "game-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "game-server.labels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 60
+      initContainers:
+        {{- include "game-server.volumeFoldersInitContainer" (list "database/sqlite") | nindent 8 }}
+        # TShock rewrites config.json on start but keeps what is set; this sets the REST API,
+        # its two tokens, the password, slots and backups before every start.
+        # https://github.com/Pryaxis/TShock/blob/general-devel/TShockAPI/Configuration/TShockConfig.cs
+        - name: tshock-config
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -e
+              config={{ printf "%s/config.json" $worlds | quote }}
+              [ -s "$config" ] || echo '{"Settings": {}}' > "$config"
+              jq --arg status "$STATUS_TOKEN" --arg shutdown "$SHUTDOWN_TOKEN" --arg password "$SERVER_PASSWORD" \
+                --argjson slots {{ .Values.server.maxSlots }} --argjson interval {{ .Values.backups.intervalMinutes }} \
+                --argjson keep {{ mul .Values.backups.keepDays 1440 }} '
+                .Settings.RestApiEnabled = true | .Settings.RestApiPort = 7878
+                | .Settings.ApplicationRestTokens = {
+                    ($status): {Username: "status-metrics", UserGroupName: "guest"},
+                    ($shutdown): {Username: "pod-shutdown", UserGroupName: "superadmin"}}
+                | .Settings.ServerPassword = $password | .Settings.MaxSlots = $slots
+                | .Settings.BackupInterval = $interval | .Settings.BackupKeepFor = $keep' \
+                "$config" > "$config.tmp"
+              mv "$config.tmp" "$config"
+          env:
+            - name: STATUS_TOKEN
+              valueFrom:
+                secretKeyRef: {name: {{ include "game-server.secretName" . }}, key: STATUS_TOKEN}
+            - name: SHUTDOWN_TOKEN
+              valueFrom:
+                secretKeyRef: {name: {{ include "game-server.secretName" . }}, key: SHUTDOWN_TOKEN}
+            - name: SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: {{ include "game-server.secretName" . }}, key: SERVER_PASSWORD}
+          volumeMounts:
+            - name: data
+              mountPath: {{ $worlds }}
+              subPath: worlds
+      containers:
+        - name: gameserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # The server reads commands from its console and stops at end of input.
+          stdin: true
+          tty: true
+          args: ["-autocreate", {{ .Values.server.worldSize | quote }}, "-worldname", {{ .Values.server.worldName | quote }}]
+          ports:
+            - name: game
+              containerPort: 7777
+              protocol: TCP
+          env:
+            - name: WORLD_FILENAME
+              value: {{ printf "%s.wld" .Values.server.worldName | quote }}
+            - name: SHUTDOWN_TOKEN
+              valueFrom:
+                secretKeyRef: {name: {{ include "game-server.secretName" . }}, key: SHUTDOWN_TOKEN}
+            - name: TZ
+              value: {{ .Values.server.timeZone | quote }}
+            {{- if .Values.server.connectHost }}
+            - name: CONNECT_HOST
+              value: {{ .Values.server.connectHost | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # The image has no pgrep or curl, so bash's /dev/tcp checks the game port. The first
+          # start generates the world, which takes minutes.
+          startupProbe:
+            exec:
+              command: ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/7777"]
+            periodSeconds: 10
+            failureThreshold: 90
+          livenessProbe:
+            exec:
+              command: ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/7777"]
+            periodSeconds: 30
+            failureThreshold: 5
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/started.sh"]
+            # Saves the world through TShock's REST API, then gives it time to exit.
+            preStop:
+              exec:
+                command:
+                  - bash
+                  - -c
+                  - |
+                    /etc/game-hooks/down.sh
+                    exec 3<>/dev/tcp/127.0.0.1/7878 || exit 0
+                    printf 'GET /v2/server/off?token=%s&confirm=true&nosave=false HTTP/1.0\r\n\r\n' "$SHUTDOWN_TOKEN" >&3
+                    sleep 30
+          volumeMounts:
+            - name: data
+              mountPath: {{ $worlds }}
+              subPath: worlds
+            - name: data
+              mountPath: /tshock/logs
+              subPath: logs
+            - name: data
+              mountPath: /tshock/ServerPlugins
+              subPath: plugins
+            - name: hooks
+              mountPath: /etc/game-hooks
+            - name: status-share
+              mountPath: /var/run/terraria-status
+        {{- if .Values.statusMetrics.enabled }}
+        {{- include "game-server.statusMetricsContainer" . | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        - name: hooks
+          configMap:
+            name: {{ include "game-server.fullname" . }}-hooks
+            defaultMode: 0755
+        - name: status-share
+          emptyDir: {}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

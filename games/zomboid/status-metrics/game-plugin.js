@@ -14,9 +14,9 @@ function recordNewLogEvents() {
 }
 
 // Zomboid reports each player's zombie kills as the query score (SteamGameServer.AddPlayer).
-function recordQueriedPlayers(queriedPlayers) {
+function recordQueryAnswer(state) {
   recordZombieKills(
-    queriedPlayers.filter((player) => player.name).map((player) => ({ name: player.name, zombieKills: player.raw?.score ?? 0 }))
+    state.players.filter((player) => player.name).map((player) => ({ name: player.name, zombieKills: player.raw?.score ?? 0 }))
   );
 }
 
@@ -28,7 +28,8 @@ function readLastDeathLabels(lastDeath) {
 /** What only Zomboid records and reports; game-server/status-metrics/load-game-plugin.js lists each member. */
 module.exports = {
   recordNewLogEvents,
-  recordQueriedPlayers,
+  gamedigQueryOptions: {},
+  recordQueryAnswer,
   filterAdminNames: filterZomboidAdminNames,
   readLastDeathLabels,
   buildMetricLines: buildZomboidMetricLines,
