@@ -6,6 +6,7 @@ const { readModState } = require("../read-status-files");
 const { readWorldModifiers } = require("../read-world-modifiers");
 const { readRaidCount, readLatestRaid, readRecentRaids } = require("../store-raids");
 const { readDefeatedBosses } = require("../read-defeated-bosses");
+const { readLastDeath } = require("../store-player-history");
 
 // The log marks only a raid's start. The longest lasts 150s, longer while nobody is near:
 // https://valheim.weirdgloop.org/w/Events
@@ -29,9 +30,16 @@ function readRecentRaidSamples(game) {
   }));
 }
 
-// valheim_* metrics hold what only Valheim reports: mod state from mod-guard.sh, the world
-// rules on its command line, raids from its log and bosses from its save. The prefix is written out, never built
-// from GAME, so every metric name stays greppable.
+function readLastDeathGameDaySamples(game) {
+  const lastDeath = readLastDeath();
+  if (lastDeath?.gameDay == null) return [];
+
+  return [{ labels: { game, name: lastDeath.name }, value: lastDeath.gameDay }];
+}
+
+// valheim_* metrics hold what only Valheim reports: mod state from mod-guard.sh, world rules, raids,
+// bosses and the day of the last death. The prefix is written out, never built from GAME, so every
+// metric name stays greppable.
 function buildValheimMetricLines() {
   const game = GAME;
   const mods = readModState();
@@ -70,6 +78,11 @@ function buildValheimMetricLines() {
       "valheim_raid_started_timestamp_seconds",
       `When each of the latest ${RECENT_RAIDS_REPORTED} raids started, in unix seconds; read the name label.`,
       readRecentRaidSamples(game)
+    ),
+    ...formatGaugeLines(
+      "valheim_last_death_game_day",
+      "The in-game day of the most recent death on this server; read name for the player.",
+      readLastDeathGameDaySamples(game)
     ),
     ...formatGaugeLines(
       "valheim_boss_defeated",

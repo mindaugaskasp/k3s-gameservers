@@ -5,6 +5,7 @@ const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("./track-online-players");
 const { recordPlayersSeen, creditPlayTime, recordDeaths, recordZombieKills } = require("./store-player-history");
 const { readNewDeaths } = require("./read-death-log");
+const { readCurrentGameDay } = require("./read-valheim-game-day");
 const { readNewRaids } = require("./read-raid-log");
 const { recordRaids } = require("./store-raids");
 const { readNewZomboidDeaths } = require("./read-zomboid-deaths");
@@ -62,8 +63,10 @@ class GameServerQuery {
 
   async refreshLastStatus() {
     // What the logs say happened, whether or not the query answers.
+    const deadPlayerNames = [...readNewDeaths(), ...readNewZomboidDeaths()];
+    const gameDay = deadPlayerNames.length ? readCurrentGameDay() : null;
     recordDeaths(
-      [...readNewDeaths(), ...readNewZomboidDeaths()].map((playerName) => ({ playerName, characterName: readCharacterName(playerName) }))
+      deadPlayerNames.map((playerName) => ({ playerName, characterName: readCharacterName(playerName), gameDay }))
     );
     recordRaids(readNewRaids());
     recordEnshroudedEvents(readNewEnshroudedEvents());

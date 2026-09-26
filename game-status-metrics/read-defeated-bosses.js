@@ -1,35 +1,16 @@
 "use strict";
 
 const fs = require("fs");
-const path = require("path");
 const zlib = require("zlib");
-const { WORLD_SAVE_DIR } = require("./config");
+const { findNewestWorldMetadataFile } = require("./find-newest-world-metadata-file");
 
-// Valheim's world metadata, rewritten on every save as _main.<save number>.db2. It opens
-// with int32 version, double netTime and int32 length, then that many bytes of gzip.
-const WORLD_METADATA_FILE = /^_main\.(\d+)\.db2$/;
+// The metadata file opens with int32 version, double netTime and int32 length, then that many bytes of gzip.
 const COMPRESSED_LENGTH_OFFSET = 12;
 const COMPRESSED_START = COMPRESSED_LENGTH_OFFSET + 4;
 const DEFEATED_BOSS_KEY_PREFIX = Buffer.from("defeated_");
 const GLOBAL_KEY = /^[a-z0-9_]+$/;
 
 let lastRead = { filePath: "", modifiedAtMs: 0, defeatedBossIds: [] };
-
-function findNewestWorldMetadataFile() {
-  let newest = { saveNumber: -1, filePath: "" };
-  let fileNames = [];
-  try {
-    fileNames = fs.readdirSync(WORLD_SAVE_DIR);
-  } catch {
-    return "";
-  }
-  for (const fileName of fileNames) {
-    const saveNumber = Number(WORLD_METADATA_FILE.exec(fileName)?.[1] ?? -1);
-    if (saveNumber > newest.saveNumber) newest = { saveNumber, filePath: path.join(WORLD_SAVE_DIR, fileName) };
-  }
-
-  return newest.filePath;
-}
 
 // Global keys are .NET strings: one length byte, then the text. Keys never reach 128 bytes.
 function readDefeatedBossIds(metadata) {
