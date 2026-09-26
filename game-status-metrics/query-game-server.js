@@ -2,19 +2,8 @@
 
 const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
-const { readOnlinePlayers, markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("./track-online-players");
-const { recordPlayersSeen, creditPlayTime, recordDeaths } = require("./store-player-history");
-const { recordZombieKills, recordDeathCharacterNames } = require("./store-zomboid-player-history");
-const { recordDeathGameDay } = require("./store-valheim-death-days");
-const { readNewDeaths } = require("./read-death-log");
-const { readCurrentGameDay } = require("./read-valheim-game-day");
-const { readNewRaids } = require("./read-raid-log");
-const { recordRaids } = require("./store-raids");
-const { readNewZomboidDeaths } = require("./read-zomboid-deaths");
-const { readCharacterName } = require("./read-zomboid-character-names");
-const { readNewEnshroudedEvents } = require("./read-enshrouded-log");
-const { recordEnshroudedBaseCount } = require("./store-enshrouded-base-count");
-const { markGameMaster, unmarkGameMaster } = require("./track-enshrouded-game-masters");
+const { readOnlinePlayers, clearOnlinePlayers } = require("./track-online-players");
+const { recordPlayersSeen, creditPlayTime } = require("./store-player-history");
 
 // The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
 // `version` field is the query protocol version, always "1.0.0.0".
@@ -23,38 +12,16 @@ function parseGameVersion(state) {
   return versionTag ? versionTag.slice(2) : state.version || "";
 }
 
-function convertQueriedPlayersToZombieKills(queriedPlayers) {
-  return queriedPlayers
-    .filter((player) => player.name)
-    .map((player) => ({ name: player.name, zombieKills: player.raw?.score ?? 0 }));
-}
-
-// Enshrouded's query protocol reports no names, so its log keeps the online list instead,
-// the way Valheim's log hooks do.
-function recordEnshroudedEvents(events) {
-  for (const event of events) {
-    if (event.type === "joined") markPlayerOnline(event.name);
-    // Every login lists permissions afresh, so a demoted admin loses the badge.
-    if (event.type === "permissionsListed") unmarkGameMaster(event.name);
-    if (event.type === "gameMaster") markGameMaster(event.name);
-    if (event.type === "left") {
-      markPlayerOffline(event.name);
-      unmarkGameMaster(event.name);
-    }
-    if (event.type === "allLeft") clearOnlinePlayers();
-    if (event.type === "baseCount") recordEnshroudedBaseCount(event.count);
-  }
-}
-
 /** Queries the game server on demand and keeps the last answer for the next scrape. */
 class GameServerQuery {
-  constructor() {
+  constructor(gamePlugin) {
+    this.gamePlugin = gamePlugin;
     this.lastStatus = {
       up: 0,
       players: 0,
       maxplayers: 0,
-      playerSessions: [], // [{name, seconds}] -- Valheim's query protocol never
-      queryDurationSeconds: 0, // reports player name, only session duration
+      playerSessions: [], // [{name, seconds}] -- some query protocols report
+      queryDurationSeconds: 0, // only the session duration, never the name
       pingSeconds: 0, // protocol-level round-trip time, not queryDurationSeconds
       serverName: "",
       version: "",
@@ -65,14 +32,7 @@ class GameServerQuery {
 
   async refreshLastStatus() {
     // What the logs say happened, whether or not the query answers.
-    const deadPlayerNames = [...readNewDeaths(), ...readNewZomboidDeaths()];
-    recordDeaths(deadPlayerNames);
-    if (GAME === "valheim" && deadPlayerNames.length) recordDeathGameDay(deadPlayerNames, readCurrentGameDay());
-    if (GAME === "projectzomboid") {
-      recordDeathCharacterNames(deadPlayerNames.map((playerName) => ({ playerName, characterName: readCharacterName(playerName) })));
-    }
-    recordRaids(readNewRaids());
-    recordEnshroudedEvents(readNewEnshroudedEvents());
+    this.gamePlugin.recordNewLogEvents();
     const queryStartedAt = Date.now();
     try {
       const state = await GameDig.query({ type: GAME, host: HOST, port: PORT, maxRetries: 1 });
@@ -83,8 +43,7 @@ class GameServerQuery {
       ];
       recordPlayersSeen(onlinePlayerNames);
       creditPlayTime(onlinePlayerNames);
-      // Zomboid reports each player's zombie kills as the query score (SteamGameServer.AddPlayer).
-      if (GAME === "projectzomboid") recordZombieKills(convertQueriedPlayersToZombieKills(state.players));
+      this.gamePlugin.recordQueriedPlayers(state.players);
       this.lastStatus = {
         up: 1,
         players: state.players.length,

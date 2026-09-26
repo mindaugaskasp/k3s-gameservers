@@ -1,12 +1,12 @@
 "use strict";
 
-const { GAME, BACKUP_DIR } = require("../config");
-const { formatGaugeLines } = require("../format-metric-lines");
-const { isArchived } = require("../read-backups");
+const { GAME, BACKUP_DIR } = require("../../../../game-status-metrics/config");
+const { formatGaugeLines } = require("../../../../game-status-metrics/format-metric-lines");
+const { isArchived } = require("../../../../game-status-metrics/read-backups");
 const { classifyBackups } = require("../classify-backups");
-const { readLastPlayerActivityTimestamp } = require("../read-status-files");
+const { readLastPlayerActivityTimestamp } = require("../read-valheim-status-files");
 
-/** How backup-prune.sh's play-time retention sees each backup (Valheim only). */
+/** How backup-prune.sh's play-time retention sees each backup. */
 function buildBackupArchiveMetricLines(backups) {
   const game = GAME;
   const { problem, newestPlaySeconds, windowCounts, files } = classifyBackups(backups);

@@ -2,7 +2,6 @@
 
 const { PLAYERS_DATABASE_FILE } = require("./config");
 const { openDatabase, readRows, writeRows, reportDatabaseFailure } = require("./open-sqlite-database");
-const { readTableColumnNames } = require("./read-table-column-names");
 
 const RANKED_PLAYER_LIMIT = 10;
 const SEEN_PLAYER_LIMIT = 50;
@@ -65,29 +64,21 @@ function recordDeaths(playerNames) {
   );
 }
 
-// Every column a reset clears, with the value it clears to, where this game's table has it.
-// A Zomboid character's last reported kill count is kept: zeroing it would re-credit
-// every kill the current character already has on the next scrape.
-const RESET_VALUES = {
-  play_time_seconds: 0,
-  death_count: 0,
-  last_died_at: null,
-  last_death_character_name: null,
-  last_death_game_day: null,
-  zombie_kill_count: 0,
-};
+// What a reset clears in every game's table; the game's plugin adds its own columns.
+const RESET_VALUES = { play_time_seconds: 0, death_count: 0, last_died_at: null };
 
 /** Throws, unlike the scrape path. */
-function resetPlayerStats() {
+function resetPlayerStats(gameResetValues) {
   const openedDatabase = openDatabase();
   if (!openedDatabase) throw new Error("player database unavailable");
   const takenAt = new Date().toISOString().replace(/[-:]/g, "");
   const backupFile = PLAYERS_DATABASE_FILE.replace(/\.db$/, `.before-reset-${takenAt}.db`);
   openedDatabase.prepare("VACUUM INTO ?").run(backupFile);
-  const columns = readTableColumnNames(openedDatabase, "player").filter((column) => column in RESET_VALUES);
+  const resetValues = { ...RESET_VALUES, ...gameResetValues };
+  const columns = Object.keys(resetValues);
   const { changes } = openedDatabase
     .prepare(`UPDATE player SET ${columns.map((column) => `${column} = ?`).join(", ")}`)
-    .run(...columns.map((column) => RESET_VALUES[column]));
+    .run(...columns.map((column) => resetValues[column]));
 
   return { resetPlayerCount: changes, backupFile };
 }
@@ -116,17 +107,9 @@ function readDeathCounts() {
   );
 }
 
-// Selects every column: only some games' tables have the character and the game day.
+/** The whole row, as stored: each game's table has its own columns for the death. */
 function readLastDeath() {
-  const row = readRows("SELECT * FROM player WHERE last_died_at IS NOT NULL ORDER BY last_died_at DESC, name LIMIT 1")[0];
-  if (!row) return null;
-
-  return {
-    name: row.name,
-    diedAt: row.last_died_at,
-    characterName: row.last_death_character_name ?? null,
-    gameDay: row.last_death_game_day ?? null,
-  };
+  return readRows("SELECT * FROM player WHERE last_died_at IS NOT NULL ORDER BY last_died_at DESC, name LIMIT 1")[0] ?? null;
 }
 
 module.exports = {

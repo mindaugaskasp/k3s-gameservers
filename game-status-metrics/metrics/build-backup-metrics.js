@@ -1,11 +1,10 @@
 "use strict";
 
-const { GAME, BACKUP_DIR, BACKUP_MAX_AGE_DAYS, BACKUP_MAX_COUNT, BACKUP_WINDOW_ENDS } = require("../config");
+const { GAME, BACKUP_DIR, BACKUP_MAX_AGE_DAYS, BACKUP_MAX_COUNT } = require("../config");
 const { formatGaugeLines } = require("../format-metric-lines");
 const { readBackups } = require("../read-backups");
-const { buildBackupArchiveMetricLines } = require("./build-backup-archive-metrics");
 
-/** What every game with backups reports; the tiered archive is Valheim's own. */
+/** What every game with backups reports. */
 function buildBackupMetricLines() {
   const game = GAME;
   const backups = readBackups();
@@ -54,7 +53,6 @@ function buildBackupMetricLines() {
       sampleForEachBackup((backup) => backup.mtime)
     ),
     ...formatGaugeLines("game_server_backup_file_bytes", "Size of each backup archive.", sampleForEachBackup((backup) => backup.bytes)),
-    ...(BACKUP_WINDOW_ENDS.length ? buildBackupArchiveMetricLines(backups) : []),
   ];
 }
 

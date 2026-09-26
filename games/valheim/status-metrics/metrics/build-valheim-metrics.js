@@ -1,12 +1,15 @@
 "use strict";
 
-const { GAME } = require("../config");
-const { formatGaugeLines } = require("../format-metric-lines");
-const { readModState } = require("../read-status-files");
+const { GAME } = require("../../../../game-status-metrics/config");
+const { formatGaugeLines } = require("../../../../game-status-metrics/format-metric-lines");
+const { readModState } = require("../read-valheim-status-files");
 const { readWorldModifiers } = require("../read-world-modifiers");
 const { readRaidCount, readLatestRaid, readRecentRaids } = require("../store-raids");
 const { readDefeatedBosses } = require("../read-defeated-bosses");
-const { readLastDeath } = require("../store-player-history");
+const { readLastDeath } = require("../../../../game-status-metrics/store-player-history");
+const { readBackups } = require("../../../../game-status-metrics/read-backups");
+const { buildBackupArchiveMetricLines } = require("./build-backup-archive-metrics");
+const { BACKUP_WINDOW_ENDS } = require("../config");
 
 // The log marks only a raid's start. The longest lasts 150s, longer while nobody is near:
 // https://valheim.weirdgloop.org/w/Events
@@ -32,19 +35,18 @@ function readRecentRaidSamples(game) {
 
 function readLastDeathGameDaySamples(game) {
   const lastDeath = readLastDeath();
-  if (lastDeath?.gameDay == null) return [];
+  if (lastDeath?.last_death_game_day == null) return [];
 
-  return [{ labels: { game, name: lastDeath.name }, value: lastDeath.gameDay }];
+  return [{ labels: { game, name: lastDeath.name }, value: lastDeath.last_death_game_day }];
 }
 
 // valheim_* metrics hold what only Valheim reports: mod state from mod-guard.sh, world rules, raids,
-// bosses and the day of the last death. The prefix is written out, never built from GAME, so every
-// metric name stays greppable.
+// bosses, the day of the last death and the backup archive. The prefix is written out, never built
+// from GAME, so every metric name stays greppable.
 function buildValheimMetricLines() {
   const game = GAME;
   const mods = readModState();
-  // Only Valheim's database has a raid table.
-  const raidCount = GAME === "valheim" ? readRaidCount() : null;
+  const raidCount = readRaidCount();
   return [
     ...formatGaugeLines(
       "valheim_mods_active",
@@ -89,6 +91,7 @@ function buildValheimMetricLines() {
       "1 for each defeated_* key in the latest save: the bosses, plus creatures the game also flags, like writhan.",
       readDefeatedBosses().map((boss) => ({ labels: { game, boss }, value: 1 }))
     ),
+    ...(BACKUP_WINDOW_ENDS.length ? buildBackupArchiveMetricLines(readBackups()) : []),
   ];
 }
 

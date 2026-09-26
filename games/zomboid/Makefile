@@ -37,7 +37,7 @@ secrets-check:
 
 ## Build the status-metrics image with podman
 build-metrics-image:
-	podman build --memory=512m -t $(STATUS_METRICS_IMAGE) $(STATUS_METRICS_DIR)
+	podman build --memory=512m $(STATUS_METRICS_BUILD_FLAGS) -t $(STATUS_METRICS_IMAGE) $(STATUS_METRICS_DIR)
 
 # Into the in-cluster registry k3s pulls from; the pod picks it up on its next start.
 ## Build the status-metrics image and push it to the in-cluster registry

@@ -1,41 +1,39 @@
 # Status metrics sidecar
 
-`game-status-metrics/` queries the game server next to it with [gamedig](https://github.com/gamedig/node-gamedig)
-and serves Prometheus text on `:9101/metrics` (`/healthz` for probes).
+Each game's pod runs its own status-metrics sidecar, which queries the game server next to it
+with [gamedig](https://github.com/gamedig/node-gamedig) and serves Prometheus text on
+`:9101/metrics` (`/healthz` for probes).
 
-Most numbers no query protocol reports -- uptime, mods, backups -- come from
-files the chart's lifecycle hooks write, so each reader below is one file format.
+- `game-status-metrics/`: what every game shares. It names no game.
+- `games/<game>/status-metrics/`: what only that game records and reports, its
+  `config.js` and its migrations. See [status-metrics-games.md](status-metrics-games.md).
 
-## Wiring
+## Image
+
+One per game, `<game>-status-metrics`, built from `game-status-metrics/Dockerfile` with
+the game's folder as the `game` [build context](https://docs.podman.io/en/latest/markdown/podman-build.1.html#build-context-name-value).
+The image keeps the repo layout, so a game's relative `require`s of the core resolve as they do here.
+`games/metrics-image.mk` tags it with the last commit touching either folder.
+
+## Game plugin
+
+`games/<game>/status-metrics/game-plugin.js` is the only file the core calls into.
+`load-game-plugin.js` loads it from `GAME_DIR` and lists every member it must have.
+Only the entry points (`index.js`, `reset-player-stats.js`) load it.
+
+## Shared modules
 
 - `index.js`: HTTP server, the 15s query loop, and the env-var check.
-- `config.js`: every env var and the paths derived from it.
-- `query-game-server.js`: runs the gamedig query, keeps the last answer for
-  the next scrape.
+- `config.js`: the env vars every game has and the paths derived from them.
+- `query-game-server.js`: runs the gamedig query, keeps the last answer for the next scrape.
 - `build-metrics-text.js`: joins the metric lines into the text served on `/metrics`.
-
-## Readers
-
-- `read-status-files.js`: hook-written `STATUS_DIR` files; `store-enshrouded-base-count.js` its base count.
+- `read-status-files.js`: hook-written `STATUS_DIR` timestamps, build ID and past uptime.
 - `track-online-players.js`: who is online, one `STATUS_DIR` file per player from the log; mtime = joined.
-- `read-online-admins.js`: online game masters, per game: `read-valheim-admins.js` (Steam ID on `ADMIN_LIST_FILE`),
-  `read-zomboid-admins.js` (admin/moderator/gm account role), `track-enshrouded-game-masters.js` (`CanKickBan` at login).
 - `read-new-log-lines.js`: the lines a log file gained since the last read. Offsets are
   kept in `STATUS_DIR`, so an exporter restart neither replays nor skips a line; a
   new inode at the same path, a log the game moved away, starts over.
-- `read-death-log.js`: deaths the log hooks appended to the shared death log.
-- `read-raid-log.js`: Valheim raid starts the log hooks appended to the raid log.
-- `read-zomboid-deaths.js`: deaths from Zomboid's `user` and `pvp` logs.
-- `read-enshrouded-log.js`: players joining and leaving, their login permissions, the base count.
-- `read-zomboid-character-names.js`: a Zomboid account's current character, stored with each of its deaths.
-- The player database and its modules: [player-database.md](player-database.md).
-- World settings: `read-world-modifiers.js` (Valheim's command line), `read-zomboid-sandbox-settings.js` (SandboxVars changed
-  from their commented defaults), `read-enshrouded-settings.js` (preset; Custom settings changed from Default).
-- `find-newest-world-metadata-file.js`: Valheim's newest `_main.<n>.db2`. In it, `read-defeated-bosses.js` finds the `defeated_*`
-  keys (bosses, a few creatures); `read-valheim-game-day.js` takes `netTime` plus the time since the save as today's day.
 - `read-backups.js`: backup archives on disk, oldest first.
-- `classify-backups.js`: the `.play-clock` index and play-time retention
-  windows, mirroring `backup-prune.sh`.
+- The player database and its modules: [player-database.md](player-database.md).
 
 ## Metric lines
 
@@ -44,10 +42,7 @@ lines; a gauge with no samples prints nothing.
 
 - `metrics/build-game-server-metrics.js`: `game_server_*`, what every game answers.
 - `metrics/build-backup-metrics.js`: `game_server_backup_*`.
-- `metrics/build-valheim-metrics.js`: `valheim_*` mods, world modifiers, raids, bosses, the last death's day.
-- `metrics/build-zomboid-metrics.js`: `zomboid_*` zombie kills per player, world settings.
-- `metrics/build-enshrouded-metrics.js`: `enshrouded_*` player-built bases, world settings.
-- `metrics/build-backup-archive-metrics.js`: `valheim_backup_*` archive windows.
+- The game's own metrics come from its plugin's `buildMetricLines`.
 
 Metric naming rules live in [CLAUDE.md](../CLAUDE.md); a published name is an
 interface, so grep `grafana/` before renaming one.

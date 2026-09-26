@@ -8,10 +8,10 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 
 ```
 charts/<game>-server/      Helm chart per game
-games/<game>/              values.override.yaml, Makefile, Grafana dashboards
+games/<game>/              values.override.yaml, Makefile, Grafana dashboards, status-metrics/
 install/                   k3s.sh, firewall.sh, registry.sh, monitoring.sh, offsite-backup.sh, vpa.sh
 registry/ monitoring/ maintenance/ offsite-backup/   platform, see docs/platform.md
-game-status-metrics/       player/status exporter sidecar (gamedig)
+game-status-metrics/       player/status exporter sidecar, the part every game shares (gamedig)
 docs/                      setup-nodes, platform, architecture, game-setup, per-game
 Makefile                   copy-to-vm / copy-to-host (run from your machine)
 ```

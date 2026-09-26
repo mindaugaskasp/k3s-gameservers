@@ -9,7 +9,6 @@ const {
 } = require("../read-status-files");
 const { readPlayTimeTotals, readDeathCounts, readLastDeath, readPlayersSeen } = require("../store-player-history");
 const { readOnlinePlayerSessions } = require("../track-online-players");
-const { readOnlineAdminNames } = require("../read-online-admins");
 
 // Only counts while the server answers: a session that ended is already in the baseline.
 function readCurrentSessionSeconds(isServerUp) {
@@ -18,7 +17,7 @@ function readCurrentSessionSeconds(isServerUp) {
   return Math.max(0, Math.floor(Date.now() / 1000) - startedAt);
 }
 
-// The log's online list names players where the query reports none (Valheim, Enshrouded);
+// The log's online list names players where the query reports none;
 // without one, the query's own sessions stand, placeholder names and all.
 function readPlayerSessions(status) {
   const now = Math.floor(Date.now() / 1000);
@@ -30,17 +29,16 @@ function readPlayerSessions(status) {
   return sessionsFromLog.length ? sessionsFromLog : status.playerSessions;
 }
 
-function readLastDeathSamples(game) {
+// The game adds what only it knows about the death, e.g. Zomboid's character.
+function readLastDeathSamples(game, gamePlugin) {
   const lastDeath = readLastDeath();
-
   if (!lastDeath) return [];
-  const characterLabel = lastDeath.characterName ? { character: lastDeath.characterName } : {};
 
-  return [{ labels: { game, name: lastDeath.name, ...characterLabel }, value: lastDeath.diedAt }];
+  return [{ labels: { game, name: lastDeath.name, ...gamePlugin.readLastDeathLabels(lastDeath) }, value: lastDeath.last_died_at }];
 }
 
 /** What every game reports, told apart by the `game` label. */
-function buildGameServerMetricLines(status) {
+function buildGameServerMetricLines(status, gamePlugin) {
   const game = GAME;
   const sampleForGame = (value) => [{ labels: { game }, value }];
   const sessionSeconds = readCurrentSessionSeconds(status.up);
@@ -92,7 +90,7 @@ function buildGameServerMetricLines(status) {
     ...formatGaugeLines(
       "game_server_player_admin",
       "1 for an online player on the server's admin list, matched by platform ID, not name.",
-      readOnlineAdminNames(playerSessions.map((player) => player.name)).map((name) => ({ labels: { game, name }, value: 1 }))
+      gamePlugin.filterAdminNames(playerSessions.map((player) => player.name)).map((name) => ({ labels: { game, name }, value: 1 }))
     ),
     ...formatGaugeLines(
       "game_server_player_play_time_seconds",
@@ -112,7 +110,7 @@ function buildGameServerMetricLines(status) {
     ...formatGaugeLines(
       "game_server_last_death_timestamp_seconds",
       "Unix time of the most recent death on this server; read name for the player, character for who they played.",
-      readLastDeathSamples(game)
+      readLastDeathSamples(game, gamePlugin)
     ),
   ];
 }

@@ -1,7 +1,7 @@
 "use strict";
 
 const { RAID_LOG_FILE } = require("./config");
-const { readNewLines } = require("./read-new-log-lines");
+const { readNewLines } = require("../../../game-status-metrics/read-new-log-lines");
 
 /** Raids the log hooks appended since the last call, each line "<unix time> <event ID>". */
 function readNewRaids() {

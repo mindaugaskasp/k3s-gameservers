@@ -1,19 +1,14 @@
 "use strict";
 
 const { buildGameServerMetricLines } = require("./metrics/build-game-server-metrics");
-const { buildValheimMetricLines } = require("./metrics/build-valheim-metrics");
-const { buildZomboidMetricLines } = require("./metrics/build-zomboid-metrics");
-const { buildEnshroudedMetricLines } = require("./metrics/build-enshrouded-metrics");
 const { buildBackupMetricLines } = require("./metrics/build-backup-metrics");
 
-/** The whole exposition, in Prometheus text format. */
-function buildMetricsText(status) {
+/** The whole exposition, in Prometheus text format: every game's metrics, then this game's own. */
+function buildMetricsText(status, gamePlugin) {
   return [
-    ...buildGameServerMetricLines(status),
-    ...buildValheimMetricLines(),
-    ...buildZomboidMetricLines(),
-    ...buildEnshroudedMetricLines(),
+    ...buildGameServerMetricLines(status, gamePlugin),
     ...buildBackupMetricLines(),
+    ...gamePlugin.buildMetricLines(),
     "",
   ].join("\n");
 }

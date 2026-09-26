@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const { ZOMBOID_LOG_DIR } = require("./config");
-const { readNewLines } = require("./read-new-log-lines");
+const { readNewLines } = require("../../../game-status-metrics/read-new-log-lines");
 
 // Line formats from the game's code: IsoGameCharacter.DoDeath writes the user line,
 // and PVPLogTool.logKill writes the pvp line instead when another player did the killing.
@@ -18,7 +18,7 @@ function findDeadPlayerName(line) {
   return match ? match[1] : null;
 }
 
-/** One name per death Zomboid logged since the last call; empty for every other game. */
+/** One name per death Zomboid logged since the last call; empty without ZOMBOID_LOG_DIR. */
 function readNewZomboidDeaths() {
   if (!ZOMBOID_LOG_DIR) return [];
 

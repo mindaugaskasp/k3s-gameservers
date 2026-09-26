@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const { DatabaseSync } = require("node:sqlite");
-const { DATABASE_DIR, PLAYERS_DATABASE_FILE } = require("./config");
+const { DATABASE_DIR, PLAYERS_DATABASE_FILE, OLD_PLAYERS_DATABASE_FILE } = require("./config");
 const { applyMigrations } = require("./apply-database-migrations");
 
 // WAL lets anyone inspecting the file read it without blocking the exporter's writes:
@@ -21,12 +21,21 @@ function reportDatabaseFailure(problem, error) {
   reportedDatabaseFailure = true;
 }
 
+// Moved with its WAL files before anything opens it, so no write is left behind in them.
+function moveDatabaseFromOldName() {
+  if (!fs.existsSync(OLD_PLAYERS_DATABASE_FILE) || fs.existsSync(PLAYERS_DATABASE_FILE)) return;
+  for (const suffix of ["-wal", "-shm", ""]) {
+    if (fs.existsSync(OLD_PLAYERS_DATABASE_FILE + suffix)) fs.renameSync(OLD_PLAYERS_DATABASE_FILE + suffix, PLAYERS_DATABASE_FILE + suffix);
+  }
+}
+
 // This process is the database's only writer: a second one running as another user
 // would create -wal and -shm files this one cannot write.
 function openDatabase() {
   if (database) return database;
   try {
     fs.mkdirSync(DATABASE_DIR, { recursive: true });
+    moveDatabaseFromOldName();
     const openedDatabase = new DatabaseSync(PLAYERS_DATABASE_FILE);
     openedDatabase.exec(CONNECTION_SETTINGS);
     applyMigrations(openedDatabase);

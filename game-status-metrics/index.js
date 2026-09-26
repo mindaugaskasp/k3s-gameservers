@@ -4,6 +4,7 @@ const http = require("http");
 const { GAME, HOST, PORT, METRICS_PORT } = require("./config");
 const { GameServerQuery } = require("./query-game-server");
 const { buildMetricsText } = require("./build-metrics-text");
+const { loadGamePlugin } = require("./load-game-plugin");
 
 const QUERY_INTERVAL_MILLISECONDS = 15000;
 
@@ -12,12 +13,13 @@ if (!GAME || !PORT) {
   process.exit(1);
 }
 
-const query = new GameServerQuery();
+const gamePlugin = loadGamePlugin();
+const query = new GameServerQuery(gamePlugin);
 
 const server = http.createServer((req, res) => {
   if (req.url === "/metrics") {
     res.writeHead(200, { "Content-Type": "text/plain; version=0.0.4" });
-    res.end(buildMetricsText(query.lastStatus));
+    res.end(buildMetricsText(query.lastStatus, gamePlugin));
     return;
   }
   if (req.url === "/healthz") {

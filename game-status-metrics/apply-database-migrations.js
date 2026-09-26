@@ -2,10 +2,8 @@
 
 const fs = require("fs");
 const path = require("path");
-const { GAME } = require("./config");
-
-// Each game's database has its own migrations, never shared with another game's.
-const MIGRATIONS_DIR = path.join(__dirname, "migrations", GAME);
+// Each game's database has its own migrations, in its own folder, never shared with another game's.
+const { MIGRATIONS_DIR } = require("./config");
 
 // One row per applied migration, like Doctrine's doctrine_migration_versions:
 // https://www.doctrine-project.org/projects/doctrine-migrations/en/current/

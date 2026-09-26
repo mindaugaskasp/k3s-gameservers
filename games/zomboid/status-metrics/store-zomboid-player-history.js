@@ -1,7 +1,7 @@
 "use strict";
 
-const { readRows, writeRows } = require("./open-sqlite-database");
-const { RANKED_PLAYER_LIMIT } = require("./store-player-history");
+const { readRows, writeRows } = require("../../../game-status-metrics/open-sqlite-database");
+const { RANKED_PLAYER_LIMIT } = require("../../../game-status-metrics/store-player-history");
 
 // A rise in a character's count adds the difference; a drop means the character died
 // and a new one started from 0, so its whole count is new.
