@@ -13,7 +13,6 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/k3s"
 
 sudo systemctl enable systemd-time-wait-sync.service
 sudo install -D -m 644 "$HERE/wait-for-clock.conf" /etc/systemd/system/k3s.service.d/wait-for-clock.conf
-sudo rm -f /etc/systemd/system/k3s.service.d/wait-for-time-sync.conf # merged into wait-for-clock.conf
 sudo systemctl daemon-reload
 
 # In-cluster registry (registry/) over plain HTTP, for k3s pulls and podman pushes.
@@ -31,7 +30,7 @@ K3S_CONFIG=/etc/rancher/k3s/config.yaml
 if command -v k3s >/dev/null 2>&1; then
   echo "k3s already installed: $(k3s --version | head -1)"
   sudo grep -q "^node-name:" "$K3S_CONFIG" 2>/dev/null \
-    || echo "WARNING: no node-name in $K3S_CONFIG -- renaming the node breaks local-path PVs, see docs/architecture.md" >&2
+    || echo "WARNING: no node-name in $K3S_CONFIG -- renaming the node breaks local-path PVs, see docs/platform.md" >&2
 else
   sudo mkdir -p /etc/rancher/k3s
   sudo tee "$K3S_CONFIG" >/dev/null <<EOF

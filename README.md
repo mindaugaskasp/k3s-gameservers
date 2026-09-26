@@ -13,7 +13,7 @@ install/                   k3s.sh, firewall.sh, registry.sh, monitoring.sh, offs
 registry/ monitoring/ maintenance/ offsite-backup/   platform, see docs/platform.md
 game-status-metrics/       player/status exporter sidecar, the part every game shares (gamedig)
 docs/                      setup-nodes, platform, architecture, game-setup, per-game
-Makefile                   copy-to-vm / copy-to-host (run from your machine)
+Makefile                   platform setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host
 ```
 
 ## Setup
