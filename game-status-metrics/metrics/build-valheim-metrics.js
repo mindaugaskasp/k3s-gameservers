@@ -4,12 +4,14 @@ const { GAME } = require("../config");
 const { formatGaugeLines } = require("../format-metric-lines");
 const { readModState } = require("../read-status-files");
 const { readWorldModifiers } = require("../read-world-modifiers");
-const { readRaidCount, readLatestRaid } = require("../store-raids");
+const { readRaidCount, readLatestRaid, readRecentRaids } = require("../store-raids");
 const { readDefeatedBosses } = require("../read-defeated-bosses");
 
 // The log marks only a raid's start. The longest lasts 150s, longer while nobody is near:
 // https://valheim.weirdgloop.org/w/Events
 const RAID_LIKELY_ACTIVE_SECONDS = 150;
+// Enough history for the website's raid list; each raid is its own series, so it stays short.
+const RECENT_RAIDS_REPORTED = 10;
 
 function readRaidActiveSamples(game) {
   const raid = readLatestRaid();
@@ -17,6 +19,14 @@ function readRaidActiveSamples(game) {
   const isActive = Math.floor(Date.now() / 1000) - raid.startedAt < RAID_LIKELY_ACTIVE_SECONDS;
 
   return [{ labels: { game, name: raid.eventId }, value: isActive ? 1 : 0 }];
+}
+
+// raid_id keeps two raids of the same event apart.
+function readRecentRaidSamples(game) {
+  return readRecentRaids(RECENT_RAIDS_REPORTED).map((raid) => ({
+    labels: { game, name: raid.eventId, raid_id: raid.id },
+    value: raid.startedAt,
+  }));
 }
 
 // valheim_* metrics hold what only Valheim reports: mod state from mod-guard.sh, the world
@@ -55,6 +65,11 @@ function buildValheimMetricLines() {
       "valheim_raid_active",
       "1 while the latest raid is likely still on, from its start in the log; read the name label.",
       readRaidActiveSamples(game)
+    ),
+    ...formatGaugeLines(
+      "valheim_raid_started_timestamp_seconds",
+      `When each of the latest ${RECENT_RAIDS_REPORTED} raids started, in unix seconds; read the name label.`,
+      readRecentRaidSamples(game)
     ),
     ...formatGaugeLines(
       "valheim_boss_defeated",

@@ -17,4 +17,11 @@ function readLatestRaid() {
   return readRows("SELECT name AS eventId, started_at AS startedAt FROM raid ORDER BY started_at DESC, id DESC LIMIT 1")[0] ?? null;
 }
 
-module.exports = { recordRaids, readRaidCount, readLatestRaid };
+function readRecentRaids(limit) {
+  return readRows(
+    "SELECT id, name AS eventId, started_at AS startedAt FROM raid ORDER BY started_at DESC, id DESC LIMIT ?",
+    limit
+  );
+}
+
+module.exports = { recordRaids, readRaidCount, readLatestRaid, readRecentRaids };

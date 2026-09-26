@@ -30,7 +30,7 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 - `open-sqlite-database.js`: opens `<DATABASE_DIR>/<game>-players.db` on the PVC, one per game. This
   process is its only writer: another user's [WAL](https://sqlite.org/wal.html) files would make it "readonly".
 - `store-player-history.js`: time online, deaths and the last one, zombie kills, last seen per player.
-- `store-raids.js`: every Valheim raid and when it started.
+- `store-raids.js`: every Valheim raid and when it started; the latest ones feed the website's raid list.
 - `read-zomboid-character-names.js`: a Zomboid account's current character, stored with each of its deaths.
 - `apply-database-migrations.js` + `migrations/`: one file per schema version, applied
   in filename order on connect and recorded in the `migration` table. Add a file,
