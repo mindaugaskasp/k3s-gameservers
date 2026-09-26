@@ -1,4 +1,5 @@
 RELEASE := zomboid
+GAME_TITLE := Project Zomboid
 MODS_FILE := mods.json
 VALUE_FILES := values.override.yaml $(MODS_FILE)
 GAME_DATA_PATH := /project-zomboid-config

@@ -1,6 +1,6 @@
 {
-  "title": "Project Zomboid / Process Health",
-  "uid": "zomboid-process-health",
+  "title": "__GAME_TITLE__ / Process Health",
+  "uid": "__RELEASE__-process-health",
   "tags": [
     "k3s-gameservers"
   ],
@@ -25,7 +25,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_up{game=\"projectzomboid\"}",
+          "expr": "game_server_up{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "up",
           "datasource": {
             "type": "prometheus",
@@ -74,7 +74,7 @@
       },
       "targets": [
         {
-          "expr": "kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-zomboid.*\"}",
+          "expr": "kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-__RELEASE__.*\"}",
           "legendFormat": "Used",
           "datasource": {
             "type": "prometheus",
@@ -82,7 +82,7 @@
           }
         },
         {
-          "expr": "kubelet_volume_stats_available_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-zomboid.*\"}",
+          "expr": "kubelet_volume_stats_available_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-__RELEASE__.*\"}",
           "legendFormat": "Free",
           "datasource": {
             "type": "prometheus",
@@ -113,7 +113,7 @@
       },
       "targets": [
         {
-          "expr": "100 * kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-zomboid.*\"} / kubelet_volume_stats_capacity_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-zomboid.*\"}",
+          "expr": "100 * kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-__RELEASE__.*\"} / kubelet_volume_stats_capacity_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-__RELEASE__.*\"}",
           "legendFormat": "used %",
           "datasource": {
             "type": "prometheus",
@@ -162,7 +162,7 @@
       },
       "targets": [
         {
-          "expr": "sum(changes(container_start_time_seconds{namespace=\"games\", pod=~\"zomboid.*\", container!=\"\"}[1h]))",
+          "expr": "sum(changes(container_start_time_seconds{namespace=\"games\", pod=~\"__RELEASE__.*\", container!=\"\"}[1h]))",
           "legendFormat": "restarts",
           "datasource": {
             "type": "prometheus",
@@ -187,7 +187,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"games\", pod=~\"zomboid.*\", container!=\"\"}[5m])) by (container)",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"games\", pod=~\"__RELEASE__.*\", container!=\"\"}[5m])) by (container)",
           "legendFormat": "{{container}}",
           "datasource": {
             "type": "prometheus",
@@ -212,7 +212,7 @@
       },
       "targets": [
         {
-          "expr": "sum(container_memory_working_set_bytes{namespace=\"games\", pod=~\"zomboid.*\", container!=\"\"}) by (container)",
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"games\", pod=~\"__RELEASE__.*\", container!=\"\"}) by (container)",
           "legendFormat": "{{container}}",
           "datasource": {
             "type": "prometheus",
@@ -242,7 +242,7 @@
       },
       "targets": [
         {
-          "expr": "kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-zomboid.*\"}",
+          "expr": "kubelet_volume_stats_used_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-__RELEASE__.*\"}",
           "legendFormat": "used bytes",
           "datasource": {
             "type": "prometheus",
@@ -250,7 +250,7 @@
           }
         },
         {
-          "expr": "kubelet_volume_stats_available_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-zomboid.*\"}",
+          "expr": "kubelet_volume_stats_available_bytes{namespace=\"games\", persistentvolumeclaim=~\"data-__RELEASE__.*\"}",
           "legendFormat": "free bytes",
           "datasource": {
             "type": "prometheus",
@@ -280,7 +280,7 @@
       },
       "targets": [
         {
-          "expr": "changes(container_start_time_seconds{namespace=\"games\", pod=~\"zomboid.*\", container!=\"\"}[1h])",
+          "expr": "changes(container_start_time_seconds{namespace=\"games\", pod=~\"__RELEASE__.*\", container!=\"\"}[1h])",
           "legendFormat": "{{container}}",
           "datasource": {
             "type": "prometheus",
@@ -333,7 +333,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(count_over_time({job=\"offsite-backup\", game=\"zomboid\", result=\"success\"}[24h])) or vector(0)"
+          "expr": "sum(count_over_time({job=\"offsite-backup\", game=\"__RELEASE__\", result=\"success\"}[24h])) or vector(0)"
         }
       ],
       "options": {
@@ -395,7 +395,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{job=\"offsite-backup\", game=\"zomboid\"}"
+          "expr": "{job=\"offsite-backup\", game=\"__RELEASE__\"}"
         }
       ],
       "options": {
@@ -425,7 +425,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_count{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_count{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "Backups on disk",
           "datasource": {
             "type": "prometheus",
@@ -467,7 +467,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_bytes{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_bytes{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "Disk used by backups",
           "datasource": {
             "type": "prometheus",
@@ -510,7 +510,7 @@
       },
       "targets": [
         {
-          "expr": "time() - game_server_backup_newest_timestamp_seconds{game=\"projectzomboid\"}",
+          "expr": "time() - game_server_backup_newest_timestamp_seconds{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "Newest backup age",
           "datasource": {
             "type": "prometheus",
@@ -553,7 +553,7 @@
       },
       "targets": [
         {
-          "expr": "time() - game_server_backup_oldest_timestamp_seconds{game=\"projectzomboid\"}",
+          "expr": "time() - game_server_backup_oldest_timestamp_seconds{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "Oldest backup age",
           "datasource": {
             "type": "prometheus",
@@ -596,7 +596,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_retention_days{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_retention_days{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "max age (days)",
           "datasource": {
             "type": "prometheus",
@@ -604,7 +604,7 @@
           }
         },
         {
-          "expr": "game_server_backup_retention_count{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_retention_count{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "max count",
           "datasource": {
             "type": "prometheus",
@@ -657,7 +657,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_file_timestamp_seconds{game=\"projectzomboid\"} * 1000",
+          "expr": "game_server_backup_file_timestamp_seconds{game=\"__GAMEDIG_GAME__\"} * 1000",
           "format": "table",
           "instant": true,
           "refId": "A",
@@ -667,7 +667,7 @@
           }
         },
         {
-          "expr": "game_server_backup_file_bytes{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_file_bytes{game=\"__GAMEDIG_GAME__\"}",
           "format": "table",
           "instant": true,
           "refId": "B",
@@ -770,7 +770,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_count{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_count{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "backups",
           "datasource": {
             "type": "prometheus",
@@ -804,7 +804,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_bytes{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_bytes{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "backups total",
           "datasource": {
             "type": "prometheus",
@@ -840,7 +840,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_oldest_timestamp_seconds{game=\"projectzomboid\"} * 1000",
+          "expr": "game_server_backup_oldest_timestamp_seconds{game=\"__GAMEDIG_GAME__\"} * 1000",
           "legendFormat": "Oldest",
           "datasource": {
             "type": "prometheus",
@@ -848,7 +848,7 @@
           }
         },
         {
-          "expr": "game_server_backup_newest_timestamp_seconds{game=\"projectzomboid\"} * 1000",
+          "expr": "game_server_backup_newest_timestamp_seconds{game=\"__GAMEDIG_GAME__\"} * 1000",
           "legendFormat": "Newest",
           "datasource": {
             "type": "prometheus",
@@ -892,7 +892,7 @@
       },
       "targets": [
         {
-          "expr": "game_server_backup_newest_timestamp_seconds{game=\"projectzomboid\"} - game_server_backup_oldest_timestamp_seconds{game=\"projectzomboid\"}",
+          "expr": "game_server_backup_newest_timestamp_seconds{game=\"__GAMEDIG_GAME__\"} - game_server_backup_oldest_timestamp_seconds{game=\"__GAMEDIG_GAME__\"}",
           "legendFormat": "span",
           "datasource": {
             "type": "prometheus",

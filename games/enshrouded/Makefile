@@ -1,4 +1,5 @@
 RELEASE := enshrouded
+GAME_TITLE := Enshrouded
 GAME_DATA_PATH := /opt/enshrouded
 GAME_BACKUP_PATH := /opt/enshrouded/backups
 GAME_SHELL := bash

@@ -29,6 +29,7 @@ A single-node k3s cluster runs three namespaces:
 - **`make/game.mk`:** every game's shared make targets; the game Makefile sets its paths and includes it.
 - **`status-metrics/`:** the exporter's shared core ([status-metrics.md](status-metrics.md)).
 - **`systemd/`, `restore-helper-pod.yaml`:** the hourly sync timer and the restore pod, one per game instance.
+- **`grafana/`:** dashboards a game ships as its own unless its Makefile clears `SHARED_DASHBOARDS`.
 
 ## Networking
 

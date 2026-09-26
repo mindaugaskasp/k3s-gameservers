@@ -26,6 +26,9 @@ SYNC_DATA_EXCLUDES ?= backups
 BACKUP_SYNC_RETENTION_DAYS ?=
 # A path every restorable backup zip holds; `make restore-backup` refuses a zip without it.
 RESTORE_REQUIRED_ZIP_ENTRY ?=
+# Dashboards from game-server/grafana/ shipped beside grafana/dashboards/, and the name they show.
+SHARED_DASHBOARDS ?= process-health
+GAME_TITLE ?= $(RELEASE)
 # Run after scale-down-zero and scale-up, e.g. to pause the game's own CronJobs.
 AFTER_SCALE_DOWN_ZERO ?= true
 AFTER_SCALE_UP ?= true
@@ -200,10 +203,18 @@ _restore-run:
 port-forward-metrics:
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-metrics 9101:9101
 
-## Ship grafana/dashboards/ as a ConfigMap that Grafana loads
+# The gamedig id, the metrics' game label; read from the chart, its one definition.
+GAMEDIG_GAME = $(shell sed -n '/name: GAMEDIG_GAME/{n;s/.*value: "\(.*\)"/\1/p;}' $(CHART)/templates/_status-metrics.tpl)
+
+## Ship grafana/dashboards/ and the shared ones as a ConfigMap that Grafana loads
 dashboards:
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	kubectl -n $(NAMESPACE) create configmap $(RELEASE)-dashboards --from-file=grafana/dashboards/ --dry-run=client -o yaml \
+	@folder=$$(mktemp -d) && trap 'rm -rf "$$folder"' EXIT && cp grafana/dashboards/*.json "$$folder"/ && \
+	for dashboard in $(SHARED_DASHBOARDS); do \
+		sed -e 's/__GAME_TITLE__/$(GAME_TITLE)/g' -e 's/__RELEASE__/$(RELEASE)/g' -e 's/__GAMEDIG_GAME__/$(GAMEDIG_GAME)/g' \
+			$(GAME_SERVER_DIR)/grafana/$$dashboard.json > "$$folder/$$dashboard.json"; \
+	done && \
+	kubectl -n $(NAMESPACE) create configmap $(RELEASE)-dashboards --from-file="$$folder"/ --dry-run=client -o yaml \
 		| kubectl label --local -f - grafana_dashboard=1 -o yaml \
 		| kubectl annotate --local -f - grafana_folder=$(RELEASE) -o yaml \
 		| kubectl apply --server-side -f -

@@ -1,4 +1,6 @@
 RELEASE := valheim
+# Valheim ships its own process-health dashboard, with the tiered archive and mods.
+SHARED_DASHBOARDS :=
 GAME_DATA_PATH := /config
 GAME_BACKUP_PATH := /config/backups
 TEMPLATE_SECRET_FLAGS := --set-string secrets.serverPassword=REDACTED
