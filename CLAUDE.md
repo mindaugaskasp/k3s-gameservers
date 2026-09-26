@@ -51,6 +51,6 @@ Hard rules for code, docs and comments.
   work on any host. Host values go in gitignored `.env` files or overrides,
   never in comments.
 - **Comments:** 2-3 lines at most.
-- **Docs:** 60 lines at most per Markdown file; split by topic. This file is
-  exempt: rules live in one place, however long that makes it.
+- **Docs:** aim for 60 lines per Markdown file, never more than 100; split by topic.
+  This file is exempt: rules live in one place, however long that makes it.
 - **Check:** `wc -l *.md docs/*.md` (ignoring CLAUDE.md)
