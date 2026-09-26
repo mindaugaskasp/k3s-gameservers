@@ -3,7 +3,9 @@
 const { GameDig } = require("gamedig");
 const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("./track-online-players");
-const { recordPlayersSeen, creditPlayTime, recordDeaths, recordZombieKills } = require("./store-player-history");
+const { recordPlayersSeen, creditPlayTime, recordDeaths } = require("./store-player-history");
+const { recordZombieKills, recordDeathCharacterNames } = require("./store-zomboid-player-history");
+const { recordDeathGameDay } = require("./store-valheim-death-days");
 const { readNewDeaths } = require("./read-death-log");
 const { readCurrentGameDay } = require("./read-valheim-game-day");
 const { readNewRaids } = require("./read-raid-log");
@@ -64,10 +66,11 @@ class GameServerQuery {
   async refreshLastStatus() {
     // What the logs say happened, whether or not the query answers.
     const deadPlayerNames = [...readNewDeaths(), ...readNewZomboidDeaths()];
-    const gameDay = deadPlayerNames.length ? readCurrentGameDay() : null;
-    recordDeaths(
-      deadPlayerNames.map((playerName) => ({ playerName, characterName: readCharacterName(playerName), gameDay }))
-    );
+    recordDeaths(deadPlayerNames);
+    if (GAME === "valheim" && deadPlayerNames.length) recordDeathGameDay(deadPlayerNames, readCurrentGameDay());
+    if (GAME === "projectzomboid") {
+      recordDeathCharacterNames(deadPlayerNames.map((playerName) => ({ playerName, characterName: readCharacterName(playerName) })));
+    }
     recordRaids(readNewRaids());
     recordEnshroudedEvents(readNewEnshroudedEvents());
     const queryStartedAt = Date.now();

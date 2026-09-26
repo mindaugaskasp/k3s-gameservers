@@ -2,8 +2,10 @@
 
 const fs = require("fs");
 const path = require("path");
+const { GAME } = require("./config");
 
-const MIGRATIONS_DIR = path.join(__dirname, "migrations");
+// Each game's database has its own migrations, never shared with another game's.
+const MIGRATIONS_DIR = path.join(__dirname, "migrations", GAME);
 
 // One row per applied migration, like Doctrine's doctrine_migration_versions:
 // https://www.doctrine-project.org/projects/doctrine-migrations/en/current/
@@ -14,7 +16,7 @@ const MIGRATION_TABLE = `
   );
 `;
 
-/** Every migration in the folder, oldest first: the filename is the version. */
+/** This game's migrations, oldest first: the filename is the version. */
 function readMigrations() {
   return fs
     .readdirSync(MIGRATIONS_DIR)

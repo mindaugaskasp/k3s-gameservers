@@ -38,7 +38,8 @@ HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.
   the sidecar's user, or the database turns read-only. Only the sidecar writes it.
 - **Sidecar:** `game-status-metrics/` queries each game with
   [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`;
-  its modules are listed in [status-metrics.md](status-metrics.md).
+  modules in [status-metrics.md](status-metrics.md), database in
+  [player-database.md](player-database.md).
 - **Image tag:** `games/metrics-image.mk` tags the sidecar with the last commit that
   touched its source, so changing it replaces the pod and leaving it alone does not.
 - **Help:** `make/help.mk` builds `make help [<command>]` from the `## ` lines above each target.

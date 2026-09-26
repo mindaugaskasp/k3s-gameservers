@@ -43,7 +43,7 @@ function readLastDeathGameDaySamples(game) {
 function buildValheimMetricLines() {
   const game = GAME;
   const mods = readModState();
-  // Other games share the database file, where no raid is ever recorded: 0 would be a lie.
+  // Only Valheim's database has a raid table.
   const raidCount = GAME === "valheim" ? readRaidCount() : null;
   return [
     ...formatGaugeLines(

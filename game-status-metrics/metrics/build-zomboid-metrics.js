@@ -2,7 +2,7 @@
 
 const { GAME } = require("../config");
 const { formatGaugeLines } = require("../format-metric-lines");
-const { readZombieKillCounts } = require("../store-player-history");
+const { readZombieKillCounts } = require("../store-zomboid-player-history");
 const { readChangedSandboxSettings } = require("../read-zomboid-sandbox-settings");
 
 // zomboid_* metrics hold what only Project Zomboid reports. The prefix is written out,

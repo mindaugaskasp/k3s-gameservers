@@ -2,6 +2,7 @@
 
 const { PLAYERS_DATABASE_FILE } = require("./config");
 const { openDatabase, readRows, writeRows, reportDatabaseFailure } = require("./open-sqlite-database");
+const { readTableColumnNames } = require("./read-table-column-names");
 
 const RANKED_PLAYER_LIMIT = 10;
 const SEEN_PLAYER_LIMIT = 50;
@@ -55,43 +56,38 @@ function creditPlayTime(names) {
 }
 
 /** A player listed twice died twice. Stamped when read, within one query interval of the death. */
-function recordDeaths(deaths) {
+function recordDeaths(playerNames) {
   const diedAt = getCurrentUnixSeconds();
   writeRows(
-    `INSERT INTO player (name, death_count, last_died_at, last_death_character_name, last_death_game_day) VALUES (?, 1, ?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1, last_died_at = excluded.last_died_at,
-         last_death_character_name = excluded.last_death_character_name, last_death_game_day = excluded.last_death_game_day`,
-    deaths.map((death) => [death.playerName, diedAt, death.characterName, death.gameDay])
+    `INSERT INTO player (name, death_count, last_died_at) VALUES (?, 1, ?)
+       ON CONFLICT(name) DO UPDATE SET death_count = death_count + 1, last_died_at = excluded.last_died_at`,
+    playerNames.map((name) => [name, diedAt])
   );
 }
 
-// A rise in a character's count adds the difference; a drop means the character died
-// and a new one started from 0, so its whole count is new.
-function recordZombieKills(players) {
-  writeRows(
-    `INSERT INTO player (name, zombie_kill_count, current_character_zombie_kills) VALUES (?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET
-         zombie_kill_count = zombie_kill_count + CASE
-           WHEN excluded.current_character_zombie_kills >= current_character_zombie_kills
-             THEN excluded.current_character_zombie_kills - current_character_zombie_kills
-           ELSE excluded.current_character_zombie_kills
-         END,
-         current_character_zombie_kills = excluded.current_character_zombie_kills`,
-    players.map((player) => [player.name, player.zombieKills, player.zombieKills])
-  );
-}
+// Every column a reset clears, with the value it clears to, where this game's table has it.
+// A Zomboid character's last reported kill count is kept: zeroing it would re-credit
+// every kill the current character already has on the next scrape.
+const RESET_VALUES = {
+  play_time_seconds: 0,
+  death_count: 0,
+  last_died_at: null,
+  last_death_character_name: null,
+  last_death_game_day: null,
+  zombie_kill_count: 0,
+};
 
-// The count each character last reported is kept: zeroing it would re-credit every kill
-// the current character already has on the next scrape. Throws, unlike the scrape path.
+/** Throws, unlike the scrape path. */
 function resetPlayerStats() {
   const openedDatabase = openDatabase();
   if (!openedDatabase) throw new Error("player database unavailable");
   const takenAt = new Date().toISOString().replace(/[-:]/g, "");
   const backupFile = PLAYERS_DATABASE_FILE.replace(/\.db$/, `.before-reset-${takenAt}.db`);
   openedDatabase.prepare("VACUUM INTO ?").run(backupFile);
+  const columns = readTableColumnNames(openedDatabase, "player").filter((column) => column in RESET_VALUES);
   const { changes } = openedDatabase
-    .prepare("UPDATE player SET play_time_seconds = 0, death_count = 0, last_died_at = NULL, last_death_character_name = NULL, last_death_game_day = NULL, zombie_kill_count = 0")
-    .run();
+    .prepare(`UPDATE player SET ${columns.map((column) => `${column} = ?`).join(", ")}`)
+    .run(...columns.map((column) => RESET_VALUES[column]));
 
   return { resetPlayerCount: changes, backupFile };
 }
@@ -120,30 +116,27 @@ function readDeathCounts() {
   );
 }
 
+// Selects every column: only some games' tables have the character and the game day.
 function readLastDeath() {
-  return readRows(
-    `SELECT name, last_died_at AS diedAt, last_death_character_name AS characterName, last_death_game_day AS gameDay
-       FROM player WHERE last_died_at IS NOT NULL ORDER BY last_died_at DESC, name LIMIT 1`
-  )[0] ?? null;
-}
+  const row = readRows("SELECT * FROM player WHERE last_died_at IS NOT NULL ORDER BY last_died_at DESC, name LIMIT 1")[0];
+  if (!row) return null;
 
-/** Most zombies killed first, across every character a player has had. */
-function readZombieKillCounts() {
-  return readRows(
-    "SELECT name, zombie_kill_count AS count FROM player WHERE zombie_kill_count > 0 ORDER BY count DESC, name LIMIT ?",
-    RANKED_PLAYER_LIMIT
-  );
+  return {
+    name: row.name,
+    diedAt: row.last_died_at,
+    characterName: row.last_death_character_name ?? null,
+    gameDay: row.last_death_game_day ?? null,
+  };
 }
 
 module.exports = {
+  RANKED_PLAYER_LIMIT,
   recordPlayersSeen,
   creditPlayTime,
   recordDeaths,
-  recordZombieKills,
   resetPlayerStats,
   readPlayersSeen,
   readPlayTimeTotals,
   readDeathCounts,
   readLastDeath,
-  readZombieKillCounts,
 };

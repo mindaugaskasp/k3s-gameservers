@@ -27,16 +27,8 @@ files the chart's lifecycle hooks write, so each reader below is one file format
 - `read-raid-log.js`: Valheim raid starts the log hooks appended to the raid log.
 - `read-zomboid-deaths.js`: deaths from Zomboid's `user` and `pvp` logs.
 - `read-enshrouded-log.js`: players joining and leaving, their login permissions, the base count.
-- `open-sqlite-database.js`: opens `<DATABASE_DIR>/<game>-players.db` on the PVC, one per game. This
-  process is its only writer: another user's [WAL](https://sqlite.org/wal.html) files would make it "readonly".
-- `store-player-history.js`: time online, deaths and the last one (and its Valheim day), zombie kills, last seen per player.
-- `store-raids.js`: every Valheim raid and when it started; the latest ones feed the website's raid list.
 - `read-zomboid-character-names.js`: a Zomboid account's current character, stored with each of its deaths.
-- `apply-database-migrations.js` + `migrations/`: one file per schema version, applied
-  in filename order on connect and recorded in the `migration` table. Add a file,
-  never edit one that has shipped.
-- `reset-player-stats.js`: run by `make reset-player-stats`; saves a copy of the
-  database first. `make read-player-db` opens a read-only `sqlite3` shell on it.
+- The player database and its modules: [player-database.md](player-database.md).
 - World settings: `read-world-modifiers.js` (Valheim's command line), `read-zomboid-sandbox-settings.js` (SandboxVars changed
   from their commented defaults), `read-enshrouded-settings.js` (preset; Custom settings changed from Default).
 - `find-newest-world-metadata-file.js`: Valheim's newest `_main.<n>.db2`. In it, `read-defeated-bosses.js` finds the `defeated_*`
