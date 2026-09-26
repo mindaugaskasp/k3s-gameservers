@@ -50,8 +50,16 @@ const DEFAULT_GAME_SETTINGS = {
 const NANOSECONDS_PER_MINUTE = 60e9;
 const DURATION_SETTINGS = new Set(["fromHungerToStarving", "dayTimeDuration", "nightTimeDuration"]);
 
+// Config keys whose own wording misleads: the page turns names from camelCase into words.
+const PLAIN_SETTING_NAMES = {
+  miningDamageFactor: "miningSpeed",
+  resourceDropStackAmountFactor: "resourceDrops",
+};
+
 function convertSettingValueToText(name, value) {
   if (DURATION_SETTINGS.has(name)) return `${Math.round(value / NANOSECONDS_PER_MINUTE)} min`;
+  // The game's settings menu shows every factor as a percentage.
+  if (name.endsWith("Factor")) return `${Math.round(value * 100)}%`;
 
   return String(value);
 }
@@ -59,7 +67,10 @@ function convertSettingValueToText(name, value) {
 function readChangedGameSettings(gameSettings) {
   return Object.entries(gameSettings)
     .filter(([name, value]) => name in DEFAULT_GAME_SETTINGS && value !== DEFAULT_GAME_SETTINGS[name])
-    .map(([name, value]) => ({ name, value: convertSettingValueToText(name, value) }));
+    .map(([name, value]) => ({
+      name: PLAIN_SETTING_NAMES[name] ?? name,
+      value: convertSettingValueToText(name, value),
+    }));
 }
 
 /** The difficulty preset, then with a Custom preset every setting changed from Default. */

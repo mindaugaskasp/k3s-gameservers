@@ -225,4 +225,6 @@ dashboards:
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE)
 
+include ../player-database.mk
+
 include ../env.mk
