@@ -39,17 +39,25 @@ data:
     global:
       scrape_interval: 30s
     scrape_configs:
-      - job_name: valheim-exporter
-        static_configs:
-          - targets: ["valheim-metrics.games.svc.cluster.local:9101"]
-
-      - job_name: zomboid-exporter
-        static_configs:
-          - targets: ["zomboid-metrics.games.svc.cluster.local:9101"]
-
-      - job_name: enshrouded-exporter
-        static_configs:
-          - targets: ["enshrouded-metrics.games.svc.cluster.local:9101"]
+      # Every game's status-metrics exporter: the port named "metrics" on a Service in games,
+      # so a new game needs no edit here. job and instance keep the per-game names they had.
+      - job_name: game-status-metrics
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: [games]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics
+            action: keep
+          - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_instance]
+            target_label: job
+            replacement: ${1}-exporter
+          - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_number]
+            separator: ":"
+            regex: (.+):(.+)
+            target_label: instance
+            replacement: ${1}.games.svc.cluster.local:${2}
 
       # Certificate expiry for the platform's alert rules.
       - job_name: cert-manager

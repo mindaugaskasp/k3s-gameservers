@@ -29,11 +29,9 @@ with a `game-plugin.js`, `config.js` and `migrations/` ([status-metrics.md](stat
 
 ## 4. Monitoring
 
-1. Add a scrape job for the game's metrics Service in
-   `platform/monitoring/prometheus.yaml`, then `make monitoring` and
-   restart Prometheus — the jobs are static, one per game.
-2. Copy another game's `grafana/dashboards/`, swap the game label, pod and
-   PVC selectors, and drop panels that game can't feed.
+1. Nothing to add in Prometheus: it scrapes every Service port named `metrics` in `games`.
+2. The shared `process-health` dashboard comes with `GAME_TITLE` set in the Makefile. Copy another
+   game's `grafana/dashboards/game-stats-logs.json`, swap the game label, and drop panels it can't feed.
 3. `make dashboards`, then restart Grafana once: it only picks up a *new*
    dashboard folder at startup.
 

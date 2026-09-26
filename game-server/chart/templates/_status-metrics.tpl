@@ -46,7 +46,7 @@
       subPath: database/sqlite
 {{- end -}}
 
-{{- /* Prometheus finds every game's exporter by the component label. */ -}}
+{{- /* Prometheus scrapes every Service port named "metrics" in the games namespace. */ -}}
 {{- define "game-server.metricsService" -}}
 {{- if .Values.statusMetrics.enabled }}
 apiVersion: v1
@@ -55,7 +55,6 @@ metadata:
   name: {{ include "game-server.fullname" . }}-metrics
   labels:
     {{- include "game-server.labels" . | nindent 4 }}
-    app.kubernetes.io/component: status-metrics
 spec:
   type: ClusterIP
   selector:
