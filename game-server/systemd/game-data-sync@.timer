@@ -1,5 +1,5 @@
 [Unit]
-Description=Hourly Valheim world data sync
+Description=Hourly %i world data sync
 
 [Timer]
 OnCalendar=hourly

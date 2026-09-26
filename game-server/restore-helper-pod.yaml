@@ -1,9 +1,9 @@
-# Mounts the game's PVC while the StatefulSet is scaled to 0, so a backup
-# can be unpacked over the world. Created and deleted by `make restore`.
+# Mounts a game's volume while its StatefulSet is scaled to 0, so a backup can be unpacked
+# over the world. `make restore-backup` fills in __RELEASE__, applies it, then deletes it.
 apiVersion: v1
 kind: Pod
 metadata:
-  name: valheim-restore-helper
+  name: __RELEASE__-restore-helper
   labels:
     app.kubernetes.io/part-of: k3s-gameservers
 spec:
@@ -18,4 +18,4 @@ spec:
   volumes:
     - name: data
       persistentVolumeClaim:
-        claimName: data-valheim-0
+        claimName: data-__RELEASE__-0

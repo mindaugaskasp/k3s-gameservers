@@ -1,6 +1,5 @@
 # Player database commands, run inside the game's status-metrics container, which holds
-# the database. Include at the END of a game's Makefile: its targets must not become the
-# default goal. The file's path comes from the exporter's config.js, its one definition.
+# the database. Included by game.mk. The file's path comes from the exporter's config.js, its one definition.
 PLAYER_DATABASE_EXEC := kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c status-metrics --
 
 ## Open a read-only SQLite shell on the player database

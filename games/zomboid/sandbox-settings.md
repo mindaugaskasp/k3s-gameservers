@@ -6,12 +6,11 @@ The server rewrites that file when it starts, so edit it while the server is sto
 (run in `games/zomboid/`):
 
 ```sh
-make scale-down-zero && kubectl -n games apply -f restore-helper-pod.yaml
-kubectl -n games wait --for=condition=Ready pod/zomboid-restore-helper
+make scale-down-zero start-volume-helper
 kubectl -n games cp zomboid-restore-helper:/data/config/Server/<server.name>_SandboxVars.lua SandboxVars.lua
 # edit SandboxVars.lua, then copy it back and start again:
 kubectl -n games cp SandboxVars.lua zomboid-restore-helper:/data/config/Server/<server.name>_SandboxVars.lua
-kubectl -n games delete -f restore-helper-pod.yaml && make scale-up
+make stop-volume-helper scale-up
 ```
 
 Changed settings appear under **World settings** on the website.

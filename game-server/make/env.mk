@@ -1,5 +1,4 @@
-# The game's gitignored .env, which holds its passwords. Include at the END of a game's
-# Makefile: its targets must not become the default goal.
+# The game's gitignored .env, which holds its passwords. Included by game.mk.
 
 ## Create .env from .env.example if missing, then show which values are set
 ##   Never overwrites an existing .env or prints its values; edit the file to set them.

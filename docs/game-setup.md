@@ -21,8 +21,8 @@ decide how much the chart has to do.
 ## 3. Game directory
 
 Add `games/<game>/` with `values.override.yaml` (site settings, sizing),
-`.env.example` (secrets; `make init-env` copies it), `Makefile` (same targets as the other games),
-`restore-helper-pod.yaml`, the systemd data-sync units, and `status-metrics/`
+`.env.example` (secrets; `make init-env` copies it), `restore-backup.sh`, a `Makefile` that sets
+the variables `game-server/make/game.mk` lists and includes it, and `status-metrics/`
 with a `game-plugin.js`, `config.js` and `migrations/` ([status-metrics.md](status-metrics.md)).
 
 ## 4. Monitoring

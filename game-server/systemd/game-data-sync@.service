@@ -1,0 +1,12 @@
+# One instance per game, e.g. game-data-sync@valheim; `make install-sync-timer` installs it.
+[Unit]
+Description=Copy the %i world save and recent backups out of the cluster
+After=k3s.service
+Wants=k3s.service
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__REPO__/games/%i
+Environment=KUBECONFIG=__HOME__/.kube/config
+ExecStart=/usr/bin/make sync

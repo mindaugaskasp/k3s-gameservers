@@ -39,7 +39,7 @@ HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.
 - **Sidecar:** each game's pod queries its server with [gamedig](https://github.com/gamedig/node-gamedig)
   and serves `:9101/metrics`: `game-status-metrics/` shared, `games/<game>/status-metrics/` its own
   ([status-metrics.md](status-metrics.md), [player-database.md](player-database.md)).
-- **Image:** `<game>-status-metrics`, tagged by `games/metrics-image.mk` with the last commit
+- **Image:** `<game>-status-metrics`, tagged by `game-server/make/metrics-image.mk` with the last commit
   touching either folder, so changing one game's exporter replaces only that game's pod.
 - **Help:** `make/help.mk` builds `make help [<command>]` from the `## ` lines above each target.
 - **Metric names:** `valheim_*` for what only Valheim reports, `game_server_*` for

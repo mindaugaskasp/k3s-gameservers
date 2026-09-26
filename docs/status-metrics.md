@@ -13,7 +13,7 @@ with [gamedig](https://github.com/gamedig/node-gamedig) and serves Prometheus te
 One per game, `<game>-status-metrics`, built from `game-status-metrics/Dockerfile` with
 the game's folder as the `game` [build context](https://docs.podman.io/en/latest/markdown/podman-build.1.html#build-context-name-value).
 The image keeps the repo layout, so a game's relative `require`s of the core resolve as they do here.
-`games/metrics-image.mk` tags it with the last commit touching either folder.
+`game-server/make/metrics-image.mk` tags it with the last commit touching either folder.
 
 ## Game plugin
 
