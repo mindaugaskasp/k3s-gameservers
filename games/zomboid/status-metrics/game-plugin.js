@@ -1,6 +1,6 @@
 "use strict";
 
-const { recordDeaths } = require("../../../game-status-metrics/store-player-history");
+const { recordDeaths } = require("../../../game-server/status-metrics/store-player-history");
 const { readNewZomboidDeaths } = require("./read-zomboid-deaths");
 const { readCharacterName } = require("./read-zomboid-character-names");
 const { recordZombieKills, recordDeathCharacterNames } = require("./store-zomboid-player-history");
@@ -25,7 +25,7 @@ function readLastDeathLabels(lastDeath) {
   return lastDeath.last_death_character_name ? { character: lastDeath.last_death_character_name } : {};
 }
 
-/** What only Zomboid records and reports; game-status-metrics/load-game-plugin.js lists each member. */
+/** What only Zomboid records and reports; game-server/status-metrics/load-game-plugin.js lists each member. */
 module.exports = {
   recordNewLogEvents,
   recordQueriedPlayers,

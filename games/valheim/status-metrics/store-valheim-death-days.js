@@ -1,6 +1,6 @@
 "use strict";
 
-const { writeRows } = require("../../../game-status-metrics/open-sqlite-database");
+const { writeRows } = require("../../../game-server/status-metrics/open-sqlite-database");
 
 /** Run after recordDeaths, which creates the player's row. */
 function recordDeathGameDay(playerNames, gameDay) {

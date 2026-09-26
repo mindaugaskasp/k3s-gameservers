@@ -1,7 +1,7 @@
 "use strict";
 
 const fs = require("fs");
-const { STATUS_DIR } = require("../../../game-status-metrics/config");
+const { STATUS_DIR } = require("../../../game-server/status-metrics/config");
 
 // Written by mod-guard.sh before the server starts. Absent = mods not in use.
 function readModState() {

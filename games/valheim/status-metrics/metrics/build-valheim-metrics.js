@@ -1,13 +1,13 @@
 "use strict";
 
-const { GAME } = require("../../../../game-status-metrics/config");
-const { formatGaugeLines } = require("../../../../game-status-metrics/format-metric-lines");
+const { GAME } = require("../../../../game-server/status-metrics/config");
+const { formatGaugeLines } = require("../../../../game-server/status-metrics/format-metric-lines");
 const { readModState } = require("../read-valheim-status-files");
 const { readWorldModifiers } = require("../read-world-modifiers");
 const { readRaidCount, readLatestRaid, readRecentRaids } = require("../store-raids");
 const { readDefeatedBosses } = require("../read-defeated-bosses");
-const { readLastDeath } = require("../../../../game-status-metrics/store-player-history");
-const { readBackups } = require("../../../../game-status-metrics/read-backups");
+const { readLastDeath } = require("../../../../game-server/status-metrics/store-player-history");
+const { readBackups } = require("../../../../game-server/status-metrics/read-backups");
 const { buildBackupArchiveMetricLines } = require("./build-backup-archive-metrics");
 const { BACKUP_WINDOW_ENDS } = require("../config");
 

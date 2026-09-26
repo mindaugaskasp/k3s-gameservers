@@ -1,7 +1,7 @@
 "use strict";
 
 const { ENSHROUDED_LOG_FILE } = require("./config");
-const { readNewLines } = require("../../../game-status-metrics/read-new-log-lines");
+const { readNewLines } = require("../../../game-server/status-metrics/read-new-log-lines");
 
 // Formats from strings in the server binary (enshrouded_server.exe, build 23178631). The
 // load/save lines were seen in a real log; the join and leave lines not yet.

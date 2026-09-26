@@ -1,8 +1,8 @@
 "use strict";
 
-const { STATUS_DIR } = require("../../../game-status-metrics/config");
+const { STATUS_DIR } = require("../../../game-server/status-metrics/config");
 
-// What only Enshrouded's exporter is told; the settings every game shares are in game-status-metrics/config.js.
+// What only Enshrouded's exporter is told; the settings every game shares are in game-server/status-metrics/config.js.
 // The server log, which names players as they join and leave.
 const ENSHROUDED_LOG_FILE = process.env.ENSHROUDED_LOG_FILE || "";
 // The server config, holding the difficulty preset and game settings.

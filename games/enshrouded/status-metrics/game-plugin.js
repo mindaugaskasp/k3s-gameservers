@@ -1,6 +1,6 @@
 "use strict";
 
-const { markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("../../../game-status-metrics/track-online-players");
+const { markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("../../../game-server/status-metrics/track-online-players");
 const { readNewEnshroudedEvents } = require("./read-enshrouded-log");
 const { recordEnshroudedBaseCount } = require("./store-enshrouded-base-count");
 const { markGameMaster, unmarkGameMaster, filterEnshroudedAdminNames } = require("./track-enshrouded-game-masters");
@@ -23,7 +23,7 @@ function recordNewLogEvents() {
   }
 }
 
-/** What only Enshrouded records and reports; game-status-metrics/load-game-plugin.js lists each member. */
+/** What only Enshrouded records and reports; game-server/status-metrics/load-game-plugin.js lists each member. */
 module.exports = {
   recordNewLogEvents,
   recordQueriedPlayers: () => {}, // Enshrouded's query reports nothing the core doesn't record.

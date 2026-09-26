@@ -1,9 +1,9 @@
 "use strict";
 
 const fs = require("fs");
-const { BACKUP_DIR } = require("../../../game-status-metrics/config");
+const { BACKUP_DIR } = require("../../../game-server/status-metrics/config");
 const { BACKUP_RECENT_DAYS, BACKUP_WINDOW_ENDS } = require("./config");
-const { isArchived } = require("../../../game-status-metrics/read-backups");
+const { isArchived } = require("../../../game-server/status-metrics/read-backups");
 
 const convertBackupToFileName = (backup) => backup.name.replace(/.*\//, "");
 

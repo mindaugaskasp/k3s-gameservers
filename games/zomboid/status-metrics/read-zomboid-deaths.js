@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const { ZOMBOID_LOG_DIR } = require("./config");
-const { readNewLines } = require("../../../game-status-metrics/read-new-log-lines");
+const { readNewLines } = require("../../../game-server/status-metrics/read-new-log-lines");
 
 // Line formats from the game's code: IsoGameCharacter.DoDeath writes the user line,
 // and PVPLogTool.logKill writes the pvp line instead when another player did the killing.

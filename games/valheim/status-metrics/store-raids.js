@@ -1,6 +1,6 @@
 "use strict";
 
-const { readRows, writeRows } = require("../../../game-status-metrics/open-sqlite-database");
+const { readRows, writeRows } = require("../../../game-server/status-metrics/open-sqlite-database");
 
 function recordRaids(raids) {
   writeRows(

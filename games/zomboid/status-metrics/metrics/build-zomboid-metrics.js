@@ -1,7 +1,7 @@
 "use strict";
 
-const { GAME } = require("../../../../game-status-metrics/config");
-const { formatGaugeLines } = require("../../../../game-status-metrics/format-metric-lines");
+const { GAME } = require("../../../../game-server/status-metrics/config");
+const { formatGaugeLines } = require("../../../../game-server/status-metrics/format-metric-lines");
 const { readZombieKillCounts } = require("../store-zomboid-player-history");
 const { readChangedSandboxSettings } = require("../read-zomboid-sandbox-settings");
 

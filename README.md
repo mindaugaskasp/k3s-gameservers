@@ -11,7 +11,7 @@ charts/<game>-server/      Helm chart per game
 games/<game>/              values.override.yaml, Makefile, Grafana dashboards, status-metrics/
 platform/<piece>/          the cluster: k3s, firewall, registry, monitoring, crowdsec, maintenance,
                            offsite-backup, vpa; each with its install.sh, see docs/platform.md
-game-status-metrics/       player/status exporter sidecar, the part every game shares (gamedig)
+game-server/               what every game shares: library chart, status-metrics core, make, systemd
 docs/                      setup-nodes, platform, architecture, game-setup, per-game
 Makefile                   platform setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host
 ```

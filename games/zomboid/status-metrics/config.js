@@ -1,6 +1,6 @@
 "use strict";
 
-// What only Zomboid's exporter is told; the settings every game shares are in game-status-metrics/config.js.
+// What only Zomboid's exporter is told; the settings every game shares are in game-server/status-metrics/config.js.
 // Where the game writes its user and pvp logs.
 const ZOMBOID_LOG_DIR = process.env.ZOMBOID_LOG_DIR || "";
 // The sandbox settings and the accounts database.

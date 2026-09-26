@@ -1,8 +1,8 @@
 "use strict";
 
-const { STATUS_DIR } = require("../../../game-status-metrics/config");
+const { STATUS_DIR } = require("../../../game-server/status-metrics/config");
 
-// What only Valheim's exporter is told; the settings every game shares are in game-status-metrics/config.js.
+// What only Valheim's exporter is told; the settings every game shares are in game-server/status-metrics/config.js.
 // The game's admin list, one platform ID per line.
 const ADMIN_LIST_FILE = process.env.ADMIN_LIST_FILE || "";
 // The folder for this world's save files.

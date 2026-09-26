@@ -1,8 +1,8 @@
 "use strict";
 
-const { GAME, BACKUP_DIR } = require("../../../../game-status-metrics/config");
-const { formatGaugeLines } = require("../../../../game-status-metrics/format-metric-lines");
-const { isArchived } = require("../../../../game-status-metrics/read-backups");
+const { GAME, BACKUP_DIR } = require("../../../../game-server/status-metrics/config");
+const { formatGaugeLines } = require("../../../../game-server/status-metrics/format-metric-lines");
+const { isArchived } = require("../../../../game-server/status-metrics/read-backups");
 const { classifyBackups } = require("../classify-backups");
 const { readLastPlayerActivityTimestamp } = require("../read-valheim-status-files");
 

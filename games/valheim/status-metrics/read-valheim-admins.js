@@ -1,7 +1,7 @@
 "use strict";
 
 const fs = require("fs");
-const { ONLINE_PLAYERS_DIR } = require("../../../game-status-metrics/config");
+const { ONLINE_PLAYERS_DIR } = require("../../../game-server/status-metrics/config");
 const { ADMIN_LIST_FILE } = require("./config");
 
 // Valheim writes crossplay IDs as "Steam_<id>" in some places and bare in others.

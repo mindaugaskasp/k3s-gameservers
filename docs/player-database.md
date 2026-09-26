@@ -7,7 +7,7 @@ A file still named `<game>-players.db` is moved to the new name on start.
 
 ## Modules
 
-In `game-status-metrics/`:
+In `game-server/status-metrics/`:
 
 - `open-sqlite-database.js`: opens the file and applies migrations. This process is its
   only writer: another user's [WAL](https://sqlite.org/wal.html) files would make it "readonly".

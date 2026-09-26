@@ -4,13 +4,13 @@ Each game's pod runs its own status-metrics sidecar, which queries the game serv
 with [gamedig](https://github.com/gamedig/node-gamedig) and serves Prometheus text on
 `:9101/metrics` (`/healthz` for probes).
 
-- `game-status-metrics/`: what every game shares. It names no game.
+- `game-server/status-metrics/`: what every game shares. It names no game.
 - `games/<game>/status-metrics/`: what only that game records and reports, its
   `config.js` and its migrations. See [status-metrics-games.md](status-metrics-games.md).
 
 ## Image
 
-One per game, `<game>-status-metrics`, built from `game-status-metrics/Dockerfile` with
+One per game, `<game>-status-metrics`, built from `game-server/status-metrics/Dockerfile` with
 the game's folder as the `game` [build context](https://docs.podman.io/en/latest/markdown/podman-build.1.html#build-context-name-value).
 The image keeps the repo layout, so a game's relative `require`s of the core resolve as they do here.
 `game-server/make/metrics-image.mk` tags it with the last commit touching either folder.
