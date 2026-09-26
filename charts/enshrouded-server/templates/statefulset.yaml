@@ -53,6 +53,12 @@ spec:
               value: {{ .Values.server.branch | quote }}
             - name: TZ
               value: {{ .Values.server.timeZone | quote }}
+            # The start-up chown hands the whole volume to this uid, the exporter's database
+            # included, so it must match the status-metrics user.
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
             {{- range $key, $value := .Values.gameSettings }}
             - name: SERVER_GS_{{ $key }}
               value: {{ $value | quote }}
@@ -191,8 +197,7 @@ spec:
             - name: data
               mountPath: {{ $data }}
               readOnly: true
-            # The exporter's own path on the volume, off the game's data tree: the game
-            # runs as root and resets ownership across that tree on every start.
+            # The exporter's own path on the volume, where it can write its database.
             - name: data
               mountPath: /database/sqlite
               subPath: database/sqlite

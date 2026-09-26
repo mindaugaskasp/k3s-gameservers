@@ -33,9 +33,9 @@ HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.
 
 ## Monitoring
 
-- **Player history:** `database/sqlite/<game>-players.db`, its own path on the volume
-  and outside the game's data tree, which the game images chown to root on each start.
-  Only the sidecar mounts it.
+- **Player history:** `database/sqlite/<game>-players.db`, its own path on the volume.
+  Game images chown their tree to `PUID` on each start, so every game runs as uid 1000,
+  the sidecar's user, or the database turns read-only. Only the sidecar writes it.
 - **Sidecar:** `game-status-metrics/` queries each game with
   [gamedig](https://github.com/gamedig/node-gamedig) and serves `:9101/metrics`;
   its modules are listed in [status-metrics.md](status-metrics.md).
