@@ -8,6 +8,8 @@ with [gamedig](https://github.com/gamedig/node-gamedig) and serves Prometheus te
 - `games/<game>/status-metrics/`: what only that game records and reports, its
   `config.js` and its migrations, listed in its `status-metrics/README.md`.
 
+How Valheim's stats reach Grafana and the website: [metrics-flow.md](metrics-flow.md).
+
 ## Image
 
 One per game, `<game>-status-metrics`, built from `game-server/status-metrics/Dockerfile` with

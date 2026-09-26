@@ -47,6 +47,7 @@ Secrets: gitignored `games/<game>/.env` (see `.env.example`).
 - [docs/platform.md](docs/platform.md): k3s, registry, monitoring, how apps report
 - [docs/architecture.md](docs/architecture.md): games, networking, sizing
 - [docs/game-setup.md](docs/game-setup.md): checklist for adding a game
+- [docs/metrics-flow.md](docs/metrics-flow.md): how a game's stats reach Grafana and the website
 - [Valheim](games/valheim/README.md), [Project Zomboid](games/zomboid/README.md) and
   [Enshrouded](games/enshrouded/README.md): per-game notes, beside each game's `setup.md`
 
