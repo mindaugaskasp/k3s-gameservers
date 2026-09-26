@@ -9,8 +9,8 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 ```
 charts/<game>-server/      Helm chart per game
 games/<game>/              values.override.yaml, Makefile, Grafana dashboards, status-metrics/
-install/                   k3s.sh, firewall.sh, registry.sh, monitoring.sh, offsite-backup.sh, vpa.sh
-registry/ monitoring/ maintenance/ offsite-backup/   platform, see docs/platform.md
+platform/<piece>/          the cluster: k3s, firewall, registry, monitoring, crowdsec, maintenance,
+                           offsite-backup, vpa; each with its install.sh, see docs/platform.md
 game-status-metrics/       player/status exporter sidecar, the part every game shares (gamedig)
 docs/                      setup-nodes, platform, architecture, game-setup, per-game
 Makefile                   platform setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host
@@ -22,7 +22,7 @@ Makefile                   platform setup, dashboards, bans, off-host backups, c
 2. Install k3s, the registry, monitoring and every game's dashboards
    (steps: `make k3s`, `firewall`, `registry`, `monitoring`, `maintenance`, `dashboards`):
    ```sh
-   cp monitoring/.env.example monitoring/.env   # then edit
+   cp platform/site.env.example platform/site.env   # then edit
    make setup
    ```
 3. Set up a game, step by step (passwords, settings, joining, mods, memory):

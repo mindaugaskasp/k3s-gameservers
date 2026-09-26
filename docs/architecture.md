@@ -46,7 +46,7 @@ HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.
   what every game reports, separated by the `game` label.
 - **Prometheus:** plain manifests, LAN-only Ingress, 7 days of history.
   It scrapes the sidecars, kubelet, cAdvisor and cert-manager.
-- **Alerts:** Grafana rules in `monitoring/config/alerting.yaml` post to Discord with links back to Grafana.
+- **Alerts:** Grafana rules in `platform/monitoring/config/alerting.yaml` post to Discord with links back to Grafana.
 - **Dashboards:** `make dashboards` applies `games/<game>/grafana/dashboards/`
   as a labeled ConfigMap ([platform.md](platform.md#reporting-from-an-app)).
 - **[VPA](https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler)**

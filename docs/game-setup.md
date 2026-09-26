@@ -28,7 +28,7 @@ with a `game-plugin.js`, `config.js` and `migrations/` ([status-metrics.md](stat
 ## 4. Monitoring
 
 1. Add a scrape job for the game's metrics Service in
-   `monitoring/prometheus.yaml`, then `kubectl apply -k monitoring` and
+   `platform/monitoring/prometheus.yaml`, then `make monitoring` and
    restart Prometheus — the jobs are static, one per game.
 2. Copy another game's `grafana/dashboards/`, swap the game label, pod and
    PVC selectors, and drop panels that game can't feed.

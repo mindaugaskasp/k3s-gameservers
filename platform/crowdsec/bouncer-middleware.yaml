@@ -1,4 +1,4 @@
-# Rejects banned IPs on every Traefik entry point (install/k3s/traefik-config.yaml).
+# Rejects banned IPs on every Traefik entry point (platform/k3s/traefik-config.yaml).
 # Fails open: if the LAPI is down, traffic passes unchecked instead of being blocked.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

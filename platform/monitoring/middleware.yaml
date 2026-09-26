@@ -1,5 +1,5 @@
 # LAN-only access for Grafana and Loki push; Host rules alone don't stop internet clients.
-# Needs real client IPs: externalTrafficPolicy Local in install/k3s/traefik-config.yaml.
+# Needs real client IPs: externalTrafficPolicy Local in platform/k3s/traefik-config.yaml.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -7,6 +7,6 @@ metadata:
 spec:
   ipAllowList:
     sourceRange:
-      - LAN_CIDR # from .env
+      - LAN_CIDR # from platform/site.env
       # k3s pod CIDR: requests from the node itself arrive SNATed into it.
       - 10.42.0.0/16

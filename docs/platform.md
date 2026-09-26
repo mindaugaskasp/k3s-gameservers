@@ -3,19 +3,23 @@
 This repo owns the cluster. Apps (e.g. servers-web) only deploy into
 their own namespace and report to it.
 
-| Piece | Where | Install |
+Each piece is one `platform/<piece>/` folder, installed by its `install.sh` through the root `make <piece>`.
+Host values for all of them live in the gitignored `platform/site.env` (see `site.env.example`).
+
+| Piece | Folder | Install |
 |---|---|---|
-| k3s, Traefik config, registry mirror, clock drop-in | `install/k3s/` | `install/k3s.sh` |
-| Host firewall (ufw): SSH, LAN and pods in; game ports and 80/443 routed | `install/firewall.sh` | `make firewall` |
-| Image registry, localhost:30500 only | `registry/` | `install/registry.sh` |
-| Prometheus, Loki, Alloy, Grafana | `monitoring/` | `install/monitoring.sh` |
+| k3s, Traefik config, registry mirror, clock drop-in | `k3s/` | `make k3s` |
+| Host firewall (ufw): SSH, LAN and pods in; game ports and 80/443 routed | `firewall/` | `make firewall` |
+| Image registry, localhost:30500 only | `registry/` | `make registry` |
+| Prometheus, Loki, Alloy, Grafana | `monitoring/` | `make monitoring` |
 | CrowdSec, bans scanners at Traefik ([crowdsec.md](crowdsec.md)) | `crowdsec/` | `make crowdsec` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
 | Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make setup-offsite-backup` |
+| Vertical Pod Autoscaler, optional | `vpa/` | `platform/vpa/install.sh` |
 
 ## k3s
 
-`install/k3s.sh` writes
+`platform/k3s/install.sh` writes
 [`/etc/rancher/k3s/config.yaml`](https://docs.k3s.io/installation/configuration#configuration-file):
 `node-name` (default: short hostname), `write-kubeconfig-mode: "600"`,
 and `service-node-port-range=2456-32767`. Re-running the installer rewrites
@@ -30,16 +34,15 @@ so middlewares see real client IPs, and logs every request for CrowdSec.
 
 **After a reboot**, containerd can leave pods in `CreateContainerError`
 ("failed to reserve container name") that kubelet retries never clear.
-`maintenance/` deletes such pods if a controller owns them, which recreates them.
+`platform/maintenance/` deletes such pods if a controller owns them, which recreates them.
 
 ## Monitoring
 
-- **Host values** (Grafana/Loki/Prometheus hostnames, LAN CIDR) go in the gitignored
-  `monitoring/.env` (see `.env.example`).
+- **Host values** (Grafana/Loki/Prometheus hostnames, LAN CIDR) go in `platform/site.env`.
 - **Access:** Grafana, Prometheus and Loki's push path are LAN-only, via the
   `monitoring-lan-only@kubernetescrd` Traefik middleware.
 - **Admin password:** `make grafana-password`.
-- **Alerts:** `config/alerting.yaml` posts to Discord (`ALERTS_DISCORD_WEBHOOK_URL`): disk,
+- **Alerts:** `platform/monitoring/config/alerting.yaml` posts to Discord (`ALERTS_DISCORD_WEBHOOK_URL`): disk,
   crash loops, silent games, certificates, off-host backups. Each links to Grafana, never a command.
 - **Logs:** Alloy ships every pod's stdout/stderr to Loki (31 days). Loki has
   no auth.

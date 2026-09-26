@@ -2,7 +2,7 @@
 # Off-host backups end to end, safe to re-run: installs rclone, logs in to Google Drive once,
 # runs a backup and installs the 6-hourly timer. See docs/offsite-backups.md.
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 if ! grep -q '^OFFSITE_BACKUP_REMOTE=' .env 2>/dev/null; then
   [ -s .env ] && [ -n "$(tail -c1 .env)" ] && echo >> .env
@@ -49,8 +49,8 @@ rclone lsd "$remote_name:" >/dev/null \
 make -s offsite-backup
 
 sed -e "s|__REPO__|$PWD|g" -e "s|__USER__|$(id -un)|g" -e "s|__HOME__|$HOME|g" \
-  offsite-backup/systemd/offsite-backup.service | sudo tee /etc/systemd/system/offsite-backup.service >/dev/null
-sudo cp offsite-backup/systemd/offsite-backup.timer /etc/systemd/system/offsite-backup.timer
+  platform/offsite-backup/systemd/offsite-backup.service | sudo tee /etc/systemd/system/offsite-backup.service >/dev/null
+sudo cp platform/offsite-backup/systemd/offsite-backup.timer /etc/systemd/system/offsite-backup.timer
 sudo systemctl daemon-reload
 sudo systemctl enable --now offsite-backup.timer
 systemctl list-timers offsite-backup.timer --no-pager

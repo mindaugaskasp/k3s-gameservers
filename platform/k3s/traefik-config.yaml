@@ -10,7 +10,7 @@ spec:
       web:
         exposedPort: 80
         http: &crowdsec-bouncer
-          # Created by install/crowdsec.sh; routes fail while it is missing.
+          # Created by platform/crowdsec/install.sh; routes fail while it is missing.
           middlewares: [crowdsec-bouncer@kubernetescrd]
       websecure:
         exposedPort: 443

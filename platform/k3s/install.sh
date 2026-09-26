@@ -9,13 +9,13 @@ else
   sudo apt-get install -y podman
 fi
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/k3s"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo systemctl enable systemd-time-wait-sync.service
 sudo install -D -m 644 "$HERE/wait-for-clock.conf" /etc/systemd/system/k3s.service.d/wait-for-clock.conf
 sudo systemctl daemon-reload
 
-# In-cluster registry (registry/) over plain HTTP, for k3s pulls and podman pushes.
+# In-cluster registry (platform/registry/) over plain HTTP, for k3s pulls and podman pushes.
 sudo install -D -m 644 "$HERE/registries.yaml" /etc/rancher/k3s/registries.yaml
 mkdir -p "$HOME/.config/containers/registries.conf.d"
 printf '[[registry]]\nlocation = "localhost:30500"\ninsecure = true\n' > "$HOME/.config/containers/registries.conf.d/localhost-30500.conf"

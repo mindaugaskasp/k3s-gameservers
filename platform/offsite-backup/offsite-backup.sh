@@ -3,7 +3,7 @@
 # OFFSITE_BACKUP_REMOTE/<game>/. Files it deletes or overwrites move to <game>/replaced/<run time>/.
 set -euo pipefail
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 remote=${OFFSITE_BACKUP_REMOTE:?set OFFSITE_BACKUP_REMOTE in the root .env, see docs/offsite-backups.md}
 keep_replaced_days=${OFFSITE_BACKUP_KEEP_REPLACED_DAYS:-7}
@@ -16,7 +16,7 @@ trap 'rm -f "$run_output_file"' EXIT
 exec 3>&1 4>&2 > >(tee "$run_output_file") 2>&1
 tee_pid=$!
 
-# One line per game for its dashboard, one per run (no game label) for the alerts in monitoring/config/alerting.yaml.
+# One line per game for its dashboard, one per run (no game label) for the alerts in platform/monitoring/config/alerting.yaml.
 push_line_to_loki() {
   local result=$1 line=$2 game=${3:-}
   [ -n "${LOKI_URL:-}" ] || return 0

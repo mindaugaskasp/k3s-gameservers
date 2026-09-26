@@ -2,10 +2,10 @@
 # Host firewall (ufw): SSH from anywhere; everything from the LAN and k3s pods/services; no other
 # inbound. Routed traffic (game NodePorts, Traefik 80/443) is left open. Safe to re-run.
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
-lan_cidr=$(sed -n 's/^LAN_CIDR=//p' monitoring/.env 2>/dev/null)
-[ -n "$lan_cidr" ] || { echo "Missing LAN_CIDR in monitoring/.env" >&2; exit 1; }
+lan_cidr=$(sed -n 's/^LAN_CIDR=//p' platform/site.env 2>/dev/null)
+[ -n "$lan_cidr" ] || { echo "Missing LAN_CIDR in platform/site.env" >&2; exit 1; }
 
 sudo ufw default deny incoming
 sudo ufw default allow outgoing

@@ -92,14 +92,14 @@ spec:
                   name: grafana-admin
                   key: password
             - name: GF_SERVER_ROOT_URL
-              value: http://GRAFANA_HOST/ # from .env
+              value: http://GRAFANA_HOST/ # from platform/site.env
             - name: GF_ANALYTICS_REPORTING_ENABLED
               value: "false"
             - name: GF_ANALYTICS_CHECK_FOR_UPDATES
               value: "false"
             - name: GF_NEWS_NEWS_FEED_ENABLED
               value: "false"
-            # Read by config/alerting.yaml; install/monitoring.sh creates the Secret.
+            # Read by config/alerting.yaml; platform/monitoring/install.sh creates the Secret.
             - name: ALERTS_DISCORD_WEBHOOK_URL
               valueFrom:
                 secretKeyRef:
@@ -187,7 +187,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: monitoring-lan-only@kubernetescrd
 spec:
   rules:
-    - host: GRAFANA_HOST # from .env
+    - host: GRAFANA_HOST # from platform/site.env
       http: &grafana-backend
         paths:
           - path: /

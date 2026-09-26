@@ -60,40 +60,40 @@ grafana-password:
 
 ## Install the whole platform on the VM
 ##   Runs, in order: k3s, crowdsec, firewall, registry, monitoring, maintenance, dashboards
-##   Needs monitoring/.env: copy monitoring/.env.example, then edit.
+##   Needs platform/site.env: copy platform/site.env.example, then edit.
 setup: check-site-env k3s crowdsec firewall registry monitoring maintenance dashboards
 	@echo "Platform ready. Deploy a game: cd games/<game> && make push-metrics-image deploy"
 
 check-site-env:
-	@test -f monitoring/.env || { \
-		echo "Missing monitoring/.env -- cp monitoring/.env.example monitoring/.env, then edit" >&2; exit 1; }
+	@test -f platform/site.env || { \
+		echo "Missing platform/site.env -- cp platform/site.env.example platform/site.env, then edit" >&2; exit 1; }
 
 ## Install k3s with this repo's Traefik settings (on the VM)
 k3s:
-	./install/k3s.sh
+	./platform/k3s/install.sh
 
 ## Install CrowdSec and its Traefik bouncer (on the VM)
-##   Run it before Traefik loads install/k3s/traefik-config.yaml, which needs the bouncer.
+##   Run it before Traefik loads platform/k3s/traefik-config.yaml, which needs the bouncer.
 crowdsec:
-	./install/crowdsec.sh
+	./platform/crowdsec/install.sh
 
 ## Set up ufw: SSH, the LAN and pods in, game ports and 80/443 routed (on the VM)
-##   Needs monitoring/.env.
+##   Needs platform/site.env.
 firewall: check-site-env
-	./install/firewall.sh
+	./platform/firewall/install.sh
 
 ## Install the in-cluster image registry (on the VM)
 registry:
-	./install/registry.sh
+	./platform/registry/install.sh
 
 ## Install or update Prometheus, Loki, Alloy and Grafana (on the VM)
-##   Needs monitoring/.env, with ALERTS_DISCORD_WEBHOOK_URL set.
+##   Needs platform/site.env, with ALERTS_DISCORD_WEBHOOK_URL set.
 monitoring: check-site-env
-	./install/monitoring.sh
+	./platform/monitoring/install.sh
 
 ## Install the CronJob that deletes pods stuck after a reboot (on the VM)
 maintenance:
-	KUBECONFIG=$${KUBECONFIG:-$$HOME/.kube/config} kubectl apply -k maintenance
+	KUBECONFIG=$${KUBECONFIG:-$$HOME/.kube/config} kubectl apply -k platform/maintenance
 
 ## Ship every game's Grafana dashboards (runs make dashboards in each games/<game>)
 dashboards:
@@ -122,9 +122,9 @@ unban-ip:
 ##   LOKI_URL=URL                        where to report the result for alerts, or set it in .env
 offsite-backup:
 	@command -v rclone >/dev/null || { echo "rclone not installed, see docs/offsite-backups.md" >&2; exit 1; }
-	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) LOKI_URL=$(LOKI_URL) ./offsite-backup/offsite-backup.sh
+	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) LOKI_URL=$(LOKI_URL) ./platform/offsite-backup/offsite-backup.sh
 
 ## Install rclone, log in to Google Drive, take a first backup and start a 6-hourly timer
 ##   Safe to re-run. Over SSH, connect with -L 53682:localhost:53682 for the Drive login.
 setup-offsite-backup:
-	./install/offsite-backup.sh
+	./platform/offsite-backup/install.sh

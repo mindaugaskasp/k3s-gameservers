@@ -186,7 +186,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: monitoring-lan-only@kubernetescrd
 spec:
   rules:
-    - host: PROMETHEUS_HOST # from .env
+    - host: PROMETHEUS_HOST # from platform/site.env
       http: &prometheus-backend
         paths:
           - path: /

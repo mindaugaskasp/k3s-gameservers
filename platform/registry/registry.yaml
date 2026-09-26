@@ -1,4 +1,4 @@
-# podman pushes to and k3s pulls from localhost:30500 (see install/k3s/registries.yaml).
+# podman pushes to and k3s pulls from localhost:30500 (see platform/k3s/registries.yaml).
 # The registry has no auth, so it listens on the node's loopback only, never a NodePort.
 apiVersion: v1
 kind: Namespace

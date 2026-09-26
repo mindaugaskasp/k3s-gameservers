@@ -38,7 +38,7 @@ resources:
     memory: 8Gi
 
 # updateMode stays "Off" (chart default) -- recommendations only, never
-# evictions. See docs/architecture.md and install/vpa.sh.
+# evictions. See docs/architecture.md and platform/vpa/install.sh.
 verticalPodAutoscaler:
   enabled: true
 

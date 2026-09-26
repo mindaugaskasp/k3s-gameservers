@@ -16,7 +16,7 @@ agent:
 
 lapi:
   env:
-    # Registers the Traefik bouncer with the key install/crowdsec.sh generated.
+    # Registers the Traefik bouncer with the key platform/crowdsec/install.sh generated.
     - name: BOUNCER_KEY_traefik
       valueFrom:
         secretKeyRef: {name: bouncer-key, key: key}

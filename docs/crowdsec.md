@@ -5,10 +5,10 @@ behind Traefik: the website, Grafana and every other Ingress.
 
 | Piece | Where |
 |---|---|
-| Agent (DaemonSet): reads Traefik's access log, runs the [`crowdsecurity/traefik`](https://app.crowdsec.net/hub/author/crowdsecurity/collections/traefik) scenarios | `crowdsec/values.yaml` |
-| LAPI (Deployment): stores bans, pulls the community blocklist | `crowdsec/values.yaml` |
-| [Bouncer plugin](https://plugins.traefik.io/plugins/6335346ca4caa9ddeffda116/crowdsec-bouncer-traefik-plugin) on both entry points: returns 403 to banned IPs | `crowdsec/bouncer-middleware.yaml`, `install/k3s/traefik-config.yaml` |
-| Dashboard, Grafana's Website folder | `crowdsec/grafana/dashboards/` |
+| Agent (DaemonSet): reads Traefik's access log, runs the [`crowdsecurity/traefik`](https://app.crowdsec.net/hub/author/crowdsecurity/collections/traefik) scenarios | `platform/crowdsec/values.yaml` |
+| LAPI (Deployment): stores bans, pulls the community blocklist | `platform/crowdsec/values.yaml` |
+| [Bouncer plugin](https://plugins.traefik.io/plugins/6335346ca4caa9ddeffda116/crowdsec-bouncer-traefik-plugin) on both entry points: returns 403 to banned IPs | `platform/crowdsec/bouncer-middleware.yaml`, `platform/k3s/traefik-config.yaml` |
+| Dashboard, Grafana's Website folder | `platform/crowdsec/grafana/dashboards/` |
 
 Install with `make crowdsec`, **before** Traefik loads `traefik-config.yaml`:
 every route fails while `crowdsec-bouncer@kubernetescrd` is missing.

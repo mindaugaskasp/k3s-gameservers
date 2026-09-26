@@ -23,9 +23,9 @@ configMapGenerator:
     files: [config/dashboard-providers.yaml]
   - name: grafana-alerting
     files: [config/alerting.yaml]
-  # Host-specific values (gitignored); only feeds the replacements below, never applied.
+  # Host-specific values (gitignored platform/site.env); only feeds the replacements below, never applied.
   - name: site
-    envs: [.env]
+    envs: [../site.env]
     options:
       annotations:
         config.kubernetes.io/local-config: "true"

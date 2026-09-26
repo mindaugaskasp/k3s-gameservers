@@ -1,6 +1,6 @@
 # Setting up a node VM on TrueNAS
 
-Do these before running `install/k3s.sh`. For the VM screens, see
+Do these before running `make k3s`. For the VM screens, see
 [TrueNAS VMs](https://www.truenas.com/docs/scale/scaletutorials/virtualization/).
 
 > **The VM's System Clock must be set to UTC in TrueNAS.** On the default,
@@ -45,7 +45,7 @@ podman system migrate
 For the netplan file, see the
 [netplan examples](https://netplan.readthedocs.io/en/stable/examples/)
 (`dhcp4: false`, `addresses`, `routes`, `nameservers`). If the IP changes,
-also update the router's port forwards, `VM_HOST` and `monitoring/.env`.
+also update the router's port forwards, `VM_HOST` and `platform/site.env`.
 
 ## Node NotReady after a restart?
 

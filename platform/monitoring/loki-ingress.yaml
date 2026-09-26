@@ -9,7 +9,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: monitoring-lan-only@kubernetescrd
 spec:
   rules:
-    - host: LOKI_HOST # from .env
+    - host: LOKI_HOST # from platform/site.env
       http: &loki-push
         paths:
           - path: /loki/api/v1/push
