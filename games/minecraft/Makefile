@@ -26,23 +26,13 @@ secrets-check:
 ##   MINECRAFT_CONNECT_HOST     optional, the public host name shown in alerts
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	extra=(); \
-	if [ -n "$$MINECRAFT_OPERATORS" ]; then \
-		extra+=(--set-string server.operators="$$MINECRAFT_OPERATORS"); \
-	fi; \
-	if [ -n "$$MINECRAFT_WHITELIST" ]; then \
-		extra+=(--set-string server.whitelist="$$MINECRAFT_WHITELIST"); \
-	fi; \
-	if [ -n "$$MINECRAFT_DISCORD_WEBHOOK" ]; then \
-		extra+=(--set alerts.enabled=true --set-string alerts.discordWebhook="$$MINECRAFT_DISCORD_WEBHOOK"); \
-	fi; \
-	if [ -n "$$MINECRAFT_CONNECT_HOST" ]; then \
-		extra+=(--set-string server.connectHost="$$MINECRAFT_CONNECT_HOST"); \
-	fi; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) \
-		--set-string secrets.rconPassword="$$MINECRAFT_RCON_PASSWORD" \
-		"$${extra[@]}"
+	@$(LOAD_ENV_FOR_HELM); \
+	set_value secrets.rconPassword "$$MINECRAFT_RCON_PASSWORD"; \
+	set_value_if_given server.operators "$$MINECRAFT_OPERATORS"; \
+	set_value_if_given server.whitelist "$$MINECRAFT_WHITELIST"; \
+	set_discord_alerts "$$MINECRAFT_DISCORD_WEBHOOK"; \
+	set_value_if_given server.connectHost "$$MINECRAFT_CONNECT_HOST"; \
+	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
 
 ## Run one server command over RCON
 ##   CMD="command"   e.g. make console CMD="list"

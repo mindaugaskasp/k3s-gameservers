@@ -12,7 +12,8 @@ include ../../game-server/make/game.mk
 # Secrets come from the environment or a gitignored .env here; see .env.example.
 secrets-check:
 	@set -a; [ -f .env ] && . ./.env; set +a; \
-	test -n "$$VALHEIM_SERVER_PASSWORD" || (echo "VALHEIM_SERVER_PASSWORD is not set (env or .env)" >&2; exit 1)
+	test -n "$$VALHEIM_SERVER_PASSWORD" || (echo "VALHEIM_SERVER_PASSWORD is not set (env or .env)" >&2; exit 1); \
+	test -n "$$VALHEIM_WORLD_NAME" || (echo "VALHEIM_WORLD_NAME is not set: without it the server starts a new world" >&2; exit 1)
 
 # Discord alerts stay off unless VALHEIM_DISCORD_WEBHOOK is exported.
 # connectHost is set the same way, via VALHEIM_CONNECT_HOST, so the public
@@ -24,20 +25,13 @@ secrets-check:
 ##   VALHEIM_CONNECT_HOST      optional, the public host name shown to players
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	extra=(); \
-	if [ -n "$$VALHEIM_DISCORD_WEBHOOK" ]; then \
-		extra+=(--set alerts.enabled=true \
-			--set-string alerts.discordWebhook="$$VALHEIM_DISCORD_WEBHOOK"); \
-	else \
-		echo "note: VALHEIM_DISCORD_WEBHOOK unset, deploying without Discord alerts" >&2; \
-	fi; \
-	if [ -n "$$VALHEIM_CONNECT_HOST" ]; then \
-		extra+=(--set-string server.connectHost="$$VALHEIM_CONNECT_HOST"); \
-	fi; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) \
-		--set-string secrets.serverPassword="$$VALHEIM_SERVER_PASSWORD" \
-		"$${extra[@]}"
+	@$(LOAD_ENV_FOR_HELM); \
+	set_value secrets.serverPassword "$$VALHEIM_SERVER_PASSWORD"; \
+	set_value server.worldName "$$VALHEIM_WORLD_NAME"; \
+	set_value_if_given server.displayName "$$VALHEIM_SERVER_NAME"; \
+	set_discord_alerts "$$VALHEIM_DISCORD_WEBHOOK"; \
+	set_value_if_given server.connectHost "$$VALHEIM_CONNECT_HOST"; \
+	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
 
 ## Show whether mods loaded, why not if they did not, and which plugins are installed
 mods-status:

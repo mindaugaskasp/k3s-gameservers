@@ -1,7 +1,6 @@
 # Overrides chart/values.yaml. Secrets never go here; games/vrising/.env overrides the server settings.
 
 server:
-  name: "V Rising Kaunas"
   gameMode: "PvE"
 
 persistence:

@@ -9,15 +9,14 @@ command below in `games/valheim/` on the k3s host; `make help <command>` explain
 make init-env        # creates .env from .env.example and shows which values are set
 ```
 
-Edit `.env`: `VALHEIM_SERVER_PASSWORD` (required, at least 5 characters), and optionally
-`VALHEIM_DISCORD_WEBHOOK` and `VALHEIM_CONNECT_HOST` for Discord alerts.
+Edit `.env`: `VALHEIM_SERVER_PASSWORD` (required, at least 5 characters), `VALHEIM_WORLD_NAME`
+(required, the save name; changing it starts a **new** world), `VALHEIM_SERVER_NAME` (the name in
+the server browser), and optionally `VALHEIM_DISCORD_WEBHOOK` and `VALHEIM_CONNECT_HOST` for alerts.
 
 ## 2. Server settings
 
-`values.override.yaml` holds everything that is not secret:
+`values.override.yaml` holds the rest:
 
-- `server.displayName`: the name in the server browser.
-- `server.worldName`: the save name. Changing it starts a **new** world.
 - `server.public`, `server.crossplay`: server browser listing, and Xbox/Game Pass players.
 - `server.extraArgs`: world modifiers, e.g. `-modifier raids more -modifier portals casual`
   (`combat`, `deathPenalty`, `resources`, `raids`, `portals`), or a whole `-preset hard`.

@@ -19,11 +19,7 @@ secrets-check:
 ##   TERRARIA_CONNECT_HOST      optional, the public host name
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	extra=(); \
-	if [ -n "$$TERRARIA_CONNECT_HOST" ]; then \
-		extra+=(--set-string server.connectHost="$$TERRARIA_CONNECT_HOST"); \
-	fi; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) \
-		--set-string secrets.serverPassword="$$TERRARIA_SERVER_PASSWORD" \
-		"$${extra[@]}"
+	@$(LOAD_ENV_FOR_HELM); \
+	set_value secrets.serverPassword "$$TERRARIA_SERVER_PASSWORD"; \
+	set_value_if_given server.connectHost "$$TERRARIA_CONNECT_HOST"; \
+	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"

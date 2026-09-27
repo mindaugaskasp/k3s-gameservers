@@ -22,40 +22,18 @@ secrets-check:
 ##   Server name, slots, chat, difficulty and the rest are optional .env overrides.
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	extra=(); \
-	if [ -n "$$ENSHROUDED_FRIEND_PASSWORD" ]; then \
-		extra+=(--set-string secrets.rolePasswords.FRIEND_PASS="$$ENSHROUDED_FRIEND_PASSWORD"); \
-	fi; \
-	if [ -n "$$ENSHROUDED_DISCORD_WEBHOOK" ]; then \
-		extra+=(--set alerts.enabled=true --set-string alerts.discordWebhook="$$ENSHROUDED_DISCORD_WEBHOOK"); \
-	fi; \
-	if [ -n "$$ENSHROUDED_CONNECT_HOST" ]; then \
-		extra+=(--set-string server.connectHost="$$ENSHROUDED_CONNECT_HOST"); \
-	fi; \
-	if [ -n "$$ENSHROUDED_SERVER_NAME" ]; then \
-		extra+=(--set-string server.name="$$ENSHROUDED_SERVER_NAME"); \
-	fi; \
-	if [ -n "$$ENSHROUDED_SLOT_COUNT" ]; then \
-		extra+=(--set server.slotCount="$$ENSHROUDED_SLOT_COUNT"); \
-	fi; \
-	if [ -n "$$ENSHROUDED_TEXT_CHAT" ]; then \
-		extra+=(--set server.textChat="$$ENSHROUDED_TEXT_CHAT"); \
-	fi; \
-	if [ -n "$$ENSHROUDED_VOICE_CHAT" ]; then \
-		extra+=(--set server.voiceChat="$$ENSHROUDED_VOICE_CHAT"); \
-	fi; \
-	if [ -n "$$ENSHROUDED_DIFFICULTY" ]; then \
-		extra+=(--set-string gameSettings.PRESET="$$ENSHROUDED_DIFFICULTY"); \
-	fi; \
-	IFS=',' read -ra gs <<< "$$ENSHROUDED_GAME_SETTINGS"; \
-	for kv in "$${gs[@]}"; do \
-		[ -n "$${kv// }" ] || continue; \
-		extra+=(--set-string "gameSettings.$${kv%%=*}=$${kv#*=}"); \
-	done; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) \
-		--set-string secrets.rolePasswords.ADMIN_PASS="$$ENSHROUDED_ADMIN_PASSWORD" \
-		"$${extra[@]}"
+	@$(LOAD_ENV_FOR_HELM); \
+	set_value secrets.rolePasswords.ADMIN_PASS "$$ENSHROUDED_ADMIN_PASSWORD"; \
+	set_value_if_given secrets.rolePasswords.FRIEND_PASS "$$ENSHROUDED_FRIEND_PASSWORD"; \
+	set_discord_alerts "$$ENSHROUDED_DISCORD_WEBHOOK"; \
+	set_value_if_given server.connectHost "$$ENSHROUDED_CONNECT_HOST"; \
+	set_value_if_given server.name "$$ENSHROUDED_SERVER_NAME"; \
+	set_value_if_given server.slotCount "$$ENSHROUDED_SLOT_COUNT"; \
+	set_value_if_given server.textChat "$$ENSHROUDED_TEXT_CHAT"; \
+	set_value_if_given server.voiceChat "$$ENSHROUDED_VOICE_CHAT"; \
+	set_value_if_given gameSettings.PRESET "$$ENSHROUDED_DIFFICULTY"; \
+	set_game_settings "$$ENSHROUDED_GAME_SETTINGS"; \
+	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
 
 ## Run steamcmd now, even if the installed build looks current
 force-update:

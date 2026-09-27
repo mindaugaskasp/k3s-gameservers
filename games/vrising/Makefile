@@ -10,11 +10,6 @@ BACKUP_ARCHIVE_LIST_COMMAND := tar -tf
 RESTORE_REQUIRED_ARCHIVE_ENTRY := .save.gz
 include ../../game-server/make/game.mk
 
-# Each .env setting and the chart value it overrides; an empty one keeps what values.override.yaml sets.
-ENV_SETTING_VALUES := VRISING_SERVER_NAME=server.name VRISING_DESCRIPTION=server.description \
-	VRISING_MAX_PLAYERS=server.maxPlayers VRISING_GAME_MODE=server.gameMode \
-	VRISING_DIFFICULTY=server.difficulty VRISING_ADMIN_STEAM_IDS=admins VRISING_CONNECT_HOST=server.connectHost
-
 .PHONY: deploy
 
 ## Install or upgrade the V Rising server with Helm
@@ -25,22 +20,15 @@ ENV_SETTING_VALUES := VRISING_SERVER_NAME=server.name VRISING_DESCRIPTION=server
 ##   VRISING_DISCORD_WEBHOOK   turns on Discord alerts
 deploy: chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	escape_commas() { printf '%s' "$${1//,/\\,}"; }; \
-	extra=(); \
-	for setting in $(ENV_SETTING_VALUES); do \
-		env_name=$${setting%%=*}; \
-		[ -z "$${!env_name}" ] || extra+=(--set-string "$${setting#*=}=$$(escape_commas "$${!env_name}")"); \
-	done; \
-	IFS=',' read -ra game_settings <<< "$$VRISING_GAME_SETTINGS"; \
-	for game_setting in "$${game_settings[@]}"; do \
-		game_setting=$${game_setting// }; \
-		[ -n "$$game_setting" ] || continue; \
-		extra+=(--set-string "gameSettings.$${game_setting%%=*}=$${game_setting#*=}"); \
-	done; \
-	if [ -n "$$VRISING_DISCORD_WEBHOOK" ]; then \
-		extra+=(--set alerts.enabled=true --set-string alerts.discordWebhook="$$VRISING_DISCORD_WEBHOOK"); \
-	fi; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) \
-		--set-string secrets.serverPassword="$$(escape_commas "$$VRISING_SERVER_PASSWORD")" \
-		"$${extra[@]}"
+	@$(LOAD_ENV_FOR_HELM); \
+	set_value secrets.serverPassword "$$VRISING_SERVER_PASSWORD"; \
+	set_value_if_given server.name "$$VRISING_SERVER_NAME"; \
+	set_value_if_given server.description "$$VRISING_DESCRIPTION"; \
+	set_value_if_given server.maxPlayers "$$VRISING_MAX_PLAYERS"; \
+	set_value_if_given server.gameMode "$$VRISING_GAME_MODE"; \
+	set_value_if_given server.difficulty "$$VRISING_DIFFICULTY"; \
+	set_value_if_given admins "$$VRISING_ADMIN_STEAM_IDS"; \
+	set_value_if_given server.connectHost "$$VRISING_CONNECT_HOST"; \
+	set_discord_alerts "$$VRISING_DISCORD_WEBHOOK"; \
+	set_game_settings "$$VRISING_GAME_SETTINGS"; \
+	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"

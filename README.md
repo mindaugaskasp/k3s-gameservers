@@ -7,28 +7,24 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 ## Layout
 
 ```
-games/<game>/              everything about one game: chart/, status-metrics/, grafana/, Makefile,
-                           values.override.yaml, setup.md
-platform/<piece>/          the cluster: k3s, firewall, registry, monitoring, crowdsec, maintenance,
-                           offsite-backup, vpa; each with its install.sh, see docs/platform.md
-game-server/               what every game shares: library chart, status-metrics core, make, systemd
-docs/                      setup-nodes, platform, architecture, game-setup, per-game
-Makefile                   platform setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host
+games/<game>/      one game: chart/, status-metrics/, grafana/, Makefile, values.override.yaml, setup.md
+platform/<piece>/  the cluster (k3s, firewall, registry, monitoring, ...), each with its install.sh
+game-server/       what every game shares: library chart, status-metrics core, make, systemd
+docs/              setup-nodes, platform, architecture, game-setup and other topics
+Makefile           platform setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host (VM_HOST in .env)
 ```
 
 ## Setup
 
 1. Prepare the VM: [docs/setup-nodes.md](docs/setup-nodes.md).
-2. Install k3s, the registry, monitoring and every game's dashboards
-   (steps: `make k3s`, `firewall`, `registry`, `monitoring`, `maintenance`, `dashboards`):
+2. Install the platform (`make k3s`, `firewall`, `registry`, `monitoring`, `maintenance`, `dashboards`):
    ```sh
    cp platform/site.env.example platform/site.env   # then edit
    make setup
    ```
-3. Set up a game, step by step (passwords, settings, joining, mods, memory):
-   [Valheim](games/valheim/setup.md), [Project Zomboid](games/zomboid/setup.md),
-   [Enshrouded](games/enshrouded/setup.md), [Minecraft](games/minecraft/setup.md),
-   [Terraria](games/terraria/setup.md), [V Rising](games/vrising/setup.md). Read each script before running it.
+3. Set up a game (passwords, names, settings, joining, memory); read each script before running it:
+   [Valheim](games/valheim/setup.md), [Project Zomboid](games/zomboid/setup.md), [Enshrouded](games/enshrouded/setup.md),
+   [Minecraft](games/minecraft/setup.md), [Terraria](games/terraria/setup.md), [V Rising](games/vrising/setup.md).
 
 ## Router ports
 
@@ -47,29 +43,18 @@ Forward these from the router to the host; each game port is a NodePort on the s
 
 ## Day-to-day
 
-Run `make help` here or in `games/<game>/` for every command (logs, players, restart,
-backups, sync, restore-backup, dashboards), and `make help <command>` for its arguments.
-Secrets: gitignored `games/<game>/.env` (see `.env.example`).
+`make help` here or in `games/<game>/` lists every command, `make help <command>` its arguments.
+Secrets and server names: gitignored `games/<game>/.env` (see `.env.example`).
 
 - **One game at a time:** `make scale-down-zero` in one, `make scale-up` in the other.
-- **Backups:** the world lives on the PVC. `make sync` copies it to `data/` and
-  `data-backups/`; [offsite-backups.md](docs/offsite-backups.md) pushes them off the host.
+- **Backups:** `make sync` copies the world to `data/` and `data-backups/`; [offsite-backups.md](docs/offsite-backups.md) sends them off the host.
 - **Grafana:** `make dashboards` (root: all games) and `make grafana-password`.
-- **Root `Makefile`:** copy-to-vm / copy-to-host; set `VM_HOST` in the root `.env`.
 
 ## Docs
 
 - [docs/setup-nodes.md](docs/setup-nodes.md): VM settings (clock, disk, IP, sizing)
 - [docs/platform.md](docs/platform.md): k3s, registry, monitoring, how apps report
 - [docs/architecture.md](docs/architecture.md): games, networking, sizing
-- [docs/game-setup.md](docs/game-setup.md): checklist for adding a game
+- [docs/game-setup.md](docs/game-setup.md): adding a game, any [gamedig game id](https://github.com/gamedig/node-gamedig/blob/master/GAMES_LIST.md)
 - [docs/metrics-flow.md](docs/metrics-flow.md): how a game's stats reach Grafana and the website
-- [Valheim](games/valheim/README.md), [Project Zomboid](games/zomboid/README.md),
-  [Enshrouded](games/enshrouded/README.md), [Minecraft](games/minecraft/README.md),
-  [Terraria](games/terraria/README.md) and [V Rising](games/vrising/README.md): per-game notes,
-  beside each game's `setup.md`
-
-## Adding a game
-
-Follow [docs/game-setup.md](docs/game-setup.md). The sidecar supports any
-[gamedig game id](https://github.com/gamedig/node-gamedig/blob/master/GAMES_LIST.md).
+- `games/<game>/README.md`: how each game runs, beside its `setup.md`

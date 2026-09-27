@@ -39,6 +39,8 @@ include $(REPO_ROOT)/make/help.mk
 
 HELM_RELEASE_FLAGS = $(RELEASE) $(CHART) $(addprefix -f ,$(VALUE_FILES)) -n $(NAMESPACE) \
 	--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
+# A deploy recipe's first line: loads .env and the helpers that turn it into helm_flags.
+LOAD_ENV_FOR_HELM = set -a; [ -f .env ] && . ./.env; set +a; . $(GAME_SERVER_DIR)/make/helm-values-from-env.sh
 
 .PHONY: help init-env lint template status logs logs-metrics restart scale-down-zero scale-up shell \
 	players backups sync sync-data sync-backups download-backups install-sync-timer restore-backup \

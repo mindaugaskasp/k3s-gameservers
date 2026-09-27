@@ -21,7 +21,8 @@ include ../../game-server/make/game.mk
 secrets-check:
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	test -n "$$ZOMBOID_ADMIN_PASSWORD" || (echo "ZOMBOID_ADMIN_PASSWORD is not set" >&2; exit 1); \
-	test -n "$$ZOMBOID_RCON_PASSWORD" || (echo "ZOMBOID_RCON_PASSWORD is not set" >&2; exit 1)
+	test -n "$$ZOMBOID_RCON_PASSWORD" || (echo "ZOMBOID_RCON_PASSWORD is not set" >&2; exit 1); \
+	test -n "$$ZOMBOID_WORLD_NAME" || (echo "ZOMBOID_WORLD_NAME is not set: without it the server starts a new world" >&2; exit 1)
 
 ## Install or upgrade the Project Zomboid server with Helm
 ##   Reads .env (see .env.example):
@@ -32,21 +33,15 @@ secrets-check:
 ##   ZOMBOID_CONNECT_HOST      optional, the public host name shown to players
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@set -a; [ -f .env ] && . ./.env; set +a; \
-	extra=(); \
-	if [ -n "$$ZOMBOID_SERVER_PASSWORD" ]; then \
-		extra+=(--set-string secrets.serverPassword="$$ZOMBOID_SERVER_PASSWORD"); \
-	fi; \
-	if [ -n "$$ZOMBOID_DISCORD_WEBHOOK" ]; then \
-		extra+=(--set alerts.enabled=true --set-string alerts.discordWebhook="$$ZOMBOID_DISCORD_WEBHOOK"); \
-	fi; \
-	if [ -n "$$ZOMBOID_CONNECT_HOST" ]; then \
-		extra+=(--set-string server.connectHost="$$ZOMBOID_CONNECT_HOST"); \
-	fi; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) \
-		--set-string secrets.adminPassword="$$ZOMBOID_ADMIN_PASSWORD" \
-		--set-string secrets.rconPassword="$$ZOMBOID_RCON_PASSWORD" \
-		"$${extra[@]}"
+	@$(LOAD_ENV_FOR_HELM); \
+	set_value secrets.adminPassword "$$ZOMBOID_ADMIN_PASSWORD"; \
+	set_value secrets.rconPassword "$$ZOMBOID_RCON_PASSWORD"; \
+	set_value server.name "$$ZOMBOID_WORLD_NAME"; \
+	set_value_if_given server.displayName "$$ZOMBOID_SERVER_NAME"; \
+	set_value_if_given secrets.serverPassword "$$ZOMBOID_SERVER_PASSWORD"; \
+	set_discord_alerts "$$ZOMBOID_DISCORD_WEBHOOK"; \
+	set_value_if_given server.connectHost "$$ZOMBOID_CONNECT_HOST"; \
+	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
 
 # No update restarts while the game is scaled to 0.
 suspend-update-cron:

@@ -1,8 +1,6 @@
 # Overrides chart/values.yaml. Secrets never go here.
 
 server:
-  displayName: "Valheim Kaunas"
-  worldName: "Kaunas" # changing this starts a NEW world
   public: true
   crossplay: false
   extraArgs: "-modifier resources more -modifier raids more -modifier deathPenalty casual -modifier portals casual"

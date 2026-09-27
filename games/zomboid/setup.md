@@ -11,13 +11,14 @@ make init-env        # creates .env from .env.example and shows which values are
 
 Edit `.env`: `ZOMBOID_ADMIN_PASSWORD` and `ZOMBOID_RCON_PASSWORD` (required; the admin logs in
 as `server.adminUsername` with the admin password), `ZOMBOID_SERVER_PASSWORD` (join password,
-empty = open), and optionally `ZOMBOID_DISCORD_WEBHOOK`, `ZOMBOID_CONNECT_HOST` for alerts.
+empty = open), `ZOMBOID_WORLD_NAME` (required, the save name; changing it starts a **new** world),
+`ZOMBOID_SERVER_NAME` (the server browser name), and optionally `ZOMBOID_DISCORD_WEBHOOK`,
+`ZOMBOID_CONNECT_HOST` for alerts.
 
 ## 2. Server settings
 
-In `values.override.yaml`: `server.displayName`, `server.pvp`, `server.maxPlayers`,
-`server.public`, and `server.saveWorldEveryMinutes` (default 10). `server.name` is the save
-name: changing it starts a **new** world.
+In `values.override.yaml`: `server.pvp`, `server.maxPlayers`, `server.public`, and
+`server.saveWorldEveryMinutes` (default 10).
 
 Sandbox rules (zombie count, day length, loot): [sandbox-settings.md](sandbox-settings.md).
 

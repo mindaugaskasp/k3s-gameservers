@@ -2,8 +2,6 @@
 # Sizing: see the resources comment in games/valheim/values.override.yaml.
 
 server:
-  name: "Zomboid_Kaunas" # the world's folder is already Zomboid_Kaunas
-  displayName: "Zomboid Kaunas"
   adminUsername: "admin"
   public: false
   pvp: false

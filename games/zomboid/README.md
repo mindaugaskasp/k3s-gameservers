@@ -6,10 +6,9 @@ Its README disagrees with it on the port variable names.
 
 ## Names and ini
 
-- **`server.name`** names the save, ini and db files, and can't contain
-  spaces (the chart refuses). With a space, the game's own backups silently
-  skip the world.
-- **`server.displayName`** becomes `PublicName` in the server browser.
+- **`server.name`** (`ZOMBOID_WORLD_NAME`) names the save, ini and db files, and can't contain
+  spaces (the chart refuses). With a space, the game's own backups silently skip the world.
+- **`server.displayName`** (`ZOMBOID_SERVER_NAME`) becomes `PublicName` in the server browser.
 - **ini keys:** an initContainer sets `PublicName` and `Backups*` before the
   game reads the ini. On a new volume they only apply from the second boot,
   because the first boot has no ini yet.

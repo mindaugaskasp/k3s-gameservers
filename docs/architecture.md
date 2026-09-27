@@ -14,9 +14,8 @@ A single-node k3s cluster runs three namespaces:
   `helm uninstall` keeps the PVC.
 - **Replicas** come from the live object (`lookup`), so `helm upgrade`
   doesn't undo a scale to 0.
-- **Deploying:** use
-  `helm upgrade <g> games/<g>/chart -n games --reuse-values -f games/<g>/values.override.yaml`
-  to keep existing secrets.
+- **Deploying:** `make deploy` in `games/<game>/`. Not `helm upgrade --reuse-values`: it ignores
+  chart defaults added since the last deploy.
 - **Secrets** (passwords, Discord webhooks) are set from env vars at deploy
   time and never committed.
 - **Backups** are the image's own, or a `backup` sidecar where it has none (Minecraft, V Rising).
@@ -28,9 +27,10 @@ A single-node k3s cluster runs three namespaces:
 
 - **`chart/`:** a Helm [library chart](https://helm.sh/docs/topics/library_charts/) each game's chart
   depends on: helpers, labels, VPA, the Discord secret, the status-metrics sidecar and its Service,
-  generic start/stop hooks and an init container for images that run as root.
+  generic start/stop hooks and an init container for images that run as root. Every game's hooks carry
+  its `post-discord-embed.sh` and `record-uptime.sh`, so alerts and lifetime uptime work one way.
 - **`make/game.mk`:** every game's shared make targets; the game Makefile sets its paths and includes it.
-  `world-data.mk` holds its sync, download and restore targets.
+  `world-data.mk` holds its sync, download and restore targets; `helm-values-from-env.sh` turns `.env` into Helm flags.
 - **`status-metrics/`:** the exporter's shared core ([status-metrics.md](status-metrics.md)).
 - **`systemd/`, `restore-helper-pod.yaml`:** the hourly sync timer and the restore pod, one per game instance.
 - **`grafana/`:** dashboards a game ships as its own unless its Makefile clears `SHARED_DASHBOARDS`.

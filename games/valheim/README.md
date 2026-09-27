@@ -9,8 +9,7 @@
 - **Data:** the world and config are on the PVC at `/config` (saves in
   `worlds_local`). The game install is a disposable subPath at `/opt/valheim`.
 - **Backups:** every 10 minutes, only if players were on since the last one
-  (`backup-gate.sh`), named `<date>-<time>-game-day-<n>.zip` (UTC, in-game
-  day). The last `backups.recentDays` of play stay in `/config/backups`; per
+  (`backup-gate.sh`), renamed by `files/backup-rename.sh` to `<date>-<time>-game-day-<n>.zip`. The last `backups.recentDays` of play stay in `/config/backups`; per
   `backupArchiveWindowDays` window the newest and oldest move to `archive/`
   (`files/backup-prune.sh`). Ages are play time in `backups/.play-clock`, so
   idle months age nothing; if the index is bad, pruning stops, deletes
@@ -23,15 +22,15 @@
 Valheim's query protocol reports only a player count. For names,
 `player-event.sh` runs from the image's
 [log-filter hooks](https://github.com/community-valheim-tools/valheim-server-docker#log-filters)
-and keeps one file per online character. The sidecar exports them as
+and keeps one file per online character; `raid-event.sh` logs raids the same way. The sidecar exports them as
 `game_server_player_session_seconds{name}`, and clears them when the count is 0.
 Each scrape also records them in the player database ([player-database.md](../../docs/player-database.md)), exported
 as `game_server_player_last_seen_timestamp_seconds{name}` so names outlive restarts.
 
 ## Alerts
 
-Discord embeds on stop and update come from the image's [event hooks](https://github.com/community-valheim-tools/valheim-server-docker#event-hooks);
-"Server online" waits for Steam to register the server, then `alerts.onlineDelaySeconds`.
+`notify.sh` posts Discord embeds on stop and update from the image's [event hooks](https://github.com/community-valheim-tools/valheim-server-docker#event-hooks).
+`announce-online.sh` posts "Server online" once Steam registers the server, after `alerts.onlineDelaySeconds`.
 
 ## Mods (BepInEx)
 
@@ -49,7 +48,7 @@ A Valheim update can land before a compatible BepInEx does, so
 
 ```sh
 make mods-status                 # did mods load, and why not
-make approve-mods && make restart
+make approve-mods && make restart   # approve-mods.sh records the current build
 ```
 
 ## Client mods (admin's Windows PC)

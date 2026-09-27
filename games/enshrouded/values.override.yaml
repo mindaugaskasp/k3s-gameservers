@@ -2,7 +2,6 @@
 # Sizing: see the resources comment in games/valheim/values.override.yaml.
 
 server:
-  name: "Enshrouded Kaunas"
   slotCount: 8
   textChat: true
 
