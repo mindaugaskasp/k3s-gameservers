@@ -54,6 +54,8 @@ spec:
               value: {{ .Values.server.displayName | quote }}
             - name: WORLD_NAME
               value: {{ .Values.server.worldName | quote }}
+            - name: WORLD_SEED
+              value: {{ .Values.server.seed | quote }}
             - name: SERVER_PORT
               value: {{ .Values.server.port | quote }}
             - name: SERVER_PUBLIC
@@ -119,11 +121,11 @@ spec:
               value: "true"
             - name: MOD_REQUIRE_APPROVED_BUILD
               value: {{ .Values.mods.requireApprovedBuild | quote }}
-            # Sourced, not executed: it must clear DOORSTOP_ENABLED in the
+            {{- end }}
+            # mod-guard.sh is sourced, not executed: it must clear DOORSTOP_ENABLED in the
             # server script's own shell to fall back to an unmodded start.
             - name: PRE_SERVER_RUN_HOOK
-              value: ". /etc/valheim-hooks/mod-guard.sh"
-            {{- end }}
+              value: {{ printf "python3 /etc/valheim-hooks/create-seeded-world.py%s" (ternary "; . /etc/valheim-hooks/mod-guard.sh" "" (and .Values.mods.enabled .Values.mods.failSafe)) | quote }}
             - name: POST_SERVER_SHUTDOWN_HOOK
               value: "/etc/valheim-hooks/notify.sh down"
             - name: POST_RESTART_HOOK

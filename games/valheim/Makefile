@@ -29,6 +29,7 @@ deploy: secrets-check chart-dependencies
 	set_value secrets.serverPassword "$$VALHEIM_SERVER_PASSWORD"; \
 	set_value server.worldName "$$VALHEIM_WORLD_NAME"; \
 	set_value_if_given server.displayName "$$VALHEIM_SERVER_NAME"; \
+	set_value_if_given server.seed "$$VALHEIM_SEED"; \
 	set_discord_alerts "$$VALHEIM_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$VALHEIM_CONNECT_HOST"; \
 	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"

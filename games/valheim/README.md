@@ -8,14 +8,15 @@
   All times are UTC. Restarts happen on update only; `restart.cron` is off.
 - **Data:** the world and config are on the PVC at `/config` (saves in
   `worlds_local`). The game install is a disposable subPath at `/opt/valheim`.
+- **Seed:** the server has no seed option, so `files/create-seeded-world.py` writes a new world's
+  metadata with `server.seed` before its first start, as the game's own `World.SaveWorldFWLData` does.
 - **Backups:** every 10 minutes, only if players were on since the last one
   (`backup-gate.sh`), renamed by `files/backup-rename.sh` to `<date>-<time>-game-day-<n>.zip`. The last `backups.recentDays` of play stay in `/config/backups`; per
   `backupArchiveWindowDays` window the newest and oldest move to `archive/`
   (`files/backup-prune.sh`). Ages are play time in `backups/.play-clock`, so
   idle months age nothing; if the index is bad, pruning stops, deletes
   nothing, and the dashboard's "Cleanup index" goes red.
-- **Restoring:** `make restore-backup` stops the server, unpacks the archive
-  and starts it again.
+- **Restoring:** `make restore-backup` stops the server, unpacks the archive and starts it again.
 
 ## Who's online
 

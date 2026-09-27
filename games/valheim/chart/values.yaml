@@ -14,6 +14,7 @@ gameUser:
 server:
   displayName: "Valheim Server" # name shown in the in-game server browser
   worldName: "Dedicated" # save-file name on disk; changing it starts a NEW world
+  seed: "" # seed for a world that doesn't exist yet, e.g. "HHcLC5acQt"; an existing world keeps its own
   public: true # list in the public server browser
   crossplay: false
   port: 2456 # query is port+1, RPC is port+2

@@ -20,6 +20,7 @@ A single-node k3s cluster runs three namespaces:
   time and never committed.
 - **Backups** are the image's own, or a `backup` sidecar where it has none (Minecraft, V Rising).
 - **Save on stop:** V Rising's preStop saves over RCON (`save-and-stop.py`); it exits unsaved on SIGTERM.
+- **World seed:** Valheim's server has no seed option; `create-seeded-world.py` writes a new world's metadata first.
 
 ## Shared game pieces
 

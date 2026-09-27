@@ -63,6 +63,9 @@ data:
     [ -f "$players/last-activity" ] || exit 1
     last=$(ls -t /config/backups/*.zip 2>/dev/null | grep -vxF "${1:-}" | head -1)
     [ -z "$last" ] || [ "$players/last-activity" -nt "$last" ]
+  # Run by PRE_SERVER_RUN_HOOK: gives a new world the seed in WORLD_SEED (the server has no seed option).
+  create-seeded-world.py: |
+    {{- .Files.Get "files/create-seeded-world.py" | nindent 4 }}
   backup-prune.sh: |
     {{- .Files.Get "files/backup-prune.sh" | nindent 4 }}
   backup-rename.sh: |
