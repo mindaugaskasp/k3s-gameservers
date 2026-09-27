@@ -19,6 +19,8 @@ spec:
       labels:
         {{- include "game-server.labels" . | nindent 8 }}
     spec:
+      # save-and-stop.py: a minute's in-game warning, the save, then the exit.
+      terminationGracePeriodSeconds: 180
       initContainers:
         {{- include "game-server.volumeFoldersInitContainer" (list "backups" "database/sqlite") | nindent 8 }}
       containers:
@@ -73,6 +75,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "game-server.secretName" . }}
                   key: SERVER_PASSWORD
+            # RCON's shutdown is the only way to make the server save before it stops.
+            - name: HOST_SETTINGS_Rcon__Enabled
+              value: "true"
+            - name: HOST_SETTINGS_Rcon__Port
+              value: {{ .Values.server.rconPort | quote }}
+            - name: HOST_SETTINGS_Rcon__Password
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: RCON_PASSWORD
             - name: GAME_SETTINGS_GameModeType
               value: {{ .Values.server.gameMode | quote }}
             {{- range $key, $value := .Values.gameSettings }}
@@ -109,7 +121,7 @@ spec:
                 command: ["/bin/sh", "/etc/game-hooks/started.sh"]
             preStop:
               exec:
-                command: ["/bin/sh", "/etc/game-hooks/down.sh"]
+                command: ["/bin/sh", "-c", "/etc/game-hooks/down.sh; python3 /etc/vrising-save-on-stop/save-and-stop.py"]
           volumeMounts:
             - name: data
               mountPath: {{ include "vrising.serverPath" . }}
@@ -122,6 +134,8 @@ spec:
               subPath: backups
             - name: hooks
               mountPath: /etc/game-hooks
+            - name: save-on-stop
+              mountPath: /etc/vrising-save-on-stop
             - name: status-share
               mountPath: /var/run/vrising-status
         {{- include "vrising.backupContainer" . | nindent 8 }}
@@ -137,6 +151,9 @@ spec:
           configMap:
             name: {{ include "game-server.fullname" . }}-hooks
             defaultMode: 0755
+        - name: save-on-stop
+          configMap:
+            name: {{ include "game-server.fullname" . }}-save-on-stop
         - name: status-share
           emptyDir: {}
   {{- if .Values.persistence.enabled }}

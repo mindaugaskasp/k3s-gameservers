@@ -22,8 +22,10 @@ Windows binary only, so the image runs it under Wine. Setup: [setup.md](setup.md
 The image runs steamcmd on every start, so `make restart` updates the game. Clients can't join
 a server older than their game, so restart after a patch. Check `make players` first.
 
-A stop doesn't save: the server exits at once on SIGTERM, so the world is as of its last
-autosave (`AutoSaveInterval` in `ServerHostSettings.json`, 120 seconds by default).
+**Saving on stop:** the server exits unsaved on SIGTERM, so the preStop hook runs
+`chart/files/save-and-stop.py` first. It sends RCON's `shutdown 1`, which warns players for a
+minute, then saves and exits; a stop or restart takes about a minute. RCON is left out of the
+Service, so it never leaves the cluster, and its password is made by the chart on first install.
 
 ## Backups
 

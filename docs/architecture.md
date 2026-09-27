@@ -20,6 +20,7 @@ A single-node k3s cluster runs three namespaces:
 - **Secrets** (passwords, Discord webhooks) are set from env vars at deploy
   time and never committed.
 - **Backups** are the image's own, or a `backup` sidecar where it has none (Minecraft, V Rising).
+- **Save on stop:** V Rising's preStop saves over RCON (`save-and-stop.py`); it exits unsaved on SIGTERM.
 
 ## Shared game pieces
 
@@ -36,16 +37,8 @@ A single-node k3s cluster runs three namespaces:
 
 ## Networking
 
-Game ports are NodePorts on the same numbers the router forwards, UDP unless marked TCP:
-
-- Valheim: 2456-2458
-- Zomboid: 16261-16262, plus RCON on TCP 27015
-- Enshrouded: 15637 (game traffic and Steam queries share it)
-- Minecraft: TCP 25565
-- Terraria: TCP 7777 (TShock's REST API stays inside the pod)
-- V Rising: 9876 (game) and 9877 (Steam query, needed to be listed in the server browser)
-
-That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
+Game ports are NodePorts on the same numbers the router forwards ([table](../README.md#router-ports)),
+which is why the NodePort range is widened ([platform.md](platform.md#k3s)).
 HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).
 
 ## Monitoring

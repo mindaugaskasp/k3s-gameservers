@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "game-server.fullname" . }}-save-on-stop
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+data:
+  save-and-stop.py: |
+    {{- .Files.Get "files/save-and-stop.py" | nindent 4 }}

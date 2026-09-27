@@ -17,6 +17,7 @@ server:
   listOnEos: true # the in-game server browser looks here first
   gamePort: 9876
   queryPort: 9877
+  rconPort: 25575 # TCP; left out of the Service, so it never leaves the cluster
   connectHost: "" # public join address shown in Discord alerts
   timeZone: "Etc/UTC"
 
