@@ -35,7 +35,7 @@
       port: {{ .Values.statusMetrics.port }}
     periodSeconds: 10
     failureThreshold: 3
-  # Node plus one SQLite connection has peaked above 60Mi; a game may set statusMetrics.resources.
+  # Every game's exporter default; a game may override it with statusMetrics.resources.
   resources:
     {{- toYaml (.Values.statusMetrics.resources | default (dict "requests" (dict "cpu" "10m" "memory" "48Mi") "limits" (dict "memory" "128Mi"))) | nindent 4 }}
   volumeMounts:
