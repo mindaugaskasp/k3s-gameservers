@@ -1,8 +1,10 @@
 image:
-  # TShock's server, which vanilla clients join. https://github.com/ryansheehan/terraria
-  repository: ryshe/terraria
-  tag: latest
-  pullPolicy: IfNotPresent
+  # TShock's server, which vanilla clients join (https://github.com/ryansheehan/terraria), plus
+  # curl for the Discord hooks: games/terraria/image, pushed by `make push-game-image`.
+  repository: localhost:30500/k3s-gameservers/terraria-server
+  # Set by the game Makefile to the image folder's commit.
+  tag: ""
+  pullPolicy: Always
 
 server:
   # The world file is <worldName>.wld; a missing one is generated at the next start.
@@ -18,6 +20,12 @@ server:
 secrets:
   serverPassword: ""
 secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
 
 # TShock copies the world file on this interval and deletes copies older than keepDays.
 backups:

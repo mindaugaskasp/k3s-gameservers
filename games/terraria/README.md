@@ -10,7 +10,9 @@ Runs [`ryshe/terraria`](https://github.com/ryansheehan/terraria), the
 - **Volume:** `worlds/` holds the world, TShock's config, database and backups; `logs/` and
   `plugins/` the rest; `database/sqlite/` the exporter's player history.
 - **Stop:** the pod's preStop hook saves and stops the server through the REST API.
-- **Alerts:** the image has no curl, so no Discord alerts; the start and stop status files still work.
+- **Image:** `image/` adds curl to ryshe/terraria for the Discord hooks; `make push-game-image` builds it on
+  the newest upstream.
+- **Alerts:** the shared start and stop hooks post to Discord when `TERRARIA_DISCORD_WEBHOOK` is set.
 
 ## Backups
 

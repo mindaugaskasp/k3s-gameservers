@@ -84,7 +84,7 @@ A small program running beside the game that counts players and collects stats f
 | Enshrouded | ✅ | ✅ | ⚠️ shared only | ❌ never uploaded | ✅ | ✅ | ✅ | ✅ |
 | Minecraft | ✅ | ✅ | ✅ | ❌ never uploaded | ✅ | ✅ | ✅ | ✅ |
 | V Rising | ✅ | ✅ | ⚠️ shared only | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Terraria | ✅ | ❌ not set up | ✅ | ❌ never uploaded | ✅ | ✅ | ✅ | ✅ |
+| Terraria | ✅ | ✅ | ✅ | ❌ never uploaded | ✅ | ✅ | ✅ | ✅ |
 | Dragonwilds | ✅ in testing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 Grafana ⚠️ means it still uses the shared `game-server/grafana/` dashboards.

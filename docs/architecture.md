@@ -21,6 +21,7 @@ A single-node k3s cluster runs three namespaces:
 - **Backups** are the image's own, or a `backup` sidecar where it has none (Minecraft, V Rising, Dragonwilds).
 - **Save on stop:** V Rising's preStop saves over RCON (`save-and-stop.py`); it exits unsaved on SIGTERM.
 - **Stop signal:** Dragonwilds' preStop stops the server process itself; the image's own stop never reaches it.
+- **Game image:** Terraria runs `games/terraria/image`, ryshe/terraria plus curl for the shared Discord hooks.
 - **World seed:** Valheim's server has no seed option; `create-seeded-world.py` writes a new world's metadata first.
 
 ## Shared game pieces

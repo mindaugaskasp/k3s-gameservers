@@ -10,7 +10,7 @@ make init-env        # creates .env from .env.example and shows which values are
 ```
 
 - `TERRARIA_SERVER_PASSWORD`: the password players join with; empty lets anyone join.
-- `TERRARIA_CONNECT_HOST`: optional, the public host name.
+- `TERRARIA_DISCORD_WEBHOOK`, `TERRARIA_CONNECT_HOST`: optional Discord alerts.
 
 The REST tokens the exporter and the pod's shutdown use are made by the chart on first install.
 
@@ -23,7 +23,7 @@ changing the name later starts a new world and keeps the old file.
 ## 3. Start and join
 
 ```sh
-make push-metrics-image && make deploy
+make push-game-image && make push-metrics-image && make deploy
 make status          # the first start generates the world, which takes minutes
 ```
 
