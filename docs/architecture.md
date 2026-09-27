@@ -2,7 +2,7 @@
 
 A single-node k3s cluster runs three namespaces:
 
-- `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`, `minecraft`, `terraria`)
+- `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`, `minecraft`, `terraria`, `vrising`)
 - `monitoring`, `registry`, `crowdsec`: the platform, see [platform.md](platform.md)
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
   ([platform.md](platform.md)); a timer copies worlds off-host ([offsite-backups.md](offsite-backups.md))
@@ -19,6 +19,7 @@ A single-node k3s cluster runs three namespaces:
   to keep existing secrets.
 - **Secrets** (passwords, Discord webhooks) are set from env vars at deploy
   time and never committed.
+- **Backups** are the image's own, or a `backup` sidecar where it has none (Minecraft, V Rising).
 
 ## Shared game pieces
 
@@ -42,6 +43,7 @@ Game ports are NodePorts on the same numbers the router forwards, UDP unless mar
 - Enshrouded: 15637 (game traffic and Steam queries share it)
 - Minecraft: TCP 25565
 - Terraria: TCP 7777 (TShock's REST API stays inside the pod)
+- V Rising: 9876 (game) and 9877 (Steam query, needed to be listed in the server browser)
 
 That's why the NodePort range is widened ([platform.md](platform.md#k3s)).
 HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).

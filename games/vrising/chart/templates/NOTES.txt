@@ -1,0 +1,8 @@
+V Rising deployed as StatefulSet "{{ include "game-server.fullname" . }}".
+
+Check status:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs -f {{ include "game-server.fullname" . }}-0 -c gameserver
+
+Players join on UDP {{ .Values.service.nodePorts.game }}; UDP {{ .Values.service.nodePorts.query }} lists the server in
+the in-game browser. The first start downloads the game, so it stays unreachable for a while.

@@ -1,6 +1,6 @@
 # k3s-gameservers
 
-Game servers (Valheim, Project Zomboid, Enshrouded, Minecraft, Terraria) as pods on a single-node
+Game servers (Valheim, Project Zomboid, Enshrouded, Minecraft, Terraria, V Rising) as pods on a single-node
 [k3s](https://docs.k3s.io/) cluster, with per-pod metrics for right-sizing.
 Each game scales independently (`make scale-up` / `make scale-down-zero`).
 
@@ -28,7 +28,7 @@ Makefile                   platform setup, dashboards, bans, off-host backups, c
 3. Set up a game, step by step (passwords, settings, joining, mods, memory):
    [Valheim](games/valheim/setup.md), [Project Zomboid](games/zomboid/setup.md),
    [Enshrouded](games/enshrouded/setup.md), [Minecraft](games/minecraft/setup.md),
-   [Terraria](games/terraria/setup.md). Read each script before running it.
+   [Terraria](games/terraria/setup.md), [V Rising](games/vrising/setup.md). Read each script before running it.
 
 ## Day-to-day
 
@@ -50,8 +50,9 @@ Secrets: gitignored `games/<game>/.env` (see `.env.example`).
 - [docs/game-setup.md](docs/game-setup.md): checklist for adding a game
 - [docs/metrics-flow.md](docs/metrics-flow.md): how a game's stats reach Grafana and the website
 - [Valheim](games/valheim/README.md), [Project Zomboid](games/zomboid/README.md),
-  [Enshrouded](games/enshrouded/README.md), [Minecraft](games/minecraft/README.md) and
-  [Terraria](games/terraria/README.md): per-game notes, beside each game's `setup.md`
+  [Enshrouded](games/enshrouded/README.md), [Minecraft](games/minecraft/README.md),
+  [Terraria](games/terraria/README.md) and [V Rising](games/vrising/README.md): per-game notes,
+  beside each game's `setup.md`
 
 ## Adding a game
 

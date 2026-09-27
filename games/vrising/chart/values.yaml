@@ -1,0 +1,95 @@
+image:
+  # Windows-only game binary; the image runs it under Wine and updates it with steamcmd on every start.
+  # https://github.com/TrueOsiris/docker-vrising
+  repository: trueosiris/vrising
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# What each setting does: https://github.com/StunlockStudios/vrising-dedicated-server-instructions/blob/master/1.1.x-pc/INSTRUCTIONS.md
+server:
+  name: "V Rising Server" # shown in the server browser
+  description: ""
+  worldName: "world1" # the save folder; changing it starts a new world
+  maxPlayers: 10
+  gameMode: "PvE" # PvE | PvP
+  difficulty: "Difficulty_Normal" # Difficulty_Easy | Difficulty_Normal | Difficulty_Brutal
+  listOnSteam: true
+  listOnEos: true # the in-game server browser looks here first
+  gamePort: 9876
+  queryPort: 9877
+  connectHost: "" # public join address shown in Discord alerts
+  timeZone: "Etc/UTC"
+
+# Every key becomes GAME_SETTINGS_<key>, which the image writes into ServerGameSettings.json;
+# "__" separates nested keys, e.g. UnitStatModifiers_Global__MaxHealthModifier.
+# https://github.com/TrueOsiris/docker-vrising#newest-modifications
+gameSettings: {}
+
+# Steam IDs (SteamID64) of the server's admins, comma-separated; written to adminlist.txt on every start.
+admins: ""
+
+# Pass at deploy time with --set-string, or point secretRef at an existing
+# Secret holding SERVER_PASSWORD. Never commit real passwords.
+secrets:
+  serverPassword: "" # empty lets anyone join
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+# The backup sidecar archives the newest autosave on this interval and keeps maxCount archives.
+backups:
+  intervalMinutes: 60
+  maxCount: 48
+
+# UDP. Inside the widened NodePort range; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 9876
+    query: 9877
+
+# The steamcmd install in server/, the world and settings in persistentdata/, and backups/.
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 20Gi
+
+resources:
+  requests:
+    cpu: "2"
+    memory: 5Gi
+  limits:
+    memory: 7Gi
+
+backupResources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    memory: 128Mi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (platform/registry/, localhost:30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/vrising-status-metrics
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
+    pullPolicy: Always
+  port: 9101
+
+# Requires the VPA CRDs; platform/vpa/install.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto
+  # The range the recommender may suggest for the game container.
+  minAllowed:
+    cpu: 500m
+    memory: 2Gi
+  maxAllowed:
+    cpu: "6"
+    memory: 10Gi

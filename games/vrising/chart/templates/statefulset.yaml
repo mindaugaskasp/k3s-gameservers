@@ -1,0 +1,153 @@
+{{- $persistentData := include "vrising.persistentDataPath" . }}
+{{- $backups := include "vrising.backupsPath" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "game-server.fullname" . }}
+  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
+  replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
+  selector:
+    matchLabels:
+      {{- include "game-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "game-server.labels" . | nindent 8 }}
+    spec:
+      initContainers:
+        {{- include "game-server.volumeFoldersInitContainer" (list "backups" "database/sqlite") | nindent 8 }}
+      containers:
+        - name: gameserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # start.sh ships with Windows line endings, which bash cannot run.
+          # https://github.com/TrueOsiris/docker-vrising#updates
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              mkdir -p {{ $persistentData }}/Settings
+              # A blank line in adminlist.txt crashes the game's admin list parser.
+              tr ', ' '\n\n' <<< "$ADMIN_STEAM_IDS" | grep -v '^$' > {{ $persistentData }}/Settings/adminlist.txt
+              sed -i 's/\r//g' /start.sh
+              exec /bin/bash /start.sh
+          ports:
+            - name: game
+              containerPort: {{ .Values.server.gamePort }}
+              protocol: UDP
+            - name: query
+              containerPort: {{ .Values.server.queryPort }}
+              protocol: UDP
+          # https://github.com/TrueOsiris/docker-vrising#environment-variables
+          env:
+            - name: SERVERNAME
+              value: {{ .Values.server.name | quote }}
+            - name: WORLDNAME
+              value: {{ .Values.server.worldName | quote }}
+            - name: GAMEPORT
+              value: {{ .Values.server.gamePort | quote }}
+            - name: QUERYPORT
+              value: {{ .Values.server.queryPort | quote }}
+            - name: TZ
+              value: {{ .Values.server.timeZone | quote }}
+            - name: WINEDEBUG
+              value: "fixme-all"
+            - name: ADMIN_STEAM_IDS
+              value: {{ .Values.admins | quote }}
+            - name: HOST_SETTINGS_Description
+              value: {{ .Values.server.description | quote }}
+            - name: HOST_SETTINGS_MaxConnectedUsers
+              value: {{ .Values.server.maxPlayers | quote }}
+            - name: HOST_SETTINGS_ListOnSteam
+              value: {{ .Values.server.listOnSteam | quote }}
+            - name: HOST_SETTINGS_ListOnEOS
+              value: {{ .Values.server.listOnEos | quote }}
+            - name: HOST_SETTINGS_GameDifficultyPreset
+              value: {{ .Values.server.difficulty | quote }}
+            - name: HOST_SETTINGS_Password
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: SERVER_PASSWORD
+            - name: GAME_SETTINGS_GameModeType
+              value: {{ .Values.server.gameMode | quote }}
+            {{- range $key, $value := .Values.gameSettings }}
+            - name: GAME_SETTINGS_{{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.server.connectHost }}
+            - name: CONNECT_HOST
+              value: {{ .Values.server.connectHost | quote }}
+            {{- end }}
+            {{- if .Values.alerts.enabled }}
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.discordSecretName" . }}
+                  key: DISCORD_WEBHOOK_URL
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # The first start downloads the game before the server process exists.
+          startupProbe:
+            exec:
+              command: ["pgrep", "-f", "VRisingServer.exe"]
+            periodSeconds: 10
+            failureThreshold: 180
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", "VRisingServer.exe"]
+            periodSeconds: 30
+            failureThreshold: 3
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/started.sh"]
+            preStop:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/down.sh"]
+          volumeMounts:
+            - name: data
+              mountPath: {{ include "vrising.serverPath" . }}
+              subPath: server
+            - name: data
+              mountPath: {{ $persistentData }}
+              subPath: persistentdata
+            - name: data
+              mountPath: {{ $backups }}
+              subPath: backups
+            - name: hooks
+              mountPath: /etc/game-hooks
+            - name: status-share
+              mountPath: /var/run/vrising-status
+        {{- include "vrising.backupContainer" . | nindent 8 }}
+        {{- if .Values.statusMetrics.enabled }}
+        {{- include "game-server.statusMetricsContainer" . | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        - name: hooks
+          configMap:
+            name: {{ include "game-server.fullname" . }}-hooks
+            defaultMode: 0755
+        - name: status-share
+          emptyDir: {}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

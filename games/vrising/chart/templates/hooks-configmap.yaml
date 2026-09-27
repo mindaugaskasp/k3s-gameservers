@@ -1,0 +1,4 @@
+{{- /* Ready once this start's log says the world is hosting. Until the server process runs, the
+newest log is the previous start's: the image creates the new one just before launching it. */ -}}
+{{- $readyCheck := printf "pgrep -f VRisingServer.exe >/dev/null && grep -qs 'Server Setup Complete' \"$(ls -t %s/*-VRisingServer.log | head -1)\"" (include "vrising.persistentDataPath" .) }}
+{{- include "game-server.lifecycleHooks" (dict "context" . "statusDir" "/var/run/vrising-status" "persistDir" (include "vrising.persistentDataPath" .) "readyCheck" $readyCheck "displayName" .Values.server.name "connectPort" .Values.service.nodePorts.game) }}

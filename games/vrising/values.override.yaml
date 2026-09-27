@@ -1,0 +1,22 @@
+# Overrides chart/values.yaml. Secrets never go here; games/vrising/.env overrides the server settings.
+
+server:
+  name: "V Rising Kaunas"
+  gameMode: "PvE"
+
+persistence:
+  storageClassName: local-path
+  size: 20Gi
+
+# Sizing rules: docs/architecture.md#sizing.
+resources:
+  requests:
+    cpu: "2"
+    memory: 5Gi
+  limits:
+    memory: 7Gi
+
+# updateMode stays "Off" (chart default) -- recommendations only, never
+# evictions. See docs/architecture.md and platform/vpa/install.sh.
+verticalPodAutoscaler:
+  enabled: true
