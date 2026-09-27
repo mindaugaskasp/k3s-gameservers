@@ -30,6 +30,21 @@ Makefile                   platform setup, dashboards, bans, off-host backups, c
    [Enshrouded](games/enshrouded/setup.md), [Minecraft](games/minecraft/setup.md),
    [Terraria](games/terraria/setup.md), [V Rising](games/vrising/setup.md). Read each script before running it.
 
+## Router ports
+
+Forward these from the router to the host; each game port is a NodePort on the same number.
+
+| Game | Port | Protocol | Carries |
+| --- | --- | --- | --- |
+| Valheim | 2456-2458 | UDP | game traffic and Steam query |
+| Project Zomboid | 16261-16262 | UDP | game traffic (TCP 27015 is RCON: LAN only, don't forward) |
+| Enshrouded | 15637 | UDP | game traffic and Steam query |
+| Minecraft | 25565 | TCP | game traffic |
+| Terraria | 7777 | TCP | game traffic |
+| V Rising | 9876 | UDP | game traffic |
+| V Rising | 9877 | UDP | Steam query, lists the server in the in-game browser |
+| Website | 80, 443 | TCP | the site and its TLS certificate, through Traefik |
+
 ## Day-to-day
 
 Run `make help` here or in `games/<game>/` for every command (logs, players, restart,
