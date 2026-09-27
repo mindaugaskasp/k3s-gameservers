@@ -124,8 +124,6 @@ spec:
             - name: PRE_SERVER_RUN_HOOK
               value: ". /etc/valheim-hooks/mod-guard.sh"
             {{- end }}
-            - name: POST_SERVER_LISTENING_HOOK
-              value: "/etc/valheim-hooks/notify.sh started"
             - name: POST_SERVER_SHUTDOWN_HOOK
               value: "/etc/valheim-hooks/notify.sh down"
             - name: POST_RESTART_HOOK
@@ -142,6 +140,13 @@ spec:
               value: "Random event set:"
             - name: ON_VALHEIM_LOG_FILTER_CONTAINS_RaidStarted
               value: "/etc/valheim-hooks/raid-event.sh"
+            # "Server online" once Steam has registered the server: see announce-online.sh.
+            - name: VALHEIM_LOG_FILTER_CONTAINS_ServerConnected
+              value: "Game server connected"
+            - name: ON_VALHEIM_LOG_FILTER_CONTAINS_ServerConnected
+              value: "/etc/valheim-hooks/announce-online.sh"
+            - name: ONLINE_ALERT_DELAY_SECONDS
+              value: {{ .Values.alerts.onlineDelaySeconds | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.status.enabled }}

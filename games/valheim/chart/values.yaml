@@ -38,6 +38,8 @@ alerts:
   enabled: false
   discordWebhook: ""
   secretRef: ""
+  # "Server online" waits this long after Steam registers the server, until the server browser lists it.
+  onlineDelaySeconds: 15
 
 updates:
   cron: "*/15 * * * *"

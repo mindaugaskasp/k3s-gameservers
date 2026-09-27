@@ -30,8 +30,8 @@ as `game_server_player_last_seen_timestamp_seconds{name}` so names outlive resta
 
 ## Alerts
 
-Discord embeds are sent on start, stop and update, using the image's
-[event hooks](https://github.com/community-valheim-tools/valheim-server-docker#event-hooks).
+Discord embeds on stop and update come from the image's [event hooks](https://github.com/community-valheim-tools/valheim-server-docker#event-hooks);
+"Server online" waits for Steam to register the server, then `alerts.onlineDelaySeconds`.
 
 ## Mods (BepInEx)
 

@@ -35,6 +35,14 @@ data:
         done ;;
     esac
     exit 0
+  # Run by ON_VALHEIM_LOG_FILTER_CONTAINS_ServerConnected: the listening hook fires before Steam lists the
+  # server. Steam logs the line again after a reconnect, so one alert per server run; notify.sh down clears it.
+  announce-online.sh: |
+    #!/bin/sh
+    announced=/tmp/online-announced
+    [ -e "$announced" ] && exit 0
+    touch "$announced"
+    nohup sh -c "sleep ${ONLINE_ALERT_DELAY_SECONDS:-0}; /etc/valheim-hooks/notify.sh started" >/dev/null 2>&1 &
   # Run by ON_VALHEIM_LOG_FILTER_CONTAINS_RaidStarted. One "<unix time> <event name>"
   # line per raid; status-metrics folds them into its database and nothing else writes it.
   raid-event.sh: |
@@ -157,6 +165,7 @@ data:
         prior=$(cat "$persist_dir/uptime-accumulator.seconds" 2>/dev/null || echo 0)
         case "$prior" in ''|*[!0-9]*) prior=0 ;; esac
         echo $((prior + elapsed)) > "$persist_dir/uptime-accumulator.seconds"
+        rm -f /tmp/online-announced
         title="Server down"; color=15548997
         desc="**${SERVER_NAME}** is shutting down."
         ;;
