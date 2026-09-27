@@ -23,9 +23,8 @@ server:
 gameSettings:
   PRESET: "Default" # Default | Relaxed | Hard | Survival | Custom
 
-# Enshrouded has no single server password: each role has its own, and the
-# password a player joins with picks their role. secrets.rolePasswords holds
-# the passwords, keyed by secretKey.
+# No single server password: the one a player joins with picks their role. secrets.rolePasswords
+# holds them, keyed by each role's secretKey.
 # https://github.com/mornedhels/enshrouded-server/blob/main/docs/SERVER_ROLES.md
 roles:
   - name: "Admins"

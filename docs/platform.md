@@ -1,7 +1,6 @@
 # Platform
 
-This repo owns the cluster. Apps (e.g. servers-web) only deploy into
-their own namespace and report to it.
+This repo owns the cluster. Apps (e.g. servers-web) only deploy into their own namespace and report to it.
 
 Each piece is one `platform/<piece>/` folder, installed by its `install.sh` through the root `make <piece>`.
 Host values for all of them live in the gitignored `platform/site.env` (see `site.env.example`).
@@ -21,9 +20,8 @@ Host values for all of them live in the gitignored `platform/site.env` (see `sit
 
 `platform/k3s/install.sh` writes
 [`/etc/rancher/k3s/config.yaml`](https://docs.k3s.io/installation/configuration#configuration-file):
-`node-name` (default: short hostname), `write-kubeconfig-mode: "600"`,
-and `service-node-port-range=2456-32767`. Re-running the installer rewrites
-flags, not this file. `kubectl` uses `~/.kube/config`.
+`node-name` (default: short hostname), `write-kubeconfig-mode: "600"` and `service-node-port-range=2456-32767`.
+Re-running the installer rewrites flags, not this file. `kubectl` uses `~/.kube/config`.
 
 **Don't rename the node.** `local-path` PVs pin the node name, and that
 field is immutable ([k3s storage](https://docs.k3s.io/storage)).
@@ -44,8 +42,7 @@ so middlewares see real client IPs, and logs every request for CrowdSec.
 - **Admin password:** `make grafana-password`.
 - **Alerts:** `platform/monitoring/config/alerting.yaml` posts to Discord (`ALERTS_DISCORD_WEBHOOK_URL`): disk,
   crash loops, silent games, certificates, off-host backups. Each links to Grafana, never a command.
-- **Logs:** Alloy ships every pod's stdout/stderr to Loki (31 days). Loki has
-  no auth.
+- **Logs:** Alloy ships every pod's stdout/stderr to Loki (31 days). Loki has no auth.
 - **Datasources:** Loki (uid `loki`) and Prometheus (uid `ffyierrb4yl8gd`).
 
 ## Reporting from an app

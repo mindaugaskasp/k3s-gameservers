@@ -1,8 +1,6 @@
-# What every game's Makefile shares. The game sets these, then includes this file first:
-#   RELEASE            Helm release, StatefulSet and label name, e.g. valheim
-#   GAME_DATA_PATH     where the game keeps its data inside the gameserver container
-#   GAME_BACKUP_PATH   where the game writes its backup archives inside the container
-# Optional ones are listed with their defaults below. Game-only targets follow the include.
+# What every game's Makefile shares. The game sets RELEASE (release and StatefulSet name), GAME_DATA_PATH
+# and GAME_BACKUP_PATH (its data and backups inside the gameserver container), then includes this file
+# first; optional variables and their defaults follow, and game-only targets come after the include.
 SHELL := /bin/bash
 # pipefail so a failed `kubectl ... | tar` aborts before anything after it runs.
 .SHELLFLAGS := -o pipefail -c
