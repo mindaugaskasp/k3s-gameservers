@@ -64,7 +64,7 @@ A small program running beside the game that counts players and collects stats f
 - [ ] **Show the server:** add `<gamedig id>:<port>[:<query port>]` to `GAME_SERVER_WATCH_LIST` in `site.env` and `site.env.example`
 - [ ] **Show its stats:** add `<gamedig id>=http://<game>-metrics.games.svc.cluster.local:9101/metrics` to `GAME_STATS_SOURCES`
 - [ ] **No Steam join button** if Steam links don't open the game: add it to `GAMES_WITHOUT_STEAM_JOIN`
-- [ ] **Which stats to show:** `read-game-stats.js` lists them, `<game>_world_setting` goes in `WORLD_SETTING_METRICS`; update its tests
+- [ ] **Which stats to show:** a new `games/<game>.js` in game-status lists them (world settings from `<game>_world_setting`), registered in `games/index.js`; update its tests
 - [ ] **Artwork and wording:** `public/images/<gamedig id>.jpg`, `GameStatsTest.php`; tooltips say what a stat is in plain words
 - [ ] **Checked:** after redeploying, the game's card shows it online with players and stats
 

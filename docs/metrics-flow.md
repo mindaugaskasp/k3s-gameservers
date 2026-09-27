@@ -32,7 +32,7 @@ flowchart LR
     server -- "stdout" --> alloy
 
     subgraph web["webserver namespace"]
-        status["game-status service<br/>read-game-stats.js"]
+        status["game-status service<br/>games/valheim.js"]
         site["Website<br/>stat facts per game"]
         status -- "GET /servers" --> site
     end
