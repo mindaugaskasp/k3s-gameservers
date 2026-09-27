@@ -63,8 +63,10 @@ spec:
             - name: CROSSPLAY
               value: {{ .Values.server.crossplay | quote }}
             {{- if .Values.server.extraArgs }}
+            # Each -modifier appends a "preset" line the game never removes, so with modifiers on the
+            # command line, -resetmodifiers clears the list first and the command line alone rebuilds it.
             - name: SERVER_ARGS
-              value: {{ .Values.server.extraArgs | quote }}
+              value: {{ ternary (printf "-resetmodifiers %s" .Values.server.extraArgs) .Values.server.extraArgs (regexMatch `(^|\s)-(modifier|preset)\s` .Values.server.extraArgs) | quote }}
             {{- end }}
             {{- if .Values.server.connectHost }}
             - name: CONNECT_HOST
