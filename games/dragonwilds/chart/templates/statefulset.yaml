@@ -1,0 +1,137 @@
+{{- $serverPath := include "dragonwilds.serverPath" . }}
+{{- $backups := include "dragonwilds.backupsPath" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "game-server.fullname" . }}
+  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
+  replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
+  selector:
+    matchLabels:
+      {{- include "game-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "game-server.labels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 60
+      initContainers:
+        {{- include "game-server.volumeFoldersInitContainer" (list "server" "backups" "database/sqlite") | nindent 8 }}
+      containers:
+        - name: gameserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: game
+              containerPort: {{ .Values.server.gamePort }}
+              protocol: UDP
+            - name: beacon
+              containerPort: {{ include "dragonwilds.beaconPort" . }}
+              protocol: UDP
+          # https://github.com/runescape/rsdw-dedicated#environment-variables
+          env:
+            - name: RSDW_OWNER_ID
+              value: {{ required "server.ownerId is required: set DRAGONWILDS_OWNER_ID in .env" .Values.server.ownerId | quote }}
+            - name: RSDW_SERVER_NAME
+              value: {{ .Values.server.name | quote }}
+            - name: RSDW_WORLD_NAME
+              value: {{ required "server.worldName is required: set DRAGONWILDS_WORLD_NAME in .env" .Values.server.worldName | quote }}
+            - name: RSDW_ADMINS
+              value: {{ .Values.server.admins | quote }}
+            - name: RSDW_PORT
+              value: {{ .Values.server.gamePort | quote }}
+            # The image passes "-Port <n>", which the server ignores: it reads only "-Port=<n>",
+            # and opens the beacon on 8888 unless told otherwise.
+            - name: RSDW_ADDITIONAL_ARGS
+              value: {{ printf "-Port=%v -BeaconPort=%s" .Values.server.gamePort (include "dragonwilds.beaconPort" .) | quote }}
+            # Set even when empty: the image makes up a new one on every start for an unset one.
+            - name: RSDW_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: SERVER_PASSWORD
+            - name: RSDW_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: ADMIN_PASSWORD
+            - name: TZ
+              value: {{ .Values.server.timeZone | quote }}
+            {{- if .Values.server.connectHost }}
+            - name: CONNECT_HOST
+              value: {{ .Values.server.connectHost | quote }}
+            {{- end }}
+            {{- if .Values.alerts.enabled }}
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.discordSecretName" . }}
+                  key: DISCORD_WEBHOOK_URL
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # The first start downloads the game before the server process exists.
+          startupProbe:
+            exec:
+              command: ["pgrep", "-f", {{ include "dragonwilds.serverProcessPattern" . | quote }}]
+            periodSeconds: 10
+            failureThreshold: 180
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", {{ include "dragonwilds.serverProcessPattern" . | quote }}]
+            periodSeconds: 30
+            failureThreshold: 3
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/started.sh"]
+            # The image's own stop signals only the launch script, which dies without passing it on.
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - /etc/game-hooks/down.sh; pkill -TERM -f '{{ include "dragonwilds.serverProcessPattern" . }}'; while pgrep -f '{{ include "dragonwilds.serverProcessPattern" . }}' >/dev/null; do sleep 1; done
+          volumeMounts:
+            - name: data
+              mountPath: {{ $serverPath }}
+              subPath: server
+            - name: data
+              mountPath: {{ $backups }}
+              subPath: backups
+            - name: hooks
+              mountPath: /etc/game-hooks
+            - name: status-share
+              mountPath: /var/run/dragonwilds-status
+        {{- include "dragonwilds.backupContainer" . | nindent 8 }}
+        {{- if .Values.statusMetrics.enabled }}
+        {{- include "game-server.statusMetricsContainer" . | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        - name: hooks
+          configMap:
+            name: {{ include "game-server.fullname" . }}-hooks
+            defaultMode: 0755
+        - name: status-share
+          emptyDir: {}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

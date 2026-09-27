@@ -1,0 +1,18 @@
+apiVersion: v2
+name: dragonwilds-server
+description: RuneScape Dragonwilds dedicated server as a single-replica StatefulSet, backed by Jagex's own rsdw-dedicated image.
+type: application
+version: 0.1.0
+# Tracks the image tag in values.yaml. The image updates the game on every start.
+appVersion: "latest"
+keywords:
+  - dragonwilds
+  - game-server
+  - k3s
+home: https://github.com/runescape/rsdw-dedicated
+
+dependencies:
+  # Copied into charts/ by `make` (helm dependency update) before every helm command.
+  - name: game-server
+    version: 0.1.0
+    repository: file://../../../game-server/chart

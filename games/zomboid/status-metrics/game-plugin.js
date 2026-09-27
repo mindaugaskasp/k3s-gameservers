@@ -30,6 +30,7 @@ function readLastDeathLabels(lastDeath) {
 module.exports = {
   recordNewLogEvents,
   gamedigQueryOptions: {},
+  readServerState: null,
   recordQueryAnswer,
   readGameVersion: readQueryGameVersion,
   filterAdminNames: filterZomboidAdminNames,

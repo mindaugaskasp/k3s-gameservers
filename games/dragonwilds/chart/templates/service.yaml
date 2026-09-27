@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  selector:
+    {{- include "game-server.selectorLabels" . | nindent 4 }}
+  # Players reach the pod on the port the server advertises, so each NodePort is the same number.
+  ports:
+    - name: game
+      port: {{ .Values.server.gamePort }}
+      targetPort: {{ .Values.server.gamePort }}
+      protocol: UDP
+      nodePort: {{ .Values.server.gamePort }}
+    - name: beacon
+      port: {{ include "dragonwilds.beaconPort" . }}
+      targetPort: {{ include "dragonwilds.beaconPort" . }}
+      protocol: UDP
+      nodePort: {{ include "dragonwilds.beaconPort" . }}

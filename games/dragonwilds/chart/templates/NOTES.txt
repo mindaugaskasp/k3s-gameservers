@@ -1,0 +1,8 @@
+RuneScape: Dragonwilds deployed as StatefulSet "{{ include "game-server.fullname" . }}".
+
+Check status:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs -f {{ include "game-server.fullname" . }}-0 -c gameserver
+
+Players join on UDP {{ .Values.server.gamePort }}; UDP {{ include "dragonwilds.beaconPort" . }} is the world settings beacon.
+The first start downloads the game, so it stays unreachable for a while.

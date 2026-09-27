@@ -44,10 +44,10 @@ function buildGameServerMetricLines(status, gamePlugin) {
   const sessionSeconds = readCurrentSessionSeconds(status.up);
   const playerSessions = readPlayerSessions(status);
   return [
-    ...formatGaugeLines("game_server_up", "Whether the last gamedig query against this instance succeeded.", sampleForGame(status.up)),
+    ...formatGaugeLines("game_server_up", "Whether the last query against this instance succeeded.", sampleForGame(status.up)),
     ...formatGaugeLines("game_server_players", "Current player count.", sampleForGame(status.players)),
     ...formatGaugeLines("game_server_players_max", "Configured max player count.", sampleForGame(status.maxplayers)),
-    ...formatGaugeLines("game_server_query_duration_seconds", "Duration of the last gamedig query.", sampleForGame(status.queryDurationSeconds)),
+    ...formatGaugeLines("game_server_query_duration_seconds", "Duration of the last query.", sampleForGame(status.queryDurationSeconds)),
     ...formatGaugeLines("game_server_last_scrape_timestamp_seconds", "Unix time of the last scrape attempt.", sampleForGame(status.scrapeUnixTime)),
     ...formatGaugeLines("game_server_ping_seconds", "Protocol-level round-trip time to the query port.", sampleForGame(status.pingSeconds)),
     ...formatGaugeLines("game_server_info", "Static server info (value always 1); read the labels.", [

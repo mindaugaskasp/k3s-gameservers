@@ -1,6 +1,6 @@
 # k3s-gameservers
 
-Game servers (Valheim, Project Zomboid, Enshrouded, Minecraft, Terraria, V Rising) as pods on a single-node
+Game servers (Valheim, Project Zomboid, Enshrouded, Minecraft, Terraria, V Rising, RuneScape: Dragonwilds) as pods on a single-node
 [k3s](https://docs.k3s.io/) cluster, with per-pod metrics for right-sizing.
 Each game scales independently (`make scale-up` / `make scale-down-zero`).
 
@@ -10,7 +10,7 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 games/<game>/      one game: chart/, status-metrics/, grafana/, Makefile, values.override.yaml, setup.md
 platform/<piece>/  the cluster (k3s, firewall, registry, monitoring, ...), each with its install.sh
 game-server/       what every game shares: library chart, status-metrics core, make, systemd
-docs/              setup-nodes, platform, architecture, game-setup and other topics
+docs/              setup-nodes, platform, architecture and other topics
 Makefile           platform setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host (VM_HOST in .env)
 ```
 
@@ -24,7 +24,8 @@ Makefile           platform setup, dashboards, bans, off-host backups, copy-to-v
    ```
 3. Set up a game (passwords, names, settings, joining, memory); read each script before running it:
    [Valheim](games/valheim/setup.md), [Project Zomboid](games/zomboid/setup.md), [Enshrouded](games/enshrouded/setup.md),
-   [Minecraft](games/minecraft/setup.md), [Terraria](games/terraria/setup.md), [V Rising](games/vrising/setup.md).
+   [Minecraft](games/minecraft/setup.md), [Terraria](games/terraria/setup.md), [V Rising](games/vrising/setup.md),
+   [RuneScape: Dragonwilds](games/dragonwilds/setup.md).
 
 ## Router ports
 
@@ -39,6 +40,8 @@ Forward these from the router to the host; each game port is a NodePort on the s
 | Terraria | 7777 | TCP | game traffic |
 | V Rising | 9876 | UDP | game traffic |
 | V Rising | 9877 | UDP | Steam query, lists the server in the in-game browser |
+| RuneScape: Dragonwilds | 7778 | UDP | game traffic |
+| RuneScape: Dragonwilds | 8889 | UDP | world settings beacon |
 | Website | 80, 443 | TCP | the site and its TLS certificate, through Traefik |
 
 ## Day-to-day
@@ -54,7 +57,8 @@ Secrets and server names: gitignored `games/<game>/.env` (see `.env.example`).
 
 - [docs/setup-nodes.md](docs/setup-nodes.md): VM settings (clock, disk, IP, sizing)
 - [docs/platform.md](docs/platform.md): k3s, registry, monitoring, how apps report
+- [docs/overview.md](docs/overview.md): one diagram of servers, stats, Grafana and the website
 - [docs/architecture.md](docs/architecture.md): games, networking, sizing
-- [docs/game-setup.md](docs/game-setup.md): adding a game, any [gamedig game id](https://github.com/gamedig/node-gamedig/blob/master/GAMES_LIST.md)
+- [NEW_GAME_INSTRUCTIONS.md](NEW_GAME_INSTRUCTIONS.md): adding a game, and what each game still lacks
 - [docs/metrics-flow.md](docs/metrics-flow.md): how a game's stats reach Grafana and the website
 - `games/<game>/README.md`: how each game runs, beside its `setup.md`

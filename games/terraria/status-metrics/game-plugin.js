@@ -9,6 +9,7 @@ module.exports = {
   // TShock's REST status names online players itself, so there is no log to follow.
   recordNewLogEvents: () => {},
   gamedigQueryOptions: { token: TSHOCK_REST_TOKEN },
+  readServerState: null,
   recordQueryAnswer: recordOnlineAdmins,
   readGameVersion: readQueryGameVersion,
   filterAdminNames: filterTerrariaAdminNames,

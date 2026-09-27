@@ -7,6 +7,7 @@ const { GAME_DIR } = require("./config");
 const PLUGIN_MEMBERS = [
   "recordNewLogEvents", // () => void, each query, before the server is asked
   "gamedigQueryOptions", // extra GameDig.query options, e.g. a REST token
+  "readServerState", // null for gamedig; else () => a gamedig-shaped state, throwing while the server is down
   "recordQueryAnswer", // (gamedig state) => void, after the server answered
   "readGameVersion", // (gamedig state) => the game's version; most games use read-query-game-version.js
   "filterAdminNames", // (online player names) => the game masters among them

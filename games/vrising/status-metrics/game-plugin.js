@@ -8,6 +8,7 @@ module.exports = {
   // The Steam query names online players itself, so there is no log to follow.
   recordNewLogEvents: () => {},
   gamedigQueryOptions: {},
+  readServerState: null,
   recordQueryAnswer: () => {},
   readGameVersion: readVRisingVersion,
   // adminlist.txt holds Steam IDs, which the query's player names cannot be matched to.

@@ -1,5 +1,6 @@
 RELEASE := terraria
 GAME_TITLE := Terraria
+SHARED_DASHBOARDS :=
 GAME_DATA_PATH := /root/.local/share/Terraria/Worlds
 GAME_BACKUP_PATH := /root/.local/share/Terraria/Worlds/backups
 GAME_SHELL := bash

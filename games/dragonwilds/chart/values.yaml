@@ -1,0 +1,79 @@
+image:
+  # Jagex's own image; it updates the game with steamcmd on every start.
+  # https://github.com/runescape/rsdw-dedicated
+  repository: ghcr.io/runescape/rsdw-dedicated
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# What each setting does: https://dragonwilds.runescape.wiki/w/Dedicated_Servers
+server:
+  name: "Dragonwilds Server" # the server browser's "Created By" column
+  worldName: "" # required: the world players search for, and its save
+  ownerId: "" # required: the owner's player ID, from the game's settings screen
+  admins: "" # comma-separated player IDs with admin rights
+  # UDP. The server also listens on gamePort + 1111 (the world settings beacon);
+  # both must reach the pod on the same numbers, so they are also the NodePorts.
+  gamePort: 7778
+  connectHost: "" # public join address shown in Discord alerts
+  timeZone: "Etc/UTC"
+
+# Pass at deploy time with --set-string, or point secretRef at an existing Secret holding
+# SERVER_PASSWORD and ADMIN_PASSWORD. Never commit real passwords.
+secrets:
+  serverPassword: "" # empty lets anyone join
+  adminPassword: "" # required: opens the in-game server management screen
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+# The backup sidecar archives the world's save on this interval and keeps maxCount archives.
+backups:
+  intervalMinutes: 60
+  maxCount: 48
+
+# The steamcmd install and Saved/ in server/, archives in backups/.
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 20Gi
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 4Gi
+  limits:
+    memory: 6Gi
+
+backupResources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    memory: 128Mi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (platform/registry/, localhost:30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/dragonwilds-status-metrics
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
+    pullPolicy: Always
+  port: 9101
+
+# Requires the VPA CRDs; platform/vpa/install.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto
+  # The range the recommender may suggest for the game container.
+  minAllowed:
+    cpu: 500m
+    memory: 2Gi
+  maxAllowed:
+    cpu: "6"
+    memory: 10Gi

@@ -1,5 +1,6 @@
 RELEASE := minecraft
 GAME_TITLE := Minecraft
+SHARED_DASHBOARDS :=
 GAME_DATA_PATH := /data
 GAME_BACKUP_PATH := /backups
 GAME_SHELL := bash

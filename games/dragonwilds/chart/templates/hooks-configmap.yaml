@@ -1,0 +1,4 @@
+{{- /* Ready once this start's log says the session is joinable. The server moves the previous
+start's log aside before it writes, so a match is always this start's. */ -}}
+{{- $readyCheck := printf "pgrep -f '%s' >/dev/null && grep -qs 'ReadyToJoin.*value\\[1\\]' %s" (include "dragonwilds.serverProcessPattern" .) (include "dragonwilds.logFile" .) }}
+{{- include "game-server.lifecycleHooks" (dict "context" . "statusDir" "/var/run/dragonwilds-status" "persistDir" (include "dragonwilds.savedPath" .) "readyCheck" $readyCheck "displayName" .Values.server.worldName "connectPort" .Values.server.gamePort) }}

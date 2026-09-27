@@ -9,6 +9,7 @@ module.exports = {
   // The server list ping names online players itself, so there is no log to follow.
   recordNewLogEvents: () => {},
   gamedigQueryOptions: {},
+  readServerState: null,
   recordQueryAnswer: () => {},
   readGameVersion: readQueryGameVersion,
   filterAdminNames: filterMinecraftOperatorNames,

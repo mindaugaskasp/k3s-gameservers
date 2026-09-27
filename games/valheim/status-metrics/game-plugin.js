@@ -22,6 +22,7 @@ function recordNewLogEvents() {
 module.exports = {
   recordNewLogEvents,
   gamedigQueryOptions: {},
+  readServerState: null,
   recordQueryAnswer: () => {}, // Valheim's query reports nothing the core doesn't record.
   readGameVersion: readQueryGameVersion,
   filterAdminNames: filterValheimAdminNames,

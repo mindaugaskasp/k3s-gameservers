@@ -44,6 +44,12 @@ loki.process "pods" {
     expression = ".*GET /healthz .*"
   }
 
+  // RuneScape: Dragonwilds logs its join password in plain text, as "Password[<password>]".
+  stage.replace {
+    expression = "Password\\[([^\\]]+)\\]"
+    replace    = "REDACTED"
+  }
+
   forward_to = [loki.write.default.receiver]
 }
 
