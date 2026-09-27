@@ -93,12 +93,6 @@ statusMetrics:
     pullPolicy: Always
   port: 9101
   queryPort: "16261" # PZ's A2S query lives on the game port, not port+1
-  resources:
-    requests:
-      cpu: 10m
-      memory: 32Mi
-    limits:
-      memory: 64Mi
 
 # PZ writes chat/user/PerkLog to files, not stdout; this tails them to stdout
 # (prefixed "[chat] ", "[user] ", ...) so the log shipper picks them up.

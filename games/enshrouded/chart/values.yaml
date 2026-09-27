@@ -100,12 +100,6 @@ statusMetrics:
     tag: ""
     pullPolicy: Always
   port: 9101
-  resources:
-    requests:
-      cpu: 10m
-      memory: 32Mi
-    limits:
-      memory: 64Mi
 
 # Requires the VPA CRDs; platform/vpa/install.sh installs them.
 verticalPodAutoscaler:
