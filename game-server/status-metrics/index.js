@@ -33,6 +33,8 @@ const server = http.createServer((req, res) => {
 
 query.refreshLastStatus();
 setInterval(() => query.refreshLastStatus(), QUERY_INTERVAL_MILLISECONDS);
+// As a container's PID 1, node ignores SIGTERM without a handler, holding the pod until it is killed.
+process.on("SIGTERM", () => process.exit(0));
 server.listen(METRICS_PORT, () => {
   console.log(`game-status-metrics listening on :${METRICS_PORT}, querying ${GAME} at ${HOST}:${PORT}`);
 });
