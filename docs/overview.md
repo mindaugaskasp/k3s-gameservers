@@ -29,13 +29,18 @@ flowchart LR
             loki --> grafana
         end
 
-        website["Website<br/>server cards and stats"]
+        subgraph webserver["webserver namespace"]
+            gamestatus["game-status service<br/>polls every source on a timer"]
+            website["Website (nginx + Laravel)<br/>server cards and stats"]
+            gamestatus -- "/servers snapshot" --> website
+        end
     end
 
     router --> server
     sidecar -- "/metrics" --> prometheus
-    sidecar -- "/metrics" --> website
-    prometheus -- "player history" --> website
+    sidecar -- "/metrics" --> gamestatus
+    gamestatus -. "who is online? (gamedig)" .-> server
+    prometheus -- "7-day player history" --> gamestatus
     server -- "logs" --> loki
     grafana -- "alerts" --> discord(["Discord"])
     server -- "started / stopped" --> discord
@@ -47,4 +52,5 @@ flowchart LR
   ([status-metrics.md](status-metrics.md)); it serves everything it knows at `/metrics`.
 - **Grafana and alerts:** reads Prometheus and Loki; alerts post to Discord
   ([game-monitoring.md](game-monitoring.md)).
-- **Website:** reads each helper's `/metrics` directly, so its stats are live.
+- **Website:** a separate game-status service collects everything: each helper's `/metrics`, a gamedig
+  query to each server and a week of player history from Prometheus. The site reads only its `/servers` snapshot.
