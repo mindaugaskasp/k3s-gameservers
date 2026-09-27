@@ -14,7 +14,7 @@ server:
   mode: survival # survival | creative | adventure | spectator
   maxPlayers: 10
   viewDistance: 10
-  # Java heap; keep resources.limits.memory about 1.5Gi above it (Paper idles ~0.5Gi over the heap).
+  # Java heap; keep resources.limits.memory at least 1.5Gi above it (Paper idles ~0.5Gi over the heap).
   memory: 2G
   operators: "" # comma-separated player names, set from .env
   whitelist: "" # comma-separated player names; empty lets anyone join
@@ -55,7 +55,7 @@ resources:
     cpu: "1"
     memory: 3Gi
   limits:
-    memory: 3584Mi
+    memory: 4Gi
 
 backupResources:
   requests:
