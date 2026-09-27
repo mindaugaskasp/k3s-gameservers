@@ -8,6 +8,7 @@ const PLUGIN_MEMBERS = [
   "recordNewLogEvents", // () => void, each query, before the server is asked
   "gamedigQueryOptions", // extra GameDig.query options, e.g. a REST token
   "recordQueryAnswer", // (gamedig state) => void, after the server answered
+  "readGameVersion", // (gamedig state) => the game's version; most games use read-query-game-version.js
   "filterAdminNames", // (online player names) => the game masters among them
   "readLastDeathLabels", // (last death's player row) => extra labels for game_server_last_death_*
   "buildMetricLines", // () => the game's own exposition lines, e.g. valheim_*

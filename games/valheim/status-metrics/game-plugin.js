@@ -1,6 +1,7 @@
 "use strict";
 
 const { recordDeaths } = require("../../../game-server/status-metrics/store-player-history");
+const { readQueryGameVersion } = require("../../../game-server/status-metrics/read-query-game-version");
 const { readNewDeaths } = require("./read-death-log");
 const { readCurrentGameDay } = require("./read-valheim-game-day");
 const { recordDeathGameDay } = require("./store-valheim-death-days");
@@ -22,6 +23,7 @@ module.exports = {
   recordNewLogEvents,
   gamedigQueryOptions: {},
   recordQueryAnswer: () => {}, // Valheim's query reports nothing the core doesn't record.
+  readGameVersion: readQueryGameVersion,
   filterAdminNames: filterValheimAdminNames,
   readLastDeathLabels: () => ({}),
   buildMetricLines: buildValheimMetricLines,

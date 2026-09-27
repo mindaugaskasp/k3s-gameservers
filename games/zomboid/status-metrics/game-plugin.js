@@ -1,6 +1,7 @@
 "use strict";
 
 const { recordDeaths } = require("../../../game-server/status-metrics/store-player-history");
+const { readQueryGameVersion } = require("../../../game-server/status-metrics/read-query-game-version");
 const { readNewZomboidDeaths } = require("./read-zomboid-deaths");
 const { readCharacterName } = require("./read-zomboid-character-names");
 const { recordZombieKills, recordDeathCharacterNames } = require("./store-zomboid-player-history");
@@ -30,6 +31,7 @@ module.exports = {
   recordNewLogEvents,
   gamedigQueryOptions: {},
   recordQueryAnswer,
+  readGameVersion: readQueryGameVersion,
   filterAdminNames: filterZomboidAdminNames,
   readLastDeathLabels,
   buildMetricLines: buildZomboidMetricLines,

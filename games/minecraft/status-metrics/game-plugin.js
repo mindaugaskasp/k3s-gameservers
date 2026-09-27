@@ -1,5 +1,6 @@
 "use strict";
 
+const { readQueryGameVersion } = require("../../../game-server/status-metrics/read-query-game-version");
 const { filterMinecraftOperatorNames } = require("./read-minecraft-operators");
 const { buildMinecraftMetricLines } = require("./metrics/build-minecraft-metrics");
 
@@ -9,6 +10,7 @@ module.exports = {
   recordNewLogEvents: () => {},
   gamedigQueryOptions: {},
   recordQueryAnswer: () => {},
+  readGameVersion: readQueryGameVersion,
   filterAdminNames: filterMinecraftOperatorNames,
   readLastDeathLabels: () => ({}),
   buildMetricLines: buildMinecraftMetricLines,

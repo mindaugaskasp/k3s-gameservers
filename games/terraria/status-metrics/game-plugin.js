@@ -1,5 +1,6 @@
 "use strict";
 
+const { readQueryGameVersion } = require("../../../game-server/status-metrics/read-query-game-version");
 const { TSHOCK_REST_TOKEN } = require("./config");
 const { recordOnlineAdmins, filterTerrariaAdminNames } = require("./track-terraria-admins");
 
@@ -9,6 +10,7 @@ module.exports = {
   recordNewLogEvents: () => {},
   gamedigQueryOptions: { token: TSHOCK_REST_TOKEN },
   recordQueryAnswer: recordOnlineAdmins,
+  readGameVersion: readQueryGameVersion,
   filterAdminNames: filterTerrariaAdminNames,
   readLastDeathLabels: () => ({}),
   buildMetricLines: () => [],

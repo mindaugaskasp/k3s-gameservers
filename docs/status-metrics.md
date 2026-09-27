@@ -28,6 +28,7 @@ Only the entry points (`index.js`, `reset-player-stats.js`) load it.
 - `index.js`: HTTP server, the 15s query loop, and the env-var check.
 - `config.js`: the env vars every game has and the paths derived from them.
 - `query-game-server.js`: runs the gamedig query, keeps the last answer for the next scrape.
+- `read-query-game-version.js`: the game version from the query's A2S tags, which most games' plugins use.
 - `build-metrics-text.js`: joins the metric lines into the text served on `/metrics`.
 - `read-status-files.js`: hook-written `STATUS_DIR` timestamps, build ID and past uptime.
 - `track-online-players.js`: who is online, one `STATUS_DIR` file per player from the log; mtime = joined.

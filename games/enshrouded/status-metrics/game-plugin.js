@@ -1,6 +1,7 @@
 "use strict";
 
 const { markPlayerOnline, markPlayerOffline, clearOnlinePlayers } = require("../../../game-server/status-metrics/track-online-players");
+const { readQueryGameVersion } = require("../../../game-server/status-metrics/read-query-game-version");
 const { readNewEnshroudedEvents } = require("./read-enshrouded-log");
 const { recordEnshroudedBaseCount } = require("./store-enshrouded-base-count");
 const { markGameMaster, unmarkGameMaster, filterEnshroudedAdminNames } = require("./track-enshrouded-game-masters");
@@ -28,6 +29,7 @@ module.exports = {
   recordNewLogEvents,
   gamedigQueryOptions: {},
   recordQueryAnswer: () => {}, // Enshrouded's query reports nothing the core doesn't record.
+  readGameVersion: readQueryGameVersion,
   filterAdminNames: filterEnshroudedAdminNames,
   readLastDeathLabels: () => ({}),
   buildMetricLines: buildEnshroudedMetricLines,

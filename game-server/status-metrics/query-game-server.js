@@ -5,13 +5,6 @@ const { GAME, HOST, PORT } = require("./config");
 const { readOnlinePlayers, clearOnlinePlayers } = require("./track-online-players");
 const { recordPlayersSeen, creditPlayTime } = require("./store-player-history");
 
-// The real game version rides in the A2S tags as "g=1.0.14"; gamedig's own
-// `version` field is the query protocol version, always "1.0.0.0".
-function parseGameVersion(state) {
-  const versionTag = (state.raw?.tags || []).find((tag) => tag.startsWith("g="));
-  return versionTag ? versionTag.slice(2) : state.version || "";
-}
-
 /** Queries the game server on demand and keeps the last answer for the next scrape. */
 class GameServerQuery {
   constructor(gamePlugin) {
@@ -55,7 +48,7 @@ class GameServerQuery {
         queryDurationSeconds: (Date.now() - queryStartedAt) / 1000,
         pingSeconds: (state.ping ?? 0) / 1000,
         serverName: state.name || "",
-        version: parseGameVersion(state),
+        version: this.gamePlugin.readGameVersion(state),
         password: Boolean(state.password),
         scrapeUnixTime: Math.floor(Date.now() / 1000),
       };
