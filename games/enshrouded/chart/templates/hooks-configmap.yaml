@@ -5,21 +5,16 @@ metadata:
   labels:
     {{- include "game-server.labels" . | nindent 4 }}
 data:
+  {{- include "game-server.sharedHookScripts" . | nindent 2 }}
+
   # The image has no "server started" hook, so start/stop come from the
   # statefulset's `lifecycle:` block; updates come from UPDATE_POST_HOOK.
   notify.sh: |
     #!/bin/sh
-    # Posts a Discord embed for a lifecycle event. Never fails the caller.
     set -u
     status_dir="/var/run/enshrouded-status"
-    data_dir="/opt/enshrouded"
-    version_file="$data_dir/current_version"
-    build_file="$data_dir/.last-known-build"
+    build_file="/opt/enshrouded/.last-known-build"
     connect="${CONNECT_HOST:-}${CONNECT_HOST:+:${SERVER_QUERYPORT:-15637}}"
-
-    json_escape() {
-      printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
-    }
 
     # Runs as root (lifecycle hooks) or as the game user (image hooks), so
     # write through a temp file the owning directory allows replacing.
@@ -29,49 +24,25 @@ data:
       mv -f "$1.tmp.$$" "$1" 2>/dev/null || rm -f "$1.tmp.$$"
     }
 
-    new_build=$(cat "$version_file" 2>/dev/null || true)
+    new_build=$(cat /opt/enshrouded/current_version 2>/dev/null || true)
     old_build=$(cat "$build_file" 2>/dev/null || true)
     [ -n "$new_build" ] && write_file "$status_dir/build-id" "$new_build"
 
-    build_field=""
+    build_change=""
     case "$1" in
-      started)
-        title="Server online"; color=3066993
-        desc="**${SERVER_NAME}** is up and accepting connections."
-        ;;
+      started) title="Server online"; colour=3066993; description="**${SERVER_NAME}** is up and accepting connections." ;;
       updated)
-        title="Server updated"; color=5793266
+        title="Server updated"; colour=5793266; description="**${SERVER_NAME}** restarted."
         if [ -n "$old_build" ] && [ -n "$new_build" ] && [ "$old_build" != "$new_build" ]; then
-          desc="**${SERVER_NAME}** was updated from build ${old_build} to ${new_build} and is back up."
-          build_field=",{\"name\":\"Build\",\"value\":\"$(json_escape "$old_build -> $new_build")\",\"inline\":true}"
-        else
-          desc="**${SERVER_NAME}** restarted."
+          description="**${SERVER_NAME}** was updated from build ${old_build} to ${new_build} and is back up."
+          build_change="$old_build -> $new_build"
         fi
         ;;
-      down)
-        title="Server down"; color=15548997
-        desc="**${SERVER_NAME}** is shutting down."
-        ;;
-      *)
-        title="Server event"; color=9807270
-        desc="**${SERVER_NAME}**: $1"
-        ;;
+      down) title="Server down"; colour=15548997; description="**${SERVER_NAME}** is shutting down." ;;
+      *) title="Server event"; colour=9807270; description="**${SERVER_NAME}**: $1" ;;
     esac
-
     [ -n "$new_build" ] && write_file "$build_file" "$new_build"
-
-    if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
-      fields="[]"
-      if [ -n "$connect" ]; then
-        fields="[{\"name\":\"Connect\",\"value\":\"$(json_escape "$connect")\",\"inline\":true}${build_field}]"
-      elif [ -n "$build_field" ]; then
-        fields="[${build_field#,}]"
-      fi
-      ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-      payload="{\"embeds\":[{\"title\":\"$(json_escape "$title")\",\"description\":\"$(json_escape "$desc")\",\"color\":$color,\"fields\":$fields,\"timestamp\":\"$ts\"}]}"
-      curl -fsS -X POST -H "Content-Type: application/json" \
-        -d "$payload" "${DISCORD_WEBHOOK_URL}" >/dev/null 2>&1 || true
-    fi
+    /etc/enshrouded-hooks/post-discord-embed.sh "$title" "$colour" "$description" Connect "$connect" Build "$build_change"
 
   # postStart must return fast (kubelet blocks Running on it) -- just
   # backgrounds the real logic below.
@@ -94,11 +65,11 @@ data:
       su enshrouded -s /bin/sh -c "python3 -c \"import a2s; a2s.info(('127.0.0.1', $port))\"" >/dev/null 2>&1
     }
 
-    i=0
+    attempt=0
     # ~60 minutes: the first boot downloads the game before it can answer.
     until query; do
-      i=$((i + 1))
-      [ "$i" -ge 360 ] && { echo "started-hook: no query response, giving up" >&2; exit 0; }
+      attempt=$((attempt + 1))
+      [ "$attempt" -ge 360 ] && { echo "started-hook: no query response, giving up" >&2; exit 0; }
       sleep 10
     done
 
@@ -108,15 +79,5 @@ data:
   # Runs before SIGTERM and counts against terminationGracePeriodSeconds -- kept fast.
   down.sh: |
     #!/bin/sh
-    set -u
-    status_dir="/var/run/enshrouded-status"
-    persist_dir="/opt/enshrouded"
-    started_at=$(cat "$status_dir/last-started.timestamp" 2>/dev/null || echo 0)
-    case "$started_at" in ''|*[!0-9]*) started_at=0 ;; esac
-    elapsed=0
-    [ "$started_at" -gt 0 ] && elapsed=$(( $(date +%s) - started_at ))
-    [ "$elapsed" -lt 0 ] && elapsed=0
-    prior=$(cat "$persist_dir/uptime-accumulator.seconds" 2>/dev/null || echo 0)
-    case "$prior" in ''|*[!0-9]*) prior=0 ;; esac
-    echo $((prior + elapsed)) > "$persist_dir/uptime-accumulator.seconds"
+    /etc/enshrouded-hooks/record-uptime.sh /var/run/enshrouded-status /opt/enshrouded/uptime-accumulator.seconds
     /etc/enshrouded-hooks/notify.sh down

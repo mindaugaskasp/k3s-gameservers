@@ -6,8 +6,8 @@ cd /data
 rm -rf .restore-tmp; mkdir -p .restore-tmp
 unzip -q -o /tmp/restore-backup -d .restore-tmp
 test -d .restore-tmp/config/worlds_local
-ts=$(date +%Y%m%d-%H%M%S)
-if [ -d config/worlds_local ]; then mv config/worlds_local "config/worlds_local.replaced-$ts"; fi
+replaced_at=$(date +%Y%m%d-%H%M%S)
+if [ -d config/worlds_local ]; then mv config/worlds_local "config/worlds_local.replaced-$replaced_at"; fi
 mv .restore-tmp/config/worlds_local config/worlds_local
 rm -rf .restore-tmp
-echo "previous world kept at config/worlds_local.replaced-$ts"
+echo "previous world kept at config/worlds_local.replaced-$replaced_at"

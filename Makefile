@@ -97,7 +97,7 @@ maintenance:
 
 ## Ship every game's Grafana dashboards (runs make dashboards in each games/<game>)
 dashboards:
-	@for g in $(GAMES); do $(MAKE) --no-print-directory -C games/$$g dashboards || exit 1; done
+	@for game in $(GAMES); do $(MAKE) --no-print-directory -C games/$$game dashboards || exit 1; done
 
 ## Ban an IP in CrowdSec, so Traefik answers it with 403 (on the VM)
 ##   <ip>                the address to ban

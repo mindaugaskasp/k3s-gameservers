@@ -7,8 +7,8 @@ cd /data/config
 name=$(unzip -p /tmp/restore-backup readme.txt | sed -n "s/^ServerName: *//p" | tr -d "\r")
 test -n "$name"
 keep=".replaced-$(date +%Y%m%d-%H%M%S)"
-for p in "Saves/Multiplayer/$name" Server db options.ini; do
-  [ -e "$p" ] && mkdir -p "$keep/$(dirname "$p")" && mv "$p" "$keep/$p"; true
+for world_path in "Saves/Multiplayer/$name" Server db options.ini; do
+  [ -e "$world_path" ] && mkdir -p "$keep/$(dirname "$world_path")" && mv "$world_path" "$keep/$world_path"; true
 done
 unzip -q -o /tmp/restore-backup -x readme.txt
 echo "previous world kept at /project-zomboid-config/$keep"

@@ -211,21 +211,21 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
             - |
-              dir=/project-zomboid-config/Logs
-              declare -A seen; first=1
+              logs_dir=/project-zomboid-config/Logs
+              declare -A followed_logs; is_first_scan=1
               while :; do
-                for f in "$dir"/*.txt; do
-                  [ -e "$f" ] || continue
-                  b=${f##*/}
-                  case "$b" in *DebugLog*) continue ;; esac
-                  [ -n "${seen[$b]}" ] && continue
-                  seen[$b]=1
-                  type=${b#????-??-??_??-??_}; type=${type%.txt}
-                  n=+1; [ "$first" = 1 ] && n=0
-                  tail -n "$n" -F "$f" 2>/dev/null \
-                    | while IFS= read -r l; do printf '[%s] %s\n' "$type" "$l"; done &
+                for log_file in "$logs_dir"/*.txt; do
+                  [ -e "$log_file" ] || continue
+                  log_name=${log_file##*/}
+                  case "$log_name" in *DebugLog*) continue ;; esac
+                  [ -n "${followed_logs[$log_name]}" ] && continue
+                  followed_logs[$log_name]=1
+                  log_type=${log_name#????-??-??_??-??_}; log_type=${log_type%.txt}
+                  start_line=+1; [ "$is_first_scan" = 1 ] && start_line=0
+                  tail -n "$start_line" -F "$log_file" 2>/dev/null \
+                    | while IFS= read -r log_line; do printf '[%s] %s\n' "$log_type" "$log_line"; done &
                 done
-                first=0; sleep 5
+                is_first_scan=0; sleep 5
               done
           resources:
             requests:

@@ -58,14 +58,14 @@ restore-backup:
 	@mapfile -t backups < <(find $(BACKUP_DIR) -name '$(BACKUP_FILE_PATTERN)' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-); \
 	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
 	echo "Available backups (newest first):"; \
-	for i in "$${!backups[@]}"; do \
-		printf "  %2d) %-34s %s  %s\n" "$$((i + 1))" "$${backups[$$i]#$(BACKUP_DIR)/}" \
-			"$$(date -r "$${backups[$$i]}" '+%Y-%m-%d %H:%M')" "$$(du -h "$${backups[$$i]}" | cut -f1)"; \
+	for backup_index in "$${!backups[@]}"; do \
+		printf "  %2d) %-34s %s  %s\n" "$$((backup_index + 1))" "$${backups[$$backup_index]#$(BACKUP_DIR)/}" \
+			"$$(date -r "$${backups[$$backup_index]}" '+%Y-%m-%d %H:%M')" "$$(du -h "$${backups[$$backup_index]}" | cut -f1)"; \
 	done; \
-	read -r -p "Select a backup to restore (number): " n; \
-	idx=$$((n - 1)); \
-	[ "$$idx" -ge 0 ] 2>/dev/null && [ "$$idx" -lt $${#backups[@]} ] || { echo "invalid selection" >&2; exit 1; }; \
-	$(MAKE) _restore-run BACKUP="$${backups[$$idx]}"
+	read -r -p "Select a backup to restore (number): " selected_number; \
+	selected_index=$$((selected_number - 1)); \
+	[ "$$selected_index" -ge 0 ] 2>/dev/null && [ "$$selected_index" -lt $${#backups[@]} ] || { echo "invalid selection" >&2; exit 1; }; \
+	$(MAKE) _restore-run BACKUP="$${backups[$$selected_index]}"
 
 RESTORE_HELPER_POD = sed 's/__RELEASE__/$(RELEASE)/g' $(GAME_SERVER_DIR)/restore-helper-pod.yaml
 

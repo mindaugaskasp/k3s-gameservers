@@ -9,29 +9,29 @@ data:
   # query protocol has no player names, so this keeps one file per online character.
   player-event.sh: |
     #!/bin/sh
-    dir=/var/run/valheim-status/players
-    mkdir -p "$dir/online"
-    IFS= read -r l || exit 0
-    touch "$dir/last-activity"  # read by backup-gate.sh
-    case "$l" in
+    players_dir=/var/run/valheim-status/players
+    mkdir -p "$players_dir/online"
+    IFS= read -r log_line || exit 0
+    touch "$players_dir/last-activity"  # read by backup-gate.sh
+    case "$log_line" in
       *"Got handshake from client "*)
-        id=${l##*Got handshake from client }; printf '%s' "${id%% *}" > "$dir/last-handshake" ;;
+        steam_id=${log_line##*Got handshake from client }; printf '%s' "${steam_id%% *}" > "$players_dir/last-handshake" ;;
       *"Got character ZDOID from "*)
-        rest=${l##*Got character ZDOID from }; zdo=${rest##* : }
-        name=$(printf '%s' "${rest% : *}" | tr -d '/')
+        character_and_zdoid=${log_line##*Got character ZDOID from }; zdoid=${character_and_zdoid##* : }
+        name=$(printf '%s' "${character_and_zdoid% : *}" | tr -d '/')
         [ -n "$name" ] || exit 0
         # ZDOID 0:0 is a death, not a join. One line per death; status-metrics folds
         # them into its database, so nothing but status-metrics ever writes that file.
-        if [ "${zdo%%:*}" = 0 ]; then
-          printf '%s\n' "$name" >> "$dir/deaths"
+        if [ "${zdoid%%:*}" = 0 ]; then
+          printf '%s\n' "$name" >> "$players_dir/deaths"
           exit 0
         fi
         # A respawn keeps the SteamID from the join, not whoever handshook last.
-        [ ! -f "$dir/online/$name" ] && cat "$dir/last-handshake" > "$dir/online/$name" 2>/dev/null ;;
+        [ ! -f "$players_dir/online/$name" ] && cat "$players_dir/last-handshake" > "$players_dir/online/$name" 2>/dev/null ;;
       *"Closing socket "*)
-        id=${l##*Closing socket }; id=${id%% *}
-        for f in "$dir/online"/*; do
-          [ -f "$f" ] && [ "$(cat "$f")" = "$id" ] && rm -f "$f"
+        steam_id=${log_line##*Closing socket }; steam_id=${steam_id%% *}
+        for online_file in "$players_dir/online"/*; do
+          [ -f "$online_file" ] && [ "$(cat "$online_file")" = "$steam_id" ] && rm -f "$online_file"
         done ;;
     esac
     exit 0
@@ -47,8 +47,8 @@ data:
   # line per raid; status-metrics folds them into its database and nothing else writes it.
   raid-event.sh: |
     #!/bin/sh
-    IFS= read -r l || exit 0
-    name=$(printf '%s' "${l##*Random event set:}" | tr -d '\r ')
+    IFS= read -r log_line || exit 0
+    name=$(printf '%s' "${log_line##*Random event set:}" | tr -d '\r ')
     [ -n "$name" ] && printf '%s %s\n' "$(date +%s)" "$name" >> /var/run/valheim-status/raids
     exit 0
   # Exit 0 if players are on (A2S backs up the log hook) or were since the
@@ -127,93 +127,61 @@ data:
     [ -n "$build" ] || { echo "could not read buildid" >&2; exit 1; }
     printf '%s' "$build" > /config/mods-approved-build
     echo "approved build $build; mods will load on next start"
+  {{- include "game-server.sharedHookScripts" . | nindent 2 }}
+
   notify.sh: |
     #!/bin/sh
     # Records lifecycle timestamps for status-metrics and posts a Discord embed.
     # Not POST_START_HOOK: it fires on plain restarts, faking updates.
     set -eu
     status_dir="/var/run/valheim-status"
-    persist_dir="/config"
     connect="${CONNECT_HOST:-}${CONNECT_HOST:+:${SERVER_PORT:-2456}}"
-
-    json_escape() {
-      printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+    # Steam build ID, not the human "1.0.14" version: only the install knows it, gamedig can't.
+    read_build_id() {
+      manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
+      [ -n "$manifest" ] && grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1 || true
     }
 
-    show_join=0
-    build_field=""
+    # Inline code, not a markdown link: Discord only auto-links http(s).
+    join_link=""
+    build_change=""
     case "$1" in
       started)
         date +%s > "$status_dir/last-started.timestamp"
-        # Steam build ID, not the human "1.0.14" version -- only readable
-        # from inside the container's install, gamedig cannot see it.
-        manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
-        if [ -n "$manifest" ]; then
-          grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1 > "$status_dir/build-id" || true
-        fi
-        title="Server online"; color=3066993; show_join=1
-        desc="**${SERVER_NAME}** is up and accepting connections."
+        read_build_id > "$status_dir/build-id"
+        title="Server online"; colour=3066993
+        description="**${SERVER_NAME}** is up and accepting connections."
+        [ -n "$connect" ] && join_link="\`steam://connect/$connect\`"
         ;;
       down)
-        # Checkpoint this session into the PVC-backed running total;
-        # Prometheus only retains 7d so it cannot answer lifetime uptime.
-        started_at=$(cat "$status_dir/last-started.timestamp" 2>/dev/null || echo 0)
-        case "$started_at" in ''|*[!0-9]*) started_at=0 ;; esac
-        elapsed=0
-        [ "$started_at" -gt 0 ] && elapsed=$(( $(date +%s) - started_at ))
-        [ "$elapsed" -lt 0 ] && elapsed=0
-        prior=$(cat "$persist_dir/uptime-accumulator.seconds" 2>/dev/null || echo 0)
-        case "$prior" in ''|*[!0-9]*) prior=0 ;; esac
-        echo $((prior + elapsed)) > "$persist_dir/uptime-accumulator.seconds"
+        /etc/valheim-hooks/record-uptime.sh "$status_dir" /config/uptime-accumulator.seconds
         rm -f /tmp/online-announced
-        title="Server down"; color=15548997
-        desc="**${SERVER_NAME}** is shutting down."
+        title="Server down"; colour=15548997
+        description="**${SERVER_NAME}** is shutting down."
         ;;
       updated)
         date +%s > "$status_dir/last-updated.timestamp"
-        # build-id here is still the PREVIOUS build: it's only overwritten by
-        # the "started" hook, which fires after this one on the restart.
+        # build-id still holds the previous build: the "started" hook after the restart rewrites it.
         previous_build=$(cat "$status_dir/build-id" 2>/dev/null || true)
-        manifest=$(find /opt/valheim -maxdepth 4 -name 'appmanifest_896660.acf' 2>/dev/null | head -1)
-        new_build=""
-        [ -n "$manifest" ] && new_build=$(grep -m1 '"buildid"' "$manifest" | grep -oE '[0-9]+' | tail -1)
-        title="Server updating"; color=5793266
+        new_build=$(read_build_id)
+        title="Server updating"; colour=5793266
+        description="**${SERVER_NAME}** was updated and is restarting."
         if [ -n "$previous_build" ] && [ -n "$new_build" ] && [ "$previous_build" != "$new_build" ]; then
-          desc="**${SERVER_NAME}** was updated from build ${previous_build} to ${new_build} and is restarting."
-          build_field=",{\"name\":\"Build\",\"value\":\"$(json_escape "$previous_build -> $new_build")\",\"inline\":true}"
+          description="**${SERVER_NAME}** was updated from build ${previous_build} to ${new_build} and is restarting."
+          build_change="$previous_build -> $new_build"
         elif [ -n "$new_build" ]; then
-          desc="**${SERVER_NAME}** was updated to build ${new_build} and is restarting."
-          build_field=",{\"name\":\"Build\",\"value\":\"$(json_escape "$new_build")\",\"inline\":true}"
-        else
-          desc="**${SERVER_NAME}** was updated and is restarting."
+          description="**${SERVER_NAME}** was updated to build ${new_build} and is restarting."
+          build_change="$new_build"
         fi
         ;;
       mods-disabled)
-        title="Mods disabled"; color=16705372
-        desc="**${SERVER_NAME}** is starting without mods: ${2:-unknown reason}. The server is up; run \`make approve-mods\` once mods are verified."
+        title="Mods disabled"; colour=16705372
+        description="**${SERVER_NAME}** is starting without mods: ${2:-unknown reason}. The server is up; run \`make approve-mods\` once mods are verified."
         ;;
       *)
-        title="Server event"; color=9807270
-        desc="**${SERVER_NAME}**: $1"
+        title="Server event"; colour=9807270
+        description="**${SERVER_NAME}**: $1"
         ;;
     esac
-
-    if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
-      fields="[]"
-      if [ -n "$connect" ]; then
-        connect_field="{\"name\":\"Connect\",\"value\":\"$(json_escape "$connect")\",\"inline\":true},{\"name\":\"World\",\"value\":\"$(json_escape "${WORLD_NAME:-}")\",\"inline\":true}"
-        join_field=""
-        # Inline code, not a markdown link: Discord only auto-links
-        # http(s), so [text](steam://...) renders as dead plain text.
-        if [ "$show_join" = 1 ]; then
-          join_field=",{\"name\":\"Join\",\"value\":\"\`steam://connect/$(json_escape "$connect")\`\",\"inline\":true}"
-        fi
-        fields="[${connect_field}${join_field}${build_field}]"
-      elif [ -n "$build_field" ]; then
-        fields="[${build_field#,}]"
-      fi
-      ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-      payload="{\"embeds\":[{\"title\":\"$(json_escape "$title")\",\"description\":\"$(json_escape "$desc")\",\"color\":$color,\"fields\":$fields,\"timestamp\":\"$ts\"}]}"
-      curl -fsS -X POST -H "Content-Type: application/json" \
-        -d "$payload" "${DISCORD_WEBHOOK_URL}" >/dev/null 2>&1 || true
-    fi
+    /etc/valheim-hooks/post-discord-embed.sh "$title" "$colour" "$description" \
+      Connect "$connect" World "${WORLD_NAME:-}" Join "$join_link" Build "$build_change"
