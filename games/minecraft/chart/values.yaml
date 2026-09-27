@@ -1,7 +1,7 @@
 image:
   # https://docker-minecraft-server.readthedocs.io/en/latest/versions/java/
   repository: itzg/minecraft-server
-  tag: java21
+  tag: java25
   pullPolicy: IfNotPresent
 
 # Each key maps to one of the image's env vars:
