@@ -1,7 +1,7 @@
 # Dragonwilds status metrics
 
-What only Dragonwilds' exporter records and reports, beyond `game-plugin.js`,
-`config.js` and `migrations/`. The shared part: [status-metrics.md](../../../docs/status-metrics.md).
+What only Dragonwilds' exporter records and reports, beyond `game-plugin.js` and
+`config.js`. The shared part: [status-metrics.md](../../../docs/status-metrics.md).
 
 gamedig has no Dragonwilds query, so the plugin's `readServerState` answers from the server log:
 

@@ -31,7 +31,7 @@ Rules for names, comments and docs: [CLAUDE.md](CLAUDE.md).
 A small program running beside the game that counts players and collects stats for Grafana and the website.
 
 - [ ] `game-plugin.js` fills in every part `load-game-plugin.js` lists (empty where the game has nothing)
-- [ ] `config.js` holds this game's own settings; `migrations/` (the player database) is copied from another game
+- [ ] `config.js` holds this game's own settings; the player database schema is shared, so `migrations/` exists only for columns this game alone has
 - [ ] Stats only this game has start with `<game>_`; stats every game has start with `game_server_` ([rules](CLAUDE.md#metrics))
 - [ ] `README.md` says what it reads and lists every stat it adds
 - [ ] **Checked:** `make push-metrics-image`, then `make port-forward-metrics` shows `game_server_up 1` and the players

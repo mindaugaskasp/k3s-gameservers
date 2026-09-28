@@ -20,10 +20,11 @@ Each game's own stores are listed in its `games/<game>/status-metrics/README.md`
 
 ## Migrations
 
-`apply-database-migrations.js` applies `games/<game>/status-metrics/migrations/` in
-filename order on connect and records each in the `migration` table.
+`apply-database-migrations.js` applies the shared `game-server/status-metrics/migrations/`
+plus the game's own `games/<game>/status-metrics/migrations/` in filename order on
+connect and records each in the `migration` table.
 
-- Each game has its own; a column two games need is added in both folders.
+- A column every game gets is a shared migration; a column one game has goes in its folder.
 - Add a file, never edit one that has shipped.
 
 ## Reading it

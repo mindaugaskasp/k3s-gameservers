@@ -1,7 +1,7 @@
 # V Rising status metrics
 
-What only V Rising's exporter records and reports, beyond `game-plugin.js`,
-`config.js` and `migrations/`. The shared part: [status-metrics.md](../../../docs/status-metrics.md).
+What only V Rising's exporter records and reports, beyond `game-plugin.js` and
+`config.js`. The shared part: [status-metrics.md](../../../docs/status-metrics.md).
 
 - `read-vrising-world-settings.js`: game mode, difficulty and clan size, then every
   `ServerGameSettings.json` setting that differs from the defaults the install ships with.

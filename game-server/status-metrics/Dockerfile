@@ -10,6 +10,7 @@ RUN npm ci --omit=dev --no-audit --no-fund
 # Laid out as in the repo, so a game's relative requires of the core resolve the same.
 COPY *.js ./game-server/status-metrics/
 COPY metrics ./game-server/status-metrics/metrics/
+COPY migrations ./game-server/status-metrics/migrations/
 COPY --from=game . ./${GAME_DIR}/
 ENV GAME_DIR=/app/${GAME_DIR}
 EXPOSE 9101

@@ -1,7 +1,7 @@
 # Minecraft status metrics
 
-What only Minecraft's exporter records and reports, beyond `game-plugin.js`,
-`config.js` and `migrations/`. The shared part: [status-metrics.md](../../../docs/status-metrics.md).
+What only Minecraft's exporter records and reports, beyond `game-plugin.js` and
+`config.js`. The shared part: [status-metrics.md](../../../docs/status-metrics.md).
 
 - `read-minecraft-operators.js`: online admins, by name in the server's `ops.json`.
 - `read-minecraft-world-settings.js`: difficulty, game mode, hardcore and PvP from `server.properties`.

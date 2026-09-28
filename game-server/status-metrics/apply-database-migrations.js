@@ -2,8 +2,10 @@
 
 const fs = require("fs");
 const path = require("path");
-// Each game's database has its own migrations, in its own folder, never shared with another game's.
+// Schema every game shares lives beside this file; a game's own columns live in its games/<game>/status-metrics/migrations.
 const { MIGRATIONS_DIR } = require("./config");
+
+const SHARED_MIGRATIONS_DIR = path.join(__dirname, "migrations");
 
 // One row per applied migration, like Doctrine's doctrine_migration_versions:
 // https://www.doctrine-project.org/projects/doctrine-migrations/en/current/
@@ -14,13 +16,22 @@ const MIGRATION_TABLE = `
   );
 `;
 
-/** This game's migrations, oldest first: the filename is the version. */
-function readMigrations() {
+function readMigrationsInDirectory(directory) {
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
+
   return fs
-    .readdirSync(MIGRATIONS_DIR)
+    .readdirSync(directory)
     .filter((file) => file.endsWith(".js"))
-    .sort()
-    .map((file) => ({ version: path.basename(file, ".js"), up: require(path.join(MIGRATIONS_DIR, file)).up }));
+    .map((file) => ({ version: path.basename(file, ".js"), up: require(path.join(directory, file)).up }));
+}
+
+/** The shared migrations plus this game's own, oldest first: the filename is the version. */
+function readMigrations() {
+  return [...readMigrationsInDirectory(SHARED_MIGRATIONS_DIR), ...readMigrationsInDirectory(MIGRATIONS_DIR)].sort(
+    (first, second) => first.version.localeCompare(second.version),
+  );
 }
 
 /**
