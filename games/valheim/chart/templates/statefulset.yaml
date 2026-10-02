@@ -72,6 +72,10 @@ spec:
             - name: CONNECT_HOST
               value: {{ .Values.server.connectHost | quote }}
             {{- end }}
+            {{- if .Values.server.adminSteamIds }}
+            - name: ADMINLIST_IDS
+              value: {{ .Values.server.adminSteamIds | quote }}
+            {{- end }}
             - name: SERVER_PASS
               valueFrom:
                 secretKeyRef:

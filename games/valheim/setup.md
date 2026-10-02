@@ -13,6 +13,8 @@ Edit `.env`: `VALHEIM_SERVER_PASSWORD` (required, at least 5 characters), `VALHE
 (required, the save name; changing it starts a **new** world), `VALHEIM_SERVER_NAME` (the name in
 the server browser), and optionally `VALHEIM_DISCORD_WEBHOOK` and `VALHEIM_CONNECT_HOST` for alerts.
 `VALHEIM_SEED` picks the seed of a world that doesn't exist yet; an existing world keeps its own.
+`VALHEIM_ADMIN_STEAM_IDS` (space-separated Steam IDs) is written to `adminlist.txt` on every
+server start; leave it empty to keep the list already on the server.
 
 ## 2. Server settings
 

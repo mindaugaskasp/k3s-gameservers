@@ -23,6 +23,7 @@ secrets-check:
 ##   VALHEIM_SERVER_PASSWORD   required, the password players join with
 ##   VALHEIM_DISCORD_WEBHOOK   optional, turns on Discord alerts
 ##   VALHEIM_CONNECT_HOST      optional, the public host name shown to players
+##   VALHEIM_ADMIN_STEAM_IDS   optional, space-separated Steam IDs written to adminlist.txt
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
@@ -32,6 +33,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.seed "$$VALHEIM_SEED"; \
 	set_discord_alerts "$$VALHEIM_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$VALHEIM_CONNECT_HOST"; \
+	set_value_if_given server.adminSteamIds "$$VALHEIM_ADMIN_STEAM_IDS"; \
 	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
 
 ## Show whether mods loaded, why not if they did not, and which plugins are installed

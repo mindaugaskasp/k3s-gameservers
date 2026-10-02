@@ -20,6 +20,7 @@ server:
   port: 2456 # query is port+1, RPC is port+2
   extraArgs: "" # appended to the server command line, e.g. world modifiers
   connectHost: "" # public join address shown in Discord alerts, e.g. a DDNS hostname
+  adminSteamIds: "" # space-separated Steam IDs written to adminlist.txt on start; empty keeps the file as is
 
 # UDP. Outside the default NodePort range; see docs/architecture.md.
 service:
