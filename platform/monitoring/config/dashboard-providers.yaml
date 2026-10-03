@@ -4,6 +4,9 @@ providers:
   - name: sidecar
     type: file
     allowUiUpdates: false
+    # The sidecar fills the folder after Grafana's first scan; an empty scan must never prune the imported dashboards.
+    disableDeletion: true
+    updateIntervalSeconds: 30
     options:
       path: /etc/grafana/dashboards
       foldersFromFilesStructure: true
