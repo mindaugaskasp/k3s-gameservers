@@ -115,7 +115,7 @@ spec:
           resources:
             # Grafana 13 uses ~380 MiB after loading plugins; a 384Mi limit got it OOMKilled.
             requests:
-              cpu: 50m
+              cpu: 300m
               memory: 384Mi
             limits:
               memory: 1Gi

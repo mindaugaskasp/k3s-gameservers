@@ -51,7 +51,8 @@ spec:
             initialDelaySeconds: 10
           resources:
             requests:
-              cpu: 50m
+              # Enough CPU weight to answer while podman builds hog the node.
+              cpu: 300m
               memory: 128Mi
             limits:
               memory: 1Gi

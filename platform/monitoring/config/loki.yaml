@@ -26,7 +26,21 @@ schema_config:
         prefix: index_
         period: 24h
 
+# Repeat dashboard loads answer from cache; splits keep one panel from hogging the querier.
+query_range:
+  cache_results: true
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+
+querier:
+  max_concurrent: 8
+
 limits_config:
+  split_queries_by_interval: 1h
+  max_query_parallelism: 8
   # 31 days: the website dashboard counts returning IPs over the last 30.
   retention_period: 744h
   # Default 500; per-path tables over bot-probed URLs exceed it.
