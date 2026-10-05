@@ -1,0 +1,19 @@
+apiVersion: v2
+name: palworld-server
+description: Palworld dedicated server as a single-replica StatefulSet, backed by the thijsvanloef palworld-server-docker image.
+type: application
+version: 0.1.0
+# Tracks the image tag in values.yaml. The image installs and updates the game
+# with steamcmd on boot and runs its own backup cron, so the chart has no update CronJob.
+appVersion: "latest"
+keywords:
+  - palworld
+  - game-server
+  - k3s
+home: https://github.com/thijsvanloef/palworld-server-docker
+
+dependencies:
+  # Copied into charts/ by `make` (helm dependency update) before every helm command.
+  - name: game-server
+    version: 0.1.0
+    repository: file://../../../game-server/chart

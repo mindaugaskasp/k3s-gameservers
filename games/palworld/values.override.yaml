@@ -1,0 +1,29 @@
+# Overrides chart/values.yaml. Secrets never go here; games/palworld/.env overrides the server settings.
+
+server:
+  slotCount: 8
+
+# PALWORLD_GAME_SETTINGS in .env overrides these.
+gameSettings: {}
+
+persistence:
+  storageClassName: local-path
+  size: 25Gi
+
+# Upstream asks for more RAM than this; check the VPA recommendation before
+# changing it. Sizing rules: docs/architecture.md#sizing.
+resources:
+  requests:
+    cpu: "2"
+    memory: 6Gi
+  limits:
+    memory: 8Gi
+
+# updateMode stays "Off" (chart default) -- recommendations only, never
+# evictions. See docs/architecture.md and platform/vpa/install.sh.
+verticalPodAutoscaler:
+  enabled: true
+
+backups:
+  cron: "0 * * * *"
+  keepDays: 2

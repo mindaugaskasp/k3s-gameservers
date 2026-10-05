@@ -2,7 +2,7 @@
 
 A single-node k3s cluster runs three namespaces:
 
-- `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`, `minecraft`, `terraria`, `vrising`, `dragonwilds`)
+- `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`, `minecraft`, `terraria`, `vrising`, `dragonwilds`, `palworld`)
 - `monitoring`, `registry`, `crowdsec`: the platform, see [platform.md](platform.md)
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
   ([platform.md](platform.md)); a timer copies worlds off-host ([offsite-backups.md](offsite-backups.md))
@@ -23,6 +23,7 @@ A single-node k3s cluster runs three namespaces:
 - **Stop signal:** Dragonwilds' preStop stops the server process itself; the image's own stop never reaches it.
 - **Game image:** Terraria runs `games/terraria/image`, ryshe/terraria plus curl for the shared Discord hooks.
 - **World seed:** Valheim's server has no seed option; `create-seeded-world.py` writes a new world's metadata first.
+- **Admin-only query:** Palworld answers no public query; its exporter asks the server's REST API with the admin password.
 
 ## Shared game pieces
 

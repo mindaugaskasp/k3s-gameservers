@@ -1,0 +1,3 @@
+{{- /* Ready once the REST API answers; it comes up with the server and asks the admin password. */ -}}
+{{- $readyCheck := printf "curl -fsS -u \"admin:$ADMIN_PASSWORD\" http://127.0.0.1:%v/v1/api/info >/dev/null 2>&1" .Values.server.restApiPort }}
+{{- include "game-server.lifecycleHooks" (dict "context" . "statusDir" "/var/run/palworld-status" "persistDir" (include "palworld.savedPath" .) "readyCheck" $readyCheck "displayName" .Values.server.name "connectPort" .Values.service.nodePorts.game) }}

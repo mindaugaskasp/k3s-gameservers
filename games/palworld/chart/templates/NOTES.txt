@@ -1,0 +1,17 @@
+Palworld deployed as StatefulSet "{{ include "game-server.fullname" . }}".
+
+Check status:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs -f {{ include "game-server.fullname" . }}-0 -c gameserver
+
+Players join on UDP {{ .Values.service.nodePorts.game }}. RCON and the REST API
+stay pod-only: the image saves over RCON on stop, the exporter asks the REST API
+for status. Settings come from the env vars in values; the image rewrites
+PalWorldSettings.ini from them on every boot.
+
+Updates run with steamcmd on every container start; backups are the image's own
+cron. The first boot downloads the game, so it stays unreachable for a while.
+
+Metrics:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "game-server.fullname" . }}-metrics {{ .Values.statusMetrics.port }}:{{ .Values.statusMetrics.port }}
+  curl localhost:{{ .Values.statusMetrics.port }}/metrics

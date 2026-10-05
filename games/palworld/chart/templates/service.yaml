@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  selector:
+    {{- include "game-server.selectorLabels" . | nindent 4 }}
+  # Only the game port leaves the pod; RCON and the REST API grant admin commands and stay pod-only.
+  ports:
+    - name: game
+      port: {{ .Values.server.gamePort }}
+      targetPort: {{ .Values.server.gamePort }}
+      protocol: UDP
+      nodePort: {{ .Values.service.nodePorts.game }}

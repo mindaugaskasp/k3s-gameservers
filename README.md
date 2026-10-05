@@ -1,6 +1,6 @@
 # k3s-gameservers
 
-Game servers (Valheim, Project Zomboid, Enshrouded, Minecraft, Terraria, V Rising, RuneScape: Dragonwilds) as pods on a single-node
+Game servers (Valheim, Project Zomboid, Enshrouded, Minecraft, Terraria, V Rising, RuneScape: Dragonwilds, Palworld) as pods on a single-node
 [k3s](https://docs.k3s.io/) cluster, with per-pod metrics for right-sizing.
 Each game scales independently (`make scale-up` / `make scale-down-zero`).
 
@@ -25,7 +25,7 @@ Makefile           platform setup, dashboards, bans, off-host backups, copy-to-v
 3. Set up a game (passwords, names, settings, joining, memory); read each script before running it:
    [Valheim](games/valheim/setup.md), [Project Zomboid](games/zomboid/setup.md), [Enshrouded](games/enshrouded/setup.md),
    [Minecraft](games/minecraft/setup.md), [Terraria](games/terraria/setup.md), [V Rising](games/vrising/setup.md),
-   [RuneScape: Dragonwilds](games/dragonwilds/setup.md).
+   [RuneScape: Dragonwilds](games/dragonwilds/setup.md), [Palworld](games/palworld/setup.md).
 
 ## Router ports
 
@@ -42,6 +42,7 @@ Forward these from the router to the host; each game port is a NodePort on the s
 | V Rising | 9877 | UDP | Steam query, lists the server in the in-game browser |
 | RuneScape: Dragonwilds | 7778 | UDP | game traffic |
 | RuneScape: Dragonwilds | 8889 | UDP | world settings beacon |
+| Palworld | 8211 | UDP | game traffic (TCP 8212 is the REST API: pod-only, don't forward) |
 | Website | 80, 443 | TCP | the site and its TLS certificate, through Traefik |
 
 ## Day-to-day

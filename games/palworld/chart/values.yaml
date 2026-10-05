@@ -1,0 +1,90 @@
+image:
+  # Installs and updates the game with steamcmd on boot, saves over RCON on stop and
+  # runs its own backup cron. https://github.com/thijsvanloef/palworld-server-docker
+  repository: thijsvanloef/palworld-server-docker
+  tag: latest
+  pullPolicy: IfNotPresent
+
+server:
+  name: "Palworld Server" # shown in the server browser and on join
+  slotCount: 16 # 1-32, the game's own cap
+  gamePort: 8211 # UDP, game traffic; also the NodePort players join on
+  community: false # true lists the server in the community browser (needs a password)
+  # TCP, pod-only: the REST API answers the exporter's status query and saves on stop.
+  # Never a NodePort; the API grants admin commands.
+  restApiPort: 8212
+  rconPort: 25575 # TCP, pod-only: the image saves the world over RCON on SIGTERM
+  connectHost: "" # public join address shown in Discord alerts
+  timeZone: "Etc/UTC" # container TZ; the image's crons below run in it
+
+# World rules: every key is one of the image's PalWorldSettings.ini env vars
+# (DIFFICULTY, EXP_RATE, DEATH_PENALTY, ...) and lands in the settings file on boot.
+# https://github.com/thijsvanloef/palworld-server-docker#environment-variables
+gameSettings: {}
+
+# Pass at deploy time with --set-string, or point secretRef at an existing Secret holding
+# SERVER_PASSWORD and ADMIN_PASSWORD. Never commit real passwords.
+secrets:
+  serverPassword: "" # empty lets anyone join
+  adminPassword: "" # required: admin commands, and the REST API's basic auth
+
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+# steamcmd checks for a game update on every container start; there is no
+# in-place update, so updating a running server is a pod restart.
+updates:
+  onBoot: true
+
+# The image tars Pal/Saved/ into backups/ on this schedule and deletes archives
+# older than keepDays. Surfaced as game_server_backup_* metrics.
+backups:
+  cron: "0 * * * *"
+  keepDays: 2
+
+# UDP. Outside the default NodePort range; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 8211
+
+# Holds the game install, Pal/Saved/ and backups/.
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 25Gi
+
+# An update needs up to twice the game size on disk while it downloads.
+resources:
+  requests:
+    cpu: "2"
+    memory: 6Gi
+  limits:
+    memory: 12Gi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (platform/registry/, localhost:30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/palworld-status-metrics
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
+    pullPolicy: Always
+  port: 9101
+
+# Requires the VPA CRDs; platform/vpa/install.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto
+  # The range the recommender may suggest for the game container.
+  minAllowed:
+    cpu: 500m
+    memory: 2Gi
+  maxAllowed:
+    cpu: "6"
+    memory: 12Gi
