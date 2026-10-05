@@ -86,6 +86,6 @@ A small program running beside the game that counts players and collects stats f
 | V Rising | ✅ | ✅ | ⚠️ shared only | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Terraria | ✅ | ✅ | ✅ | ❌ never uploaded | ✅ | ✅ | ✅ | ✅ |
 | Dragonwilds | ✅ in testing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Palworld | ⚠️ never deployed | ✅ | ✅ | ❌ never uploaded | ✅ | ✅ | ✅ | ✅ |
+| Palworld | ✅ in testing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 Grafana ⚠️ means it still uses the shared `game-server/grafana/` dashboards.
