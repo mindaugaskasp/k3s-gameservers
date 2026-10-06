@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Off-host backups end to end, safe to re-run: installs rclone, logs in to Google Drive once,
-# runs a backup and installs the 6-hourly timer. See docs/offsite-backups.md.
+# runs a backup and installs the nightly timer. See docs/offsite-backups.md.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 

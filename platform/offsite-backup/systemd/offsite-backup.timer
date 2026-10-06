@@ -1,8 +1,9 @@
 [Unit]
-Description=Off-host game backup every 6 hours
+Description=Nightly off-host game backup
 
 [Timer]
-OnCalendar=00/6:30
+# 02:30 UTC+3, when players are least likely online; the unit follows the VM clock (UTC).
+OnCalendar=23:30
 RandomizedDelaySec=600
 # Catches up after downtime.
 Persistent=true

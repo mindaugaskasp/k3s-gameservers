@@ -128,7 +128,7 @@ offsite-backup:
 	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) OFFSITE_BACKUP_BANDWIDTH_LIMIT=$(OFFSITE_BACKUP_BANDWIDTH_LIMIT) \
 		LOKI_URL=$(LOKI_URL) ./platform/offsite-backup/offsite-backup.sh
 
-## Install rclone, log in to Google Drive, take a first backup and start a 6-hourly timer
+## Install rclone, log in to Google Drive, take a first backup and start a nightly timer
 ##   Safe to re-run. Over SSH, connect with -L 53682:localhost:53682 for the Drive login.
 setup-offsite-backup:
 	./platform/offsite-backup/install.sh

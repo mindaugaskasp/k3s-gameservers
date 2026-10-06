@@ -10,7 +10,7 @@ Uploads are capped at 20M (`OFFSITE_BACKUP_BANDWIDTH_LIMIT`,
 [`--bwlimit`](https://rclone.org/docs/#bwlimit-bandwidth-spec) format) so a run
 cannot saturate the host's uplink.
 Each run pushes its result and last 40 output lines to Loki (`LOKI_URL`, root `.env`); Grafana
-alerts on a failure or on no success for 13 hours.
+alerts on a failure or on no success for 26 hours.
 
 ## Setup (Google Drive)
 
@@ -27,7 +27,7 @@ Each step is skipped once done, so it is safe to re-run:
 2. Installs rclone with apt.
 3. Creates the `gdrive` remote with scope `drive.file` (the token only sees
    files rclone made): open the printed `127.0.0.1:53682` link locally and log in.
-4. Runs `make offsite-backup`, then installs the 6-hourly systemd timer.
+4. Runs `make offsite-backup`, then installs the nightly systemd timer.
 
 No tunnel possible: `rclone config` by hand with the
 [remote setup](https://rclone.org/remote_setup/) steps, then re-run.

@@ -55,7 +55,7 @@ A small program running beside the game that counts players and collects stats f
 - [ ] Join from a game client over the internet; `make players` shows you
 - [ ] Discord posts when the server starts and stops; `make scale-down-zero` then `make scale-up` keep the world
 - [ ] A backup appears (`make backups`), `make sync` copies it off, `make restore-backup` brings it back
-- [ ] **Off-host copy, like Valheim:** while the game runs, `make offsite-backup` (repo root; also every 6 hours)
+- [ ] **Off-host copy, like Valheim:** while the game runs, `make offsite-backup` (repo root; also runs nightly)
       uploads its `data` and `data-backups`; check both show under `<game>/` on the remote ([offsite-backups.md](docs/offsite-backups.md))
 - [ ] Its memory reservation stops two games running at once ([sizing](docs/architecture.md#sizing))
 

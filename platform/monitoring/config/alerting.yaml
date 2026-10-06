@@ -169,9 +169,9 @@ groups:
         condition: C
         data:
           - refId: A
-            relativeTimeRange: { from: 46800, to: 0 }
+            relativeTimeRange: { from: 93600, to: 0 }
             datasourceUid: loki
-            model: { expr: 'sum(count_over_time({job="offsite-backup", game="", result="success"}[13h]))', queryType: instant, refId: A }
+            model: { expr: 'sum(count_over_time({job="offsite-backup", game="", result="success"}[26h]))', queryType: instant, refId: A }
           - refId: B
             datasourceUid: __expr__
             model: { type: reduce, expression: A, reducer: last, refId: B }
@@ -183,7 +183,7 @@ groups:
         # A Loki outage says nothing about the backup.
         execErrState: KeepLast
         annotations:
-          summary: No successful off-host backup in 13 hours
-          description: It runs every 6 hours, so two runs in a row failed or never started.
+          summary: No successful off-host backup in 26 hours
+          description: It runs nightly, so the last run failed or never started.
           logs_datasource: loki
           logs_query: '{job="offsite-backup"}'
