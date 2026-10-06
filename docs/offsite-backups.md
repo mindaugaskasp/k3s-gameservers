@@ -6,6 +6,9 @@ then [`rclone sync`](https://rclone.org/commands/rclone_sync/)s each
 Files a run deletes or overwrites move to `<game>/replaced/<run time>/`
 and each run's folder is purged after 7 days (`OFFSITE_BACKUP_KEEP_REPLACED_DAYS`).
 An empty local folder is skipped, never mirrored as a wipe.
+Uploads are capped at 20M (`OFFSITE_BACKUP_BANDWIDTH_LIMIT`,
+[`--bwlimit`](https://rclone.org/docs/#bwlimit-bandwidth-spec) format) so a run
+cannot saturate the host's uplink.
 Each run pushes its result and last 40 output lines to Loki (`LOKI_URL`, root `.env`); Grafana
 alerts on a failure or on no success for 13 hours.
 

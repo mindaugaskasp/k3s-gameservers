@@ -7,6 +7,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 remote=${OFFSITE_BACKUP_REMOTE:?set OFFSITE_BACKUP_REMOTE in the root .env, see docs/offsite-backups.md}
 keep_replaced_days=${OFFSITE_BACKUP_KEEP_REPLACED_DAYS:-7}
+# rclone --bwlimit format. A full-speed upload can starve game traffic and the host's NIC.
+upload_rate_limit=${OFFSITE_BACKUP_BANDWIDTH_LIMIT:-20M}
 run_started_at=$(date -u +%Y%m%d-%H%M%S)
 any_step_failed=0
 
@@ -59,6 +61,7 @@ for game_dir in games/*/; do
     # An empty folder would mirror as "delete everything" on the remote.
     [ -n "$(ls -A "$game_dir$synced_folder" 2>/dev/null)" ] || continue
     if rclone sync "$game_dir$synced_folder" "$remote/$game/$synced_folder" \
+      --bwlimit "$upload_rate_limit" \
       --backup-dir "$remote/$game/replaced/$run_started_at/$synced_folder"; then
       echo "Uploaded $game_dir$synced_folder -> $remote/$game/$synced_folder"
       uploaded_folders+="$synced_folder "

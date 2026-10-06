@@ -9,6 +9,8 @@ SHELL := /bin/bash
 VM_HOST ?=
 # rclone remote:path for off-host backups, e.g. gdrive:k3s-gameservers-backups.
 OFFSITE_BACKUP_REMOTE ?=
+# Backup upload rate cap (rclone --bwlimit format); empty keeps the script's default.
+OFFSITE_BACKUP_BANDWIDTH_LIMIT ?=
 # Loki's LAN push base URL; offsite-backup reports each run's result there for alerting.
 LOKI_URL ?=
 
@@ -118,11 +120,13 @@ unban-ip:
 		cscli decisions delete --ip "$(BAN_IP)"
 
 ## Sync the running games and upload them off the host now
-##   OFFSITE_BACKUP_REMOTE=remote:path   rclone destination, or set it in .env
-##   LOKI_URL=URL                        where to report the result for alerts, or set it in .env
+##   OFFSITE_BACKUP_REMOTE=remote:path          rclone destination, or set it in .env
+##   OFFSITE_BACKUP_BANDWIDTH_LIMIT=20M         upload rate cap, or set it in .env
+##   LOKI_URL=URL                               where to report the result for alerts, or set it in .env
 offsite-backup:
 	@command -v rclone >/dev/null || { echo "rclone not installed, see docs/offsite-backups.md" >&2; exit 1; }
-	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) LOKI_URL=$(LOKI_URL) ./platform/offsite-backup/offsite-backup.sh
+	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) OFFSITE_BACKUP_BANDWIDTH_LIMIT=$(OFFSITE_BACKUP_BANDWIDTH_LIMIT) \
+		LOKI_URL=$(LOKI_URL) ./platform/offsite-backup/offsite-backup.sh
 
 ## Install rclone, log in to Google Drive, take a first backup and start a 6-hourly timer
 ##   Safe to re-run. Over SSH, connect with -L 53682:localhost:53682 for the Drive login.
