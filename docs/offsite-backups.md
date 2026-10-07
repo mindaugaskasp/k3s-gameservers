@@ -9,6 +9,16 @@ An empty local folder is skipped, never mirrored as a wipe.
 Uploads are capped at 20M (`OFFSITE_BACKUP_BANDWIDTH_LIMIT`,
 [`--bwlimit`](https://rclone.org/docs/#bwlimit-bandwidth-spec) format) so a run
 cannot saturate the host's uplink.
+
+With `OFFSITE_BACKUP_CONFIG_PASSWORD` set (root `.env`), each run also uploads the
+gitignored env files and `rclone.conf` as an encrypted `config-bundle.tar.gz.enc`.
+Keep that password off this host (password manager), or the bundle is unreadable
+exactly when it is needed. Unpack:
+
+```sh
+rclone copyto gdrive:k3s-gameservers-backups/config-bundle.tar.gz.enc bundle.enc
+openssl enc -d -aes-256-cbc -pbkdf2 -in bundle.enc | tar -xz
+```
 Each run pushes its result and last 40 output lines to Loki (`LOKI_URL`, root `.env`); Grafana
 alerts on a failure or on no success for 26 hours.
 

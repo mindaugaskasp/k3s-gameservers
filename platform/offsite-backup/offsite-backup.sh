@@ -18,32 +18,45 @@ trap 'rm -f "$run_output_file"' EXIT
 exec 3>&1 4>&2 > >(tee "$run_output_file") 2>&1
 tee_pid=$!
 
-# One line per game for its dashboard, one per run (no game label) for the alerts in platform/monitoring/config/alerting.yaml.
-push_line_to_loki() {
-  local result=$1 line=$2 game=${3:-}
-  [ -n "${LOKI_URL:-}" ] || return 0
-  jq -n --arg result "$result" --arg line "$line" --arg game "$game" --arg timestamp "$(date +%s%N)" \
-    '{streams: [{stream: ({job: "offsite-backup", result: $result} + (if $game == "" then {} else {game: $game} end)),
-      values: [[$timestamp, $line]]}]}' \
-    | curl -fsS -m 10 -H 'Content-Type: application/json' -X POST "$LOKI_URL/loki/api/v1/push" --data-binary @- \
-    || echo "could not report to Loki" >&2
-}
-
-report_run_result() {
-  exec 1>&3 2>&4
-  wait "$tee_pid" || true
-  push_line_to_loki "$1" "$(printf 'offsite backup %s\n' "$1"; tail -n 40 "$run_output_file")"
-}
+# The alerts in platform/monitoring/config/alerting.yaml read what these report.
+. platform/offsite-backup/report-to-loki.sh
 
 report_game_result() {
   local game=$1 uploaded_folders=${2% } failed_folders=${3% } remote_size
   remote_size=$(rclone size --json "$remote/$game" --exclude "replaced/**" 2>/dev/null \
     | jq -r '"\(.count) files, \(.bytes / 1048576 | floor) MiB on the remote"' || echo "remote size unknown")
   if [ -z "$failed_folders" ]; then
-    push_line_to_loki success "Uploaded ${uploaded_folders// /, } · $remote_size" "$game"
+    push_line_to_loki offsite-backup success "Uploaded ${uploaded_folders// /, } · $remote_size" "$game"
   else
-    push_line_to_loki failure "Upload failed for ${failed_folders// /, } · $remote_size" "$game"
+    push_line_to_loki offsite-backup failure "Upload failed for ${failed_folders// /, } · $remote_size" "$game"
   fi
+}
+
+# The gitignored files a rebuilt host cannot recover: env files and the rclone login.
+# Skipped until OFFSITE_BACKUP_CONFIG_PASSWORD is set; keep that password off this host too.
+backup_config_bundle() {
+  local config_password staging
+  config_password=${OFFSITE_BACKUP_CONFIG_PASSWORD:-$(sed -n 's/^OFFSITE_BACKUP_CONFIG_PASSWORD=//p' .env 2>/dev/null | tail -1)}
+  if [ -z "$config_password" ]; then
+    echo "config bundle skipped: OFFSITE_BACKUP_CONFIG_PASSWORD is not set (root .env)"
+    return 0
+  fi
+  staging=$(mktemp -d)
+  for config_file in .env platform/site.env games/*/.env; do
+    [ -f "$config_file" ] || continue
+    mkdir -p "$staging/$(dirname "$config_file")"
+    cp "$config_file" "$staging/$config_file"
+  done
+  [ ! -f "$HOME/.config/rclone/rclone.conf" ] || cp "$HOME/.config/rclone/rclone.conf" "$staging/rclone.conf"
+  tar -czf "$staging.tar.gz" -C "$staging" .
+  CONFIG_BUNDLE_PASSWORD="$config_password" openssl enc -aes-256-cbc -pbkdf2 \
+    -pass env:CONFIG_BUNDLE_PASSWORD -in "$staging.tar.gz" -out "$staging.tar.gz.enc"
+  if rclone copyto "$staging.tar.gz.enc" "$remote/config-bundle.tar.gz.enc"; then
+    echo "Uploaded config bundle -> $remote/config-bundle.tar.gz.enc"
+  else
+    any_step_failed=1
+  fi
+  rm -rf "$staging" "$staging.tar.gz" "$staging.tar.gz.enc"
 }
 
 # Aged by run folder name, not file time: a moved file keeps its original, older mtime.
@@ -78,5 +91,7 @@ for game_dir in games/*/; do
   [ -z "$uploaded_folders$failed_folders" ] || report_game_result "$game" "$uploaded_folders" "$failed_folders"
 done
 
-if [ "$any_step_failed" = 0 ]; then report_run_result success; else report_run_result failure; fi
+backup_config_bundle
+
+if [ "$any_step_failed" = 0 ]; then report_run_result offsite-backup success; else report_run_result offsite-backup failure; fi
 exit "$any_step_failed"
