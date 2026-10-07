@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Pulls each running game's world and backups (make sync), then mirrors games/<game>/data* to
 # OFFSITE_BACKUP_REMOTE/<game>/. Files it deletes or overwrites move to <game>/replaced/<run time>/.
+# Also uploads the gitignored config files as an encrypted bundle; see docs/offsite-backups.md.
 set -euo pipefail
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
@@ -34,29 +35,30 @@ report_game_result() {
 
 # The gitignored files a rebuilt host cannot recover: env files and the rclone login.
 # Skipped until OFFSITE_BACKUP_CONFIG_PASSWORD is set; keep that password off this host too.
+# Everything plaintext stays inside the 0700 work folder so no secret is ever world-readable.
 backup_config_bundle() {
-  local config_password staging
+  local config_password work_folder
   config_password=${OFFSITE_BACKUP_CONFIG_PASSWORD:-$(sed -n 's/^OFFSITE_BACKUP_CONFIG_PASSWORD=//p' .env 2>/dev/null | tail -1)}
   if [ -z "$config_password" ]; then
     echo "config bundle skipped: OFFSITE_BACKUP_CONFIG_PASSWORD is not set (root .env)"
     return 0
   fi
-  staging=$(mktemp -d)
+  work_folder=$(mktemp -d)
   for config_file in .env platform/site.env games/*/.env; do
     [ -f "$config_file" ] || continue
-    mkdir -p "$staging/$(dirname "$config_file")"
-    cp "$config_file" "$staging/$config_file"
+    mkdir -p "$work_folder/config/$(dirname "$config_file")"
+    cp "$config_file" "$work_folder/config/$config_file"
   done
-  [ ! -f "$HOME/.config/rclone/rclone.conf" ] || cp "$HOME/.config/rclone/rclone.conf" "$staging/rclone.conf"
-  tar -czf "$staging.tar.gz" -C "$staging" .
-  CONFIG_BUNDLE_PASSWORD="$config_password" openssl enc -aes-256-cbc -pbkdf2 \
-    -pass env:CONFIG_BUNDLE_PASSWORD -in "$staging.tar.gz" -out "$staging.tar.gz.enc"
-  if rclone copyto "$staging.tar.gz.enc" "$remote/config-bundle.tar.gz.enc"; then
+  [ ! -f "$HOME/.config/rclone/rclone.conf" ] || cp "$HOME/.config/rclone/rclone.conf" "$work_folder/config/rclone.conf"
+  tar -czf "$work_folder/bundle.tar.gz" -C "$work_folder/config" .
+  OFFSITE_BACKUP_CONFIG_PASSWORD="$config_password" openssl enc -aes-256-cbc -pbkdf2 \
+    -pass env:OFFSITE_BACKUP_CONFIG_PASSWORD -in "$work_folder/bundle.tar.gz" -out "$work_folder/bundle.tar.gz.enc"
+  if rclone copyto "$work_folder/bundle.tar.gz.enc" "$remote/config-bundle.tar.gz.enc"; then
     echo "Uploaded config bundle -> $remote/config-bundle.tar.gz.enc"
   else
     any_step_failed=1
   fi
-  rm -rf "$staging" "$staging.tar.gz" "$staging.tar.gz.enc"
+  rm -rf "$work_folder"
 }
 
 # Aged by run folder name, not file time: a moved file keeps its original, older mtime.

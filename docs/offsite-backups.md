@@ -10,10 +10,9 @@ Uploads are capped at 20 MiB/s, about 170 Mbit/s (`OFFSITE_BACKUP_BANDWIDTH_LIMI
 [`--bwlimit`](https://rclone.org/docs/#bwlimit-bandwidth-spec) format) so a run
 cannot saturate the host's uplink.
 
-With `OFFSITE_BACKUP_CONFIG_PASSWORD` set (root `.env`), each run also uploads the
-gitignored env files and `rclone.conf` as an encrypted `config-bundle.tar.gz.enc`.
-Keep that password off this host (password manager), or the bundle is unreadable
-exactly when it is needed. Unpack:
+With `OFFSITE_BACKUP_CONFIG_PASSWORD` set (root `.env`; keep a copy in a password
+manager, or the bundle is unreadable exactly when it is needed), each run also uploads
+the gitignored env files and `rclone.conf` as `config-bundle.tar.gz.enc`. Unpack:
 
 ```sh
 rclone copyto gdrive:k3s-gameservers-backups/config-bundle.tar.gz.enc bundle.enc
@@ -51,9 +50,8 @@ and point `OFFSITE_BACKUP_REMOTE` at the crypt remote.
 
 `make restore-drill` (repo root; a timer runs it on the 1st and 15th) downloads each
 backed-up game's newest archive and verifies it opens and holds the world
-(`make verify-offsite-backup` per game). Results go to Loki; Grafana alerts when no
-drill has succeeded for 20 days. It proves the archives restore without touching
-any live game.
+(`make verify-offsite-backup` per game), without touching any live game. Results go
+to Loki; Grafana alerts when no drill has succeeded for 20 days.
 
 ## Restore
 

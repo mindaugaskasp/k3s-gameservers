@@ -43,19 +43,21 @@ download-backups:
 
 ## Download the newest off-host backup and verify it opens and holds the world
 ##   OFFSITE_BACKUP_REMOTE=remote:path   rclone source, or set it in the root .env
+# `lsf --format tp` prints "time;path" with ISO times, so a plain sort ends newest-last.
 verify-offsite-backup:
 	@remote="$${OFFSITE_BACKUP_REMOTE:-$$(sed -n 's/^OFFSITE_BACKUP_REMOTE=//p' $(REPO_ROOT)/.env 2>/dev/null | tail -1)}"; \
 	test -n "$$remote" || { echo "OFFSITE_BACKUP_REMOTE is not set (env or root .env)" >&2; exit 1; }; \
-	newest=$$(rclone lsf "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)" -R --files-only --format tp 2>/dev/null \
+	newest_backup=$$(rclone lsf "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)" -R --files-only --format tp 2>/dev/null \
 		| sort | cut -d';' -f2- | while read -r backup_path; do \
 			case "$${backup_path##*/}" in $(BACKUP_FILE_PATTERN)) echo "$$backup_path";; esac; done | tail -1); \
-	test -n "$$newest" || { echo "no off-host backups for $(GAME_FOLDER)" >&2; exit 1; }; \
-	folder=$$(mktemp -d); trap 'rm -rf "$$folder"' EXIT; \
-	rclone copyto "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)/$$newest" "$$folder/$${newest##*/}"; \
-	$(BACKUP_ARCHIVE_LIST_COMMAND) "$$folder/$${newest##*/}" >/dev/null || { echo "$$newest does not open" >&2; exit 1; }; \
-	[ -z "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" ] || $(BACKUP_ARCHIVE_LIST_COMMAND) "$$folder/$${newest##*/}" | grep -- "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" >/dev/null \
-		|| { echo "$$newest has no $(RESTORE_REQUIRED_ARCHIVE_ENTRY) in it" >&2; exit 1; }; \
-	echo "$(GAME_FOLDER): $$newest downloads and opens"
+	test -n "$$newest_backup" || { echo "no off-host backups for $(GAME_FOLDER)" >&2; exit 1; }; \
+	download_folder=$$(mktemp -d); trap 'rm -rf "$$download_folder"' EXIT; \
+	downloaded_backup="$$download_folder/$${newest_backup##*/}"; \
+	rclone copyto "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)/$$newest_backup" "$$downloaded_backup"; \
+	$(BACKUP_ARCHIVE_LIST_COMMAND) "$$downloaded_backup" >/dev/null || { echo "$$newest_backup does not open" >&2; exit 1; }; \
+	[ -z "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" ] || $(BACKUP_ARCHIVE_LIST_COMMAND) "$$downloaded_backup" | grep -- "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" >/dev/null \
+		|| { echo "$$newest_backup has no $(RESTORE_REQUIRED_ARCHIVE_ENTRY) in it" >&2; exit 1; }; \
+	echo "$(GAME_FOLDER): $$newest_backup downloads and opens"
 
 ## Run make sync every hour with a systemd timer (on the k3s host; asks for sudo)
 install-sync-timer:

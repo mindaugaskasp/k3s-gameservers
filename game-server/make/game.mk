@@ -58,7 +58,7 @@ deploy restart scale-down-zero: check-no-players
 
 # Refuses while players are online, or when the count is unreadable; FORCE=1 overrides.
 check-no-players:
-	@[ "$(FORCE)" != "1" ] || exit 0; \
+	@if [ "$(FORCE)" = "1" ]; then exit 0; fi; \
 	kubectl -n $(NAMESPACE) get pod $(RELEASE)-0 >/dev/null 2>&1 || exit 0; \
 	players=$$(kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c status-metrics -- \
 		wget -qO- -T 5 http://127.0.0.1:9101/metrics 2>/dev/null \

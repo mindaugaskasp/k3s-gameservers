@@ -17,14 +17,14 @@ for game_dir in games/*/; do
   game=$(basename "$game_dir")
   [ -n "$(rclone lsf "$remote/$game/data-backups" 2>/dev/null)" ] \
     || { echo "$game: nothing on the remote, skipped"; continue; }
-  if output=$(make -s -C "$game_dir" verify-offsite-backup 2>&1); then
-    echo "$output"
-    push_line_to_loki restore-drill success "$output" "$game"
+  if verify_output=$(make -s -C "$game_dir" verify-offsite-backup 2>&1); then
+    game_result=success
   else
-    echo "$output"
+    game_result=failure
     any_game_failed=1
-    push_line_to_loki restore-drill failure "$output" "$game"
   fi
+  echo "$verify_output"
+  push_line_to_loki restore-drill "$game_result" "$verify_output" "$game"
 done
 
 if [ "$any_game_failed" = 0 ]; then report_run_result restore-drill success; else report_run_result restore-drill failure; fi
