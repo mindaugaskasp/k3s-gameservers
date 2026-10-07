@@ -12,10 +12,14 @@ cannot saturate the host's uplink.
 
 With `OFFSITE_BACKUP_CONFIG_PASSWORD` set (root `.env`; keep a copy in a password
 manager, or the bundle is unreadable exactly when it is needed), each run also uploads
-the gitignored env files and `rclone.conf` as `config-bundle.tar.gz.enc`. Unpack:
+what a rebuilt machine cannot regenerate — the gitignored env files (`repo/`), the SSH
+keys, git identity and rclone login (`home/`, maps onto `$HOME`) and the manually
+installed packages (`system/`) — to `config-bundles/`, timestamped and kept for the
+same 7 days as `replaced/`. Unpack the newest:
 
 ```sh
-rclone copyto gdrive:k3s-gameservers-backups/config-bundle.tar.gz.enc bundle.enc
+rclone lsf gdrive:k3s-gameservers-backups/config-bundles   # pick the newest
+rclone copyto gdrive:k3s-gameservers-backups/config-bundles/<name> bundle.enc
 openssl enc -d -aes-256-cbc -pbkdf2 -in bundle.enc | tar -xz
 ```
 Each run pushes its result and last 40 output lines to Loki (`LOKI_URL`, root `.env`); Grafana

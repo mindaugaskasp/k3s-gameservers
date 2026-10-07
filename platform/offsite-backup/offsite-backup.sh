@@ -46,19 +46,34 @@ backup_config_bundle() {
   work_folder=$(mktemp -d)
   for config_file in .env platform/site.env games/*/.env; do
     [ -f "$config_file" ] || continue
-    mkdir -p "$work_folder/config/$(dirname "$config_file")"
-    cp "$config_file" "$work_folder/config/$config_file"
+    mkdir -p "$work_folder/config/repo/$(dirname "$config_file")"
+    cp "$config_file" "$work_folder/config/repo/$config_file"
   done
-  [ ! -f "$HOME/.config/rclone/rclone.conf" ] || cp "$HOME/.config/rclone/rclone.conf" "$work_folder/config/rclone.conf"
+  # home/ maps onto $HOME on the rebuilt machine: SSH keys, git identity, rclone login.
+  for home_file in .ssh .gitconfig .config/rclone/rclone.conf; do
+    [ -e "$HOME/$home_file" ] || continue
+    mkdir -p "$work_folder/config/home/$(dirname "$home_file")"
+    cp -r "$HOME/$home_file" "$work_folder/config/home/$home_file"
+  done
+  mkdir -p "$work_folder/config/system"
+  apt-mark showmanual > "$work_folder/config/system/manual-packages.list" 2>/dev/null || true
   tar -czf "$work_folder/bundle.tar.gz" -C "$work_folder/config" .
   OFFSITE_BACKUP_CONFIG_PASSWORD="$config_password" openssl enc -aes-256-cbc -pbkdf2 \
     -pass env:OFFSITE_BACKUP_CONFIG_PASSWORD -in "$work_folder/bundle.tar.gz" -out "$work_folder/bundle.tar.gz.enc"
-  if rclone copyto "$work_folder/bundle.tar.gz.enc" "$remote/config-bundle.tar.gz.enc"; then
-    echo "Uploaded config bundle -> $remote/config-bundle.tar.gz.enc"
+  if rclone copyto "$work_folder/bundle.tar.gz.enc" "$remote/config-bundles/config-bundle-$run_started_at.tar.gz.enc"; then
+    echo "Uploaded config bundle -> $remote/config-bundles/config-bundle-$run_started_at.tar.gz.enc"
   else
     any_step_failed=1
   fi
   rm -rf "$work_folder"
+  # Aged by the timestamp in the name, like the replaced/ folders.
+  for old_bundle in $(rclone lsf "$remote/config-bundles" --files-only 2>/dev/null); do
+    old_bundle_stamp=${old_bundle#config-bundle-}
+    old_bundle_stamp=${old_bundle_stamp%.tar.gz.enc}
+    if [[ "$old_bundle_stamp" < "$purge_before" ]]; then
+      rclone deletefile "$remote/config-bundles/$old_bundle" --drive-use-trash=false || any_step_failed=1
+    fi
+  done
 }
 
 # Aged by run folder name, not file time: a moved file keeps its original, older mtime.
