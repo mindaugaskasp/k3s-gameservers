@@ -41,6 +41,22 @@ download-backups:
 	$(MAKE) -C $(REPO_ROOT) copy-to-host \
 		FILE=$(VM_REPO_DIR)/games/$(GAME_FOLDER)/$(BACKUP_DIR)/. DEST=$(BACKUP_DIR)
 
+## Download the newest off-host backup and verify it opens and holds the world
+##   OFFSITE_BACKUP_REMOTE=remote:path   rclone source, or set it in the root .env
+verify-offsite-backup:
+	@remote="$${OFFSITE_BACKUP_REMOTE:-$$(sed -n 's/^OFFSITE_BACKUP_REMOTE=//p' $(REPO_ROOT)/.env 2>/dev/null | tail -1)}"; \
+	test -n "$$remote" || { echo "OFFSITE_BACKUP_REMOTE is not set (env or root .env)" >&2; exit 1; }; \
+	newest=$$(rclone lsf "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)" -R --files-only --format tp 2>/dev/null \
+		| sort | cut -d';' -f2- | while read -r backup_path; do \
+			case "$${backup_path##*/}" in $(BACKUP_FILE_PATTERN)) echo "$$backup_path";; esac; done | tail -1); \
+	test -n "$$newest" || { echo "no off-host backups for $(GAME_FOLDER)" >&2; exit 1; }; \
+	folder=$$(mktemp -d); trap 'rm -rf "$$folder"' EXIT; \
+	rclone copyto "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)/$$newest" "$$folder/$${newest##*/}"; \
+	$(BACKUP_ARCHIVE_LIST_COMMAND) "$$folder/$${newest##*/}" >/dev/null || { echo "$$newest does not open" >&2; exit 1; }; \
+	[ -z "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" ] || $(BACKUP_ARCHIVE_LIST_COMMAND) "$$folder/$${newest##*/}" | grep -- "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" >/dev/null \
+		|| { echo "$$newest has no $(RESTORE_REQUIRED_ARCHIVE_ENTRY) in it" >&2; exit 1; }; \
+	echo "$(GAME_FOLDER): $$newest downloads and opens"
+
 ## Run make sync every hour with a systemd timer (on the k3s host; asks for sudo)
 install-sync-timer:
 	@test -d /run/systemd/system || { echo "systemd not found; run this on the k3s host" >&2; exit 1; }
@@ -85,7 +101,7 @@ stop-volume-helper:
 _restore-run:
 	@test -n "$(BACKUP)" || { echo "usage: make _restore-run BACKUP=$(BACKUP_DIR)/<file>" >&2; exit 1; }
 	@test -f "$(BACKUP)" || { echo "no such file: $(BACKUP)" >&2; exit 1; }
-	@[ -z "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" ] || $(BACKUP_ARCHIVE_LIST_COMMAND) "$(BACKUP)" | grep -q -- "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" \
+	@[ -z "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" ] || $(BACKUP_ARCHIVE_LIST_COMMAND) "$(BACKUP)" | grep -- "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" >/dev/null \
 		|| { echo "$(BACKUP) has no $(RESTORE_REQUIRED_ARCHIVE_ENTRY) in it -- refusing" >&2; exit 1; }
 	@echo "This REPLACES the live world of '$(RELEASE)' with $(BACKUP)."
 	@read -r -p "Type $(RELEASE) to confirm: " a; [ "$$a" = "$(RELEASE)" ] || { echo "aborted" >&2; exit 1; }

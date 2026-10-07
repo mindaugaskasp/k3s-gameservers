@@ -29,7 +29,7 @@ endif
 
 .PHONY: help copy-to-vm copy-to-host check-vm-host grafana-password \
 	setup check-site-env k3s crowdsec firewall registry monitoring maintenance dashboards ban-ip unban-ip \
-	offsite-backup setup-offsite-backup
+	offsite-backup restore-drill setup-offsite-backup
 
 check-vm-host:
 	@test -n "$(VM_HOST)" || { \
@@ -127,6 +127,12 @@ offsite-backup:
 	@command -v rclone >/dev/null || { echo "rclone not installed, see docs/offsite-backups.md" >&2; exit 1; }
 	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) OFFSITE_BACKUP_BANDWIDTH_LIMIT=$(OFFSITE_BACKUP_BANDWIDTH_LIMIT) \
 		LOKI_URL=$(LOKI_URL) ./platform/offsite-backup/offsite-backup.sh
+
+## Download each game's newest off-host backup and verify it opens
+##   OFFSITE_BACKUP_REMOTE=remote:path   rclone source, or set it in .env
+##   LOKI_URL=URL                        where to report the result for alerts, or set it in .env
+restore-drill:
+	OFFSITE_BACKUP_REMOTE=$(OFFSITE_BACKUP_REMOTE) LOKI_URL=$(LOKI_URL) ./platform/offsite-backup/restore-drill.sh
 
 ## Install rclone, log in to Google Drive, take a first backup and start a nightly timer
 ##   Safe to re-run. Over SSH, connect with -L 53682:localhost:53682 for the Drive login.

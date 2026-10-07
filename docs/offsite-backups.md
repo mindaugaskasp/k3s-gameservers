@@ -6,7 +6,7 @@ then [`rclone sync`](https://rclone.org/commands/rclone_sync/)s each
 Files a run deletes or overwrites move to `<game>/replaced/<run time>/`
 and each run's folder is purged after 7 days (`OFFSITE_BACKUP_KEEP_REPLACED_DAYS`).
 An empty local folder is skipped, never mirrored as a wipe.
-Uploads are capped at 20M (`OFFSITE_BACKUP_BANDWIDTH_LIMIT`,
+Uploads are capped at 20 MiB/s, about 170 Mbit/s (`OFFSITE_BACKUP_BANDWIDTH_LIMIT`,
 [`--bwlimit`](https://rclone.org/docs/#bwlimit-bandwidth-spec) format) so a run
 cannot saturate the host's uplink.
 
@@ -46,6 +46,14 @@ Last run: `journalctl -u offsite-backup --since today`.
 The rclone token lives in `~/.config/rclone/rclone.conf`; keep it `600`.
 For encryption at rest, wrap the remote in [crypt](https://rclone.org/crypt/)
 and point `OFFSITE_BACKUP_REMOTE` at the crypt remote.
+
+## Restore drill
+
+`make restore-drill` (repo root; a timer runs it on the 1st and 15th) downloads each
+backed-up game's newest archive and verifies it opens and holds the world
+(`make verify-offsite-backup` per game). Results go to Loki; Grafana alerts when no
+drill has succeeded for 20 days. It proves the archives restore without touching
+any live game.
 
 ## Restore
 

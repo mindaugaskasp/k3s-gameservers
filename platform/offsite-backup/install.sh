@@ -48,9 +48,11 @@ rclone lsd "$remote_name:" >/dev/null \
 
 make -s offsite-backup
 
-sed -e "s|__REPO__|$PWD|g" -e "s|__USER__|$(id -un)|g" -e "s|__HOME__|$HOME|g" \
-  platform/offsite-backup/systemd/offsite-backup.service | sudo tee /etc/systemd/system/offsite-backup.service >/dev/null
-sudo cp platform/offsite-backup/systemd/offsite-backup.timer /etc/systemd/system/offsite-backup.timer
+for unit in offsite-backup restore-drill; do
+  sed -e "s|__REPO__|$PWD|g" -e "s|__USER__|$(id -un)|g" -e "s|__HOME__|$HOME|g" \
+    "platform/offsite-backup/systemd/$unit.service" | sudo tee "/etc/systemd/system/$unit.service" >/dev/null
+  sudo cp "platform/offsite-backup/systemd/$unit.timer" "/etc/systemd/system/$unit.timer"
+done
 sudo systemctl daemon-reload
-sudo systemctl enable --now offsite-backup.timer
-systemctl list-timers offsite-backup.timer --no-pager
+sudo systemctl enable --now offsite-backup.timer restore-drill.timer
+systemctl list-timers offsite-backup.timer restore-drill.timer --no-pager

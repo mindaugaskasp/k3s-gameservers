@@ -187,3 +187,27 @@ groups:
           description: It runs nightly, so the last run failed or never started.
           logs_datasource: loki
           logs_query: '{job="offsite-backup"}'
+
+      - uid: restore-drill-overdue
+        title: Off-host restore drill overdue
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 1728000, to: 0 }
+            datasourceUid: loki
+            model: { expr: 'sum(count_over_time({job="restore-drill", game="", result="success"}[20d]))', queryType: instant, refId: A }
+          - refId: B
+            datasourceUid: __expr__
+            model: { type: reduce, expression: A, reducer: last, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { type: threshold, expression: B, refId: C, conditions: [{ evaluator: { type: lt, params: [1] } }] }
+        for: 0s
+        noDataState: Alerting
+        # A Loki outage says nothing about the drill.
+        execErrState: KeepLast
+        annotations:
+          summary: No successful off-host restore drill in 20 days
+          description: It runs on the 1st and 15th, so the last drill failed or never ran.
+          logs_datasource: loki
+          logs_query: '{job="restore-drill"}'

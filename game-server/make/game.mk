@@ -45,7 +45,7 @@ HELM_UPGRADE_FLAGS = $(HELM_RELEASE_FLAGS) --atomic --timeout 15m
 LOAD_ENV_FOR_HELM = set -a; [ -f .env ] && . ./.env; set +a; . $(GAME_SERVER_DIR)/make/helm-values-from-env.sh
 
 .PHONY: help init-env lint template status logs logs-metrics restart scale-down-zero scale-up shell check-no-players \
-	players backups sync sync-data sync-backups download-backups install-sync-timer restore-backup \
+	players backups sync sync-data sync-backups download-backups install-sync-timer restore-backup verify-offsite-backup \
 	_restore-run start-volume-helper stop-volume-helper port-forward-metrics dashboards uninstall build-metrics-image push-metrics-image \
 	read-player-db reset-player-stats chart-dependencies
 

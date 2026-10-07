@@ -1,0 +1,11 @@
+[Unit]
+Description=Twice-monthly off-host restore drill
+
+[Timer]
+# After the nightly backup; twice a month keeps the success signal inside Loki's retention.
+OnCalendar=*-*-01,15 04:30
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

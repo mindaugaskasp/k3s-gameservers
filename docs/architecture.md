@@ -5,7 +5,8 @@ A single-node k3s cluster runs three namespaces:
 - `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`, `minecraft`, `terraria`, `vrising`, `dragonwilds`, `palworld`)
 - `monitoring`, `registry`, `crowdsec`: the platform, see [platform.md](platform.md)
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
-  ([platform.md](platform.md)); a timer copies worlds off-host ([offsite-backups.md](offsite-backups.md))
+  ([platform.md](platform.md)); timers copy worlds off-host nightly and verify they
+  restore twice a month ([offsite-backups.md](offsite-backups.md))
 - other namespaces: apps like servers-web, which only report to the platform
 
 ## Workloads
