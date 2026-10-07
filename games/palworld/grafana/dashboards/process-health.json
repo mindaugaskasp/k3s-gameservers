@@ -312,7 +312,7 @@
     },
     {
       "id": 21,
-      "title": "Off-host uploads (24h)",
+      "title": "Off-host uploads (26h)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -333,7 +333,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(count_over_time({job=\"offsite-backup\", game=\"palworld\", result=\"success\"}[24h])) or vector(0)"
+          "expr": "sum(count_over_time({job=\"offsite-backup\", game=\"palworld\", result=\"success\"}[26h])) or vector(0)"
         }
       ],
       "options": {
@@ -407,7 +407,8 @@
         "prettifyLogMessage": false,
         "showLabels": false,
         "showCommonLabels": false
-      }
+      },
+      "timeFrom": "48h"
     },
     {
       "id": 9,

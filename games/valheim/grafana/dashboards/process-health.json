@@ -312,7 +312,7 @@
     },
     {
       "id": 33,
-      "title": "Off-host uploads (24h)",
+      "title": "Off-host uploads (26h)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -333,7 +333,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(count_over_time({job=\"offsite-backup\", game=\"valheim\", result=\"success\"}[24h])) or vector(0)"
+          "expr": "sum(count_over_time({job=\"offsite-backup\", game=\"valheim\", result=\"success\"}[26h])) or vector(0)"
         }
       ],
       "options": {
@@ -407,7 +407,8 @@
         "prettifyLogMessage": false,
         "showLabels": false,
         "showCommonLabels": false
-      }
+      },
+      "timeFrom": "48h"
     },
     {
       "id": 9,
@@ -511,6 +512,49 @@
       "targets": [
         {
           "expr": "time() - game_server_backup_newest_timestamp_seconds{game=\"valheim\"}",
+          "legendFormat": "Newest backup age",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffyierrb4yl8gd"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 35,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffyierrb4yl8gd"
+      },
+      "title": "Oldest backup age",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 29
+      },
+      "targets": [
+        {
+          "expr": "time() - game_server_backup_oldest_timestamp_seconds{game=\"valheim\"}",
           "legendFormat": "Newest backup age",
           "datasource": {
             "type": "prometheus",
