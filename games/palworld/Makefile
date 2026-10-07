@@ -32,7 +32,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.name "$$PALWORLD_SERVER_NAME"; \
 	set_value_if_given server.slotCount "$$PALWORLD_SLOT_COUNT"; \
 	set_game_settings "$$PALWORLD_GAME_SETTINGS"; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
+	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
 
 ## Take a game backup right now
 backup-now:

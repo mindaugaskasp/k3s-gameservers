@@ -33,7 +33,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.whitelist "$$MINECRAFT_WHITELIST"; \
 	set_discord_alerts "$$MINECRAFT_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$MINECRAFT_CONNECT_HOST"; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
+	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
 
 ## Run one server command over RCON
 ##   CMD="command"   e.g. make console CMD="list"

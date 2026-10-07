@@ -38,4 +38,4 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.admins "$$DRAGONWILDS_ADMINS"; \
 	set_value_if_given server.connectHost "$$DRAGONWILDS_CONNECT_HOST"; \
 	set_discord_alerts "$$DRAGONWILDS_DISCORD_WEBHOOK"; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
+	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"

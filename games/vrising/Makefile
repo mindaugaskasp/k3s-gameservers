@@ -31,4 +31,4 @@ deploy: chart-dependencies
 	set_value_if_given server.connectHost "$$VRISING_CONNECT_HOST"; \
 	set_discord_alerts "$$VRISING_DISCORD_WEBHOOK"; \
 	set_game_settings "$$VRISING_GAME_SETTINGS"; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
+	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"

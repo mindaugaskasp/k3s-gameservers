@@ -41,7 +41,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given secrets.serverPassword "$$ZOMBOID_SERVER_PASSWORD"; \
 	set_discord_alerts "$$ZOMBOID_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$ZOMBOID_CONNECT_HOST"; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
+	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
 
 # No update restarts while the game is scaled to 0.
 suspend-update-cron:

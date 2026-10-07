@@ -39,10 +39,12 @@ include $(REPO_ROOT)/make/help.mk
 
 HELM_RELEASE_FLAGS = $(RELEASE) $(CHART) $(addprefix -f ,$(VALUE_FILES)) -n $(NAMESPACE) \
 	--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
+# --atomic rolls a failed release back by itself; 15m covers a first start's server download.
+HELM_UPGRADE_FLAGS = $(HELM_RELEASE_FLAGS) --atomic --timeout 15m
 # A deploy recipe's first line: loads .env and the helpers that turn it into helm_flags.
 LOAD_ENV_FOR_HELM = set -a; [ -f .env ] && . ./.env; set +a; . $(GAME_SERVER_DIR)/make/helm-values-from-env.sh
 
-.PHONY: help init-env lint template status logs logs-metrics restart scale-down-zero scale-up shell \
+.PHONY: help init-env lint template status logs logs-metrics restart scale-down-zero scale-up shell check-no-players \
 	players backups sync sync-data sync-backups download-backups install-sync-timer restore-backup \
 	_restore-run start-volume-helper stop-volume-helper port-forward-metrics dashboards uninstall build-metrics-image push-metrics-image \
 	read-player-db reset-player-stats chart-dependencies
@@ -50,6 +52,19 @@ LOAD_ENV_FOR_HELM = set -a; [ -f .env ] && . ./.env; set +a; . $(GAME_SERVER_DIR
 # The shared library chart is copied into the game's chart/charts/ before any helm command.
 chart-dependencies:
 	@helm dependency update $(CHART) >/dev/null
+
+# Everything that stops or replaces the running server first proves nobody is on it.
+deploy restart scale-down-zero: check-no-players
+
+# Refuses while players are online, or when the count is unreadable; FORCE=1 overrides.
+check-no-players:
+	@[ "$(FORCE)" != "1" ] || exit 0; \
+	kubectl -n $(NAMESPACE) get pod $(RELEASE)-0 >/dev/null 2>&1 || exit 0; \
+	players=$$(kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c status-metrics -- \
+		wget -qO- -T 5 http://127.0.0.1:9101/metrics 2>/dev/null \
+		| awk '/^game_server_players[{ ]/{print int($$2); exit}'); \
+	[ -n "$$players" ] || { echo "player count unreadable; stop the server first or re-run with FORCE=1" >&2; exit 1; }; \
+	[ "$$players" -eq 0 ] || { echo "$$players player(s) online -- refusing; re-run with FORCE=1 to kick them" >&2; exit 1; }
 
 ## Check the Helm chart and values.override.yaml with helm lint
 lint: chart-dependencies

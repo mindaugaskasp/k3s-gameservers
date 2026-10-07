@@ -34,7 +34,7 @@ deploy: secrets-check chart-dependencies
 	set_discord_alerts "$$VALHEIM_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$VALHEIM_CONNECT_HOST"; \
 	set_value_if_given server.adminSteamIds "$$VALHEIM_ADMIN_STEAM_IDS"; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
+	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
 
 ## Show whether mods loaded, why not if they did not, and which plugins are installed
 mods-status:

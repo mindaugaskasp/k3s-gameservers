@@ -33,7 +33,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.voiceChat "$$ENSHROUDED_VOICE_CHAT"; \
 	set_value_if_given gameSettings.PRESET "$$ENSHROUDED_DIFFICULTY"; \
 	set_game_settings "$$ENSHROUDED_GAME_SETTINGS"; \
-	helm upgrade --install $(HELM_RELEASE_FLAGS) "$${helm_flags[@]}"
+	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
 
 ## Run steamcmd now, even if the installed build looks current
 force-update:
