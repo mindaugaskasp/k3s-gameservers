@@ -60,6 +60,14 @@ spec:
             - name: CONNECT_HOST
               value: {{ .Values.server.connectHost | quote }}
             {{- end }}
+            {{- if .Values.alerts.enabled }}
+            # Read by the shared hooks' post-discord-embed.sh; the image itself posts nothing.
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.discordSecretName" . }}
+                  key: DISCORD_WEBHOOK_URL
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           # The first start downloads the game before the server process exists; ready
