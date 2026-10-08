@@ -1,0 +1,118 @@
+{{- $data := include "satisfactory.dataPath" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "game-server.fullname" . }}
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "game-server.fullname" . }}
+  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
+  replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
+  selector:
+    matchLabels:
+      {{- include "game-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "game-server.labels" . | nindent 8 }}
+    spec:
+      # The image's STOPSIGNAL interrupts the server, which saves the session on the way down.
+      terminationGracePeriodSeconds: 90
+      initContainers:
+        {{- include "game-server.volumeFoldersInitContainer" (list "backups" "database/sqlite") | nindent 8 }}
+      containers:
+        - name: gameserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: game
+              containerPort: {{ .Values.server.gamePort }}
+              protocol: UDP
+            - name: api
+              containerPort: {{ .Values.server.gamePort }}
+              protocol: TCP
+            - name: messaging
+              containerPort: {{ .Values.server.messagingPort }}
+              protocol: TCP
+          # https://github.com/wolveix/satisfactory-server#environment-variables
+          env:
+            - name: SERVERGAMEPORT
+              value: {{ .Values.server.gamePort | quote }}
+            - name: SERVERMESSAGINGPORT
+              value: {{ .Values.server.messagingPort | quote }}
+            - name: MAXPLAYERS
+              value: {{ .Values.server.slotCount | quote }}
+            - name: SKIPUPDATE
+              value: {{ not .Values.updates.onBoot | quote }}
+            # The start-up chown hands the whole volume to this uid, the exporter's database
+            # included, so it must match the status-metrics user.
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            {{- range $key, $value := .Values.gameSettings }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.server.connectHost }}
+            - name: CONNECT_HOST
+              value: {{ .Values.server.connectHost | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # The first start downloads the game before the server process exists; ready
+          # once the HTTPS API answers, which needs no session or password.
+          startupProbe:
+            exec:
+              command: ["bash", "-c", {{ include "satisfactory.healthCheckCommand" . | toJson }}]
+            periodSeconds: 10
+            failureThreshold: 360
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", {{ include "satisfactory.serverProcessPattern" . | quote }}]
+            periodSeconds: 30
+            failureThreshold: 3
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/started.sh"]
+            # The image's SIGINT handler stops the server cleanly after this.
+            preStop:
+              exec:
+                command: ["/bin/sh", "/etc/game-hooks/down.sh"]
+          volumeMounts:
+            - name: data
+              mountPath: {{ $data }}
+            - name: hooks
+              mountPath: /etc/game-hooks
+            - name: status-share
+              mountPath: /var/run/satisfactory-status
+        {{- include "satisfactory.backupContainer" . | nindent 8 }}
+        {{- if .Values.statusMetrics.enabled }}
+        {{- include "game-server.statusMetricsContainer" . | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        - name: hooks
+          configMap:
+            name: {{ include "game-server.fullname" . }}-hooks
+            defaultMode: 0755
+        - name: status-share
+          emptyDir: {}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

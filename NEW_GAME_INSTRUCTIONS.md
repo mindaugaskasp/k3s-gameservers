@@ -75,7 +75,7 @@ A small program running beside the game that counts players and collects stats f
 - [ ] `docs/architecture.md`: add the game to the games list, plus a line for anything only it has
 - [ ] Each Markdown file aims for 60 lines and never passes 100
 
-## Where each game stands (2026-10-05)
+## Where each game stands (2026-10-08)
 
 | Game | Server + stats | Discord | Grafana | Off-host backup | Game docs | Restore script | Root docs | Website |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -87,5 +87,6 @@ A small program running beside the game that counts players and collects stats f
 | Terraria | ✅ | ✅ | ✅ | ❌ never uploaded | ✅ | ✅ | ✅ | ✅ |
 | Dragonwilds | ✅ in testing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Palworld | ✅ in testing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Satisfactory | ✅ in testing | ✅ | ✅ | ⚠️ not yet uploaded | ✅ | ✅ | ✅ | ✅ |
 
 Grafana ⚠️ means it still uses the shared `game-server/grafana/` dashboards.

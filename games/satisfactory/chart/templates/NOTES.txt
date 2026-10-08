@@ -1,0 +1,18 @@
+Satisfactory deployed as StatefulSet "{{ include "game-server.fullname" . }}".
+
+Check status:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs -f {{ include "game-server.fullname" . }}-0 -c gameserver
+
+Players add the server with <address>:{{ .Values.service.nodePorts.game }}; UDP {{ .Values.service.nodePorts.game }},
+TCP {{ .Values.service.nodePorts.game }} (the HTTPS API) and TCP {{ .Values.service.nodePorts.messaging }} all reach it.
+The first player to connect claims the server and sets its name and admin password
+in game; the chart holds no passwords.
+
+Updates run with steamcmd on every container start; a sidecar archives saved/
+into backups/ every {{ .Values.backups.intervalMinutes }} minutes. The first boot downloads the game, so it
+stays unreachable for a while.
+
+Metrics:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "game-server.fullname" . }}-metrics {{ .Values.statusMetrics.port }}:{{ .Values.statusMetrics.port }}
+  curl localhost:{{ .Values.statusMetrics.port }}/metrics

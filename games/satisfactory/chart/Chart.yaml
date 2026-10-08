@@ -1,0 +1,19 @@
+apiVersion: v2
+name: satisfactory-server
+description: Satisfactory dedicated server as a single-replica StatefulSet, backed by the wolveix satisfactory-server image.
+type: application
+version: 0.1.0
+# Tracks the image tag in values.yaml. The image installs and updates the game with
+# steamcmd on boot; it keeps no scheduled backups, so the chart runs a backup sidecar.
+appVersion: "latest"
+keywords:
+  - satisfactory
+  - game-server
+  - k3s
+home: https://github.com/wolveix/satisfactory-server
+
+dependencies:
+  # Copied into charts/ by `make` (helm dependency update) before every helm command.
+  - name: game-server
+    version: 0.1.0
+    repository: file://../../../game-server/chart

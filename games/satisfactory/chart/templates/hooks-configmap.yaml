@@ -1,0 +1,3 @@
+{{- /* Ready once the HTTPS API's health check answers; it comes up with the server and needs no password. */ -}}
+{{- $readyCheck := include "satisfactory.healthCheckCommand" . }}
+{{- include "game-server.lifecycleHooks" (dict "context" . "statusDir" "/var/run/satisfactory-status" "persistDir" (include "satisfactory.savedPath" .) "readyCheck" $readyCheck "displayName" .Values.server.name "connectPort" .Values.service.nodePorts.game) }}

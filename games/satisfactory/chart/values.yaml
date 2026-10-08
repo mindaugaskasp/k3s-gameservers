@@ -1,0 +1,95 @@
+image:
+  # Installs and updates the game with steamcmd on boot and stops it cleanly on SIGINT.
+  # https://github.com/wolveix/satisfactory-server
+  repository: wolveix/satisfactory-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+server:
+  name: "Satisfactory Server" # shown in Discord alerts; the in-game name is set when the server is claimed
+  slotCount: 4 # the game's own default
+  # UDP carries the game traffic; the same port over TCP is the HTTPS API players
+  # join through and the exporter queries. Both leave the pod as NodePorts.
+  gamePort: 7777
+  messagingPort: 8888 # TCP, the engine's reliable messaging; players need it too
+  connectHost: "" # public join address shown in Discord alerts
+
+# Server tuning: every key is one of the image's env vars (AUTOSAVENUM, MAXTICKRATE,
+# TIMEOUT, DISABLESEASONALEVENTS, ...) and lands in the engine's ini files on boot.
+# https://github.com/wolveix/satisfactory-server#environment-variables
+gameSettings: {}
+
+# The admin and join passwords are set in game when the server is claimed, never here.
+# The API token (server console: server.GenerateAPIToken) lets the exporter query a
+# server whose client-protection password blocks passwordless logins; else leave empty.
+secrets:
+  apiToken: ""
+
+secretRef: ""
+
+# secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
+alerts:
+  enabled: false
+  discordWebhook: ""
+  secretRef: ""
+
+# steamcmd checks for a game update on every container start; there is no
+# in-place update, so updating a running server is a pod restart.
+updates:
+  onBoot: true
+
+# The image only copies the saves into backups/ on boot, so a sidecar archives
+# saved/ on this interval and keeps maxCount archives. game_server_backup_* reports them.
+backups:
+  intervalMinutes: 60
+  maxCount: 48
+
+backupResources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    memory: 128Mi
+
+# Mixed UDP and TCP. Outside the default NodePort range; see docs/architecture.md.
+service:
+  nodePorts:
+    game: 7777
+    messaging: 8888
+
+# Holds the game install (gamefiles/), saved/ and backups/.
+persistence:
+  enabled: true
+  storageClassName: local-path
+  size: 30Gi
+
+# An update needs up to twice the game size on disk while it downloads.
+resources:
+  requests:
+    cpu: "2"
+    memory: 6Gi
+  limits:
+    memory: 12Gi
+
+statusMetrics:
+  enabled: true
+  image:
+    # In-cluster registry (platform/registry/, localhost:30500); `make push-metrics-image`.
+    repository: localhost:30500/k3s-gameservers/satisfactory-status-metrics
+    # Set by the game Makefile to the exporter's commit; no default, so a deploy
+    # that forgets it fails instead of quietly running an older image.
+    tag: ""
+    pullPolicy: Always
+  port: 9101
+
+# Requires the VPA CRDs; platform/vpa/install.sh installs them.
+verticalPodAutoscaler:
+  enabled: false
+  updateMode: "Off" # Off | Initial | Recreate | Auto
+  # The range the recommender may suggest for the game container.
+  minAllowed:
+    cpu: 500m
+    memory: 2Gi
+  maxAllowed:
+    cpu: "6"
+    memory: 12Gi
