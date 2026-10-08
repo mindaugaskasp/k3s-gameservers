@@ -21,8 +21,9 @@ Runs [`wolveix/satisfactory-server`](https://github.com/wolveix/satisfactory-ser
 - **Backups:** the image only copies the saves into `backups/` on boot, so the
   `backup` sidecar archives `saved/` every `backups.intervalMinutes`, keeping
   `backups.maxCount`. `make restore-backup` swaps one back in.
-- **Saving:** the server autosaves (`AUTOSAVENUM`) and saves the session when the
-  image's SIGINT handler stops it.
+- **Saving:** autosaves carry the world (`AUTOSAVENUM` keeps that many); upstream
+  documents no save on stop, so turn on Auto-Save on Player Disconnect in the
+  server settings and the last session is never older than one autosave.
 
 ## Alerts and probes
 

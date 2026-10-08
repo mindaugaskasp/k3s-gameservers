@@ -32,7 +32,7 @@ function buildSatisfactoryMetricLines() {
     ),
     ...formatGaugeLines(
       "satisfactory_game_paused",
-      "Whether the session is paused; the server pauses itself while nobody is on.",
+      "Whether the session is paused; the server can pause itself while empty.",
       gameState ? [{ labels: { game }, value: gameState.isGamePaused ? 1 : 0 }] : []
     ),
   ];

@@ -25,7 +25,8 @@ make status          # the first start downloads the game; wait until the pod is
 
 Forward UDP 7779, TCP 7779 and TCP 8890 on the router to the host. In the game's
 Server Manager, add `<public address>:7779`, claim the server, set its name and
-admin password, then start a session.
+admin password, then start a session. Turn on Auto-Save on Player Disconnect in
+its settings: upstream documents no save on stop, only autosaves.
 If the node can't fit two games, `make scale-down-zero` in the running one first.
 
 ## 3. Query with a password

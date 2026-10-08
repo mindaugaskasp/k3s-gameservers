@@ -2,7 +2,7 @@
 
 server:
   slotCount: 4
-  # 7777 belongs to Terraria on this cluster; the client takes any port in the address.
+  # Terraria already forwards 7777; the game client takes any port in the join address.
   gamePort: 7779
   messagingPort: 8890
 

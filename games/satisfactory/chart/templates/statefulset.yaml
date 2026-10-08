@@ -18,7 +18,7 @@ spec:
       labels:
         {{- include "game-server.labels" . | nindent 8 }}
     spec:
-      # The image's STOPSIGNAL interrupts the server, which saves the session on the way down.
+      # The image's STOPSIGNAL interrupts the server so it finishes writing to disk; give it time.
       terminationGracePeriodSeconds: 90
       initContainers:
         {{- include "game-server.volumeFoldersInitContainer" (list "backups" "database/sqlite") | nindent 8 }}
