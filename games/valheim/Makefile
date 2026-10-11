@@ -7,7 +7,7 @@ TEMPLATE_SECRET_FLAGS := --set-string secrets.serverPassword=REDACTED
 RESTORE_REQUIRED_ARCHIVE_ENTRY := config/worlds_local/
 include ../../game-server/make/game.mk
 
-.PHONY: deploy secrets-check mods-status approve-mods broadcast
+.PHONY: deploy secrets-check mods-status approve-mods broadcast install-mods update-mods
 
 # Secrets come from the environment or a gitignored .env here; see .env.example.
 secrets-check:
@@ -52,6 +52,14 @@ mods-status:
 approve-mods:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- /etc/valheim-hooks/approve-mods.sh
 	@echo "Restart to load mods: make restart"
+
+## Install the server plugins mods.json lists, skipping ones already installed
+install-mods:
+	NAMESPACE=$(NAMESPACE) POD=$(RELEASE)-0 ./install-mods.sh
+
+## Update every mods.json plugin to its pinned version, or the latest release
+update-mods:
+	NAMESPACE=$(NAMESPACE) POD=$(RELEASE)-0 ./install-mods.sh --update
 
 ## Show a center-screen message to everyone online (needs mods + VALHEIM_RCON_PASSWORD)
 ##   make broadcast MESSAGE="Server restarts in 10 minutes"

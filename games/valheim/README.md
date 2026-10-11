@@ -38,7 +38,9 @@ as `game_server_player_last_seen_timestamp_seconds{name}` so names outlive resta
 Mods are off by default. To turn them on:
 
 1. Set `mods.enabled=true`.
-2. Put plugin DLLs in `/config/bepinex/plugins`.
+2. Add each [Thunderstore](https://thunderstore.io/c/valheim/) package to `mods.json`
+   (optionally with a `"version"` pin), then `make install-mods`; `make update-mods`
+   later pulls newer releases of all of them.
 3. Redeploy.
 
 A Valheim update can land before a compatible BepInEx does, so

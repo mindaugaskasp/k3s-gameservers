@@ -1,0 +1,6 @@
+{
+  "plugins": [
+    { "package": "JereKuusela/Server_devcommands" },
+    { "package": "Tristan/ValheimRcon" }
+  ]
+}
