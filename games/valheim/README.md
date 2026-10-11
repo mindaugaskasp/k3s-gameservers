@@ -51,7 +51,8 @@ A Valheim update can land before a compatible BepInEx does, so
 
 ```sh
 make mods-status                 # did mods load, and why not
-make approve-mods && make restart   # approve-mods.sh records the current build
+make approve-mods && make restart   # with the fail-safe on, pulls the latest
+                                    # mods.json releases, then records the build
 ```
 
 ## Broadcasts (ValheimRcon)

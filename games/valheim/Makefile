@@ -47,9 +47,14 @@ mods-status:
 		printf "plugins:     "; ls -1 /config/bepinex/plugins 2>/dev/null | tr "\n" " " || echo "(none)"; echo'
 
 # Records YOUR confirmation that mods work on this build; it tests nothing.
+# A held-back build usually means stale mods too, so with the fail-safe on
+# the latest mods.json releases are pulled before the build is approved.
 ## Confirm the mods work on the running game build, so the fail-safe stops holding them back
 ##   It tests nothing: it records your confirmation. Then run make restart.
 approve-mods:
+	@if kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- sh -c 'test "$$MOD_REQUIRE_APPROVED_BUILD" = true' >/dev/null 2>&1; then \
+		$(MAKE) update-mods; \
+	fi
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- /etc/valheim-hooks/approve-mods.sh
 	@echo "Restart to load mods: make restart"
 
