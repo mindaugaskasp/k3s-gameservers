@@ -45,6 +45,7 @@ A single-node k3s cluster runs three namespaces:
 
 Game ports are NodePorts on the same numbers the router forwards ([table](../README.md#router-ports)),
 which is why the NodePort range is widened ([platform.md](platform.md#k3s)).
+Valheim's RCON port has no Service at all: `make broadcast` reaches it inside the pod.
 HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).
 
 ## Monitoring

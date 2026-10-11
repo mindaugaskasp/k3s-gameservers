@@ -3,10 +3,15 @@
 server:
   public: true
   crossplay: false
-  extraArgs: "-modifier resources more -modifier raids more -modifier deathPenalty casual -modifier portals casual"
+  extraArgs: "-modifier resources more -modifier deathPenalty casual -modifier portals casual"
 
 mods:
   enabled: true
+
+# update-countdown.sh warns players for 30 minutes instead of the updater
+# waiting for an empty server; it needs VALHEIM_RCON_PASSWORD in .env.
+updates:
+  ifIdle: false
 
 # updateMode stays "Off" (chart default) -- recommendations only, never
 # evictions. See docs/architecture.md and platform/vpa/install.sh.

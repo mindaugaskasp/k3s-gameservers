@@ -52,6 +52,20 @@ make mods-status                 # did mods load, and why not
 make approve-mods && make restart   # approve-mods.sh records the current build
 ```
 
+## Broadcasts (ValheimRcon)
+
+With the [ValheimRcon](https://thunderstore.io/c/valheim/p/Tristan/ValheimRcon/) DLL in
+`/config/bepinex/plugins` and `VALHEIM_RCON_PASSWORD` set in `.env`, warn everyone in
+game before a restart or update:
+
+```sh
+make broadcast MESSAGE="Server restarts in 10 minutes"
+```
+
+A game update restarts the server by itself: `update-countdown.sh` then counts down
+in game from 30 minutes in 5-minute steps, and an empty server skips the wait.
+The plugin listens inside the pod only; no Service or router forward exposes the port.
+
 ## Client mods (admin's Windows PC)
 
 The Server Devcommands console only works if the admin's own client has the

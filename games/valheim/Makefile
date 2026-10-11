@@ -7,7 +7,7 @@ TEMPLATE_SECRET_FLAGS := --set-string secrets.serverPassword=REDACTED
 RESTORE_REQUIRED_ARCHIVE_ENTRY := config/worlds_local/
 include ../../game-server/make/game.mk
 
-.PHONY: deploy secrets-check mods-status approve-mods
+.PHONY: deploy secrets-check mods-status approve-mods broadcast
 
 # Secrets come from the environment or a gitignored .env here; see .env.example.
 secrets-check:
@@ -24,6 +24,7 @@ secrets-check:
 ##   VALHEIM_DISCORD_WEBHOOK   optional, turns on Discord alerts
 ##   VALHEIM_CONNECT_HOST      optional, the public host name shown to players
 ##   VALHEIM_ADMIN_STEAM_IDS   optional, space-separated Steam IDs written to adminlist.txt
+##   VALHEIM_RCON_PASSWORD     optional, turns on the ValheimRcon plugin for `make broadcast`
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
@@ -34,6 +35,7 @@ deploy: secrets-check chart-dependencies
 	set_discord_alerts "$$VALHEIM_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$VALHEIM_CONNECT_HOST"; \
 	set_value_if_given server.adminSteamIds "$$VALHEIM_ADMIN_STEAM_IDS"; \
+	if [ -n "$$VALHEIM_RCON_PASSWORD" ]; then helm_flags+=(--set rcon.enabled=true); set_value secrets.rconPassword "$$VALHEIM_RCON_PASSWORD"; fi; \
 	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
 
 ## Show whether mods loaded, why not if they did not, and which plugins are installed
@@ -50,3 +52,9 @@ mods-status:
 approve-mods:
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- /etc/valheim-hooks/approve-mods.sh
 	@echo "Restart to load mods: make restart"
+
+## Show a center-screen message to everyone online (needs mods + VALHEIM_RCON_PASSWORD)
+##   make broadcast MESSAGE="Server restarts in 10 minutes"
+broadcast:
+	@test -n "$(MESSAGE)" || { echo "MESSAGE is not set" >&2; exit 1; }
+	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- python3 /etc/valheim-hooks/rcon-broadcast.py "$(MESSAGE)"

@@ -130,6 +130,73 @@ data:
     [ -n "$build" ] || { echo "could not read buildid" >&2; exit 1; }
     printf '%s' "$build" > /config/mods-approved-build
     echo "approved build $build; mods will load on next start"
+  # Rewrites the ValheimRcon settings on every start, so the Secret stays the
+  # only place the password is set. Config keys: see the plugin's Plugin.cs.
+  write-rcon-config.sh: |
+    #!/bin/sh
+    set -eu
+    mkdir -p /config/bepinex
+    cat > /config/bepinex/org.tristan.rcon.cfg <<EOF
+    [1. Rcon]
+    Port = ${VALHEIM_RCON_PORT}
+    Password = ${VALHEIM_RCON_PASSWORD}
+
+    [3. Chat]
+    Server name = ${SERVER_NAME}
+    EOF
+  # PRE_RESTART_HOOK: the updater runs it synchronously, so the update restart
+  # waits out the countdown. An empty server, or one the broadcast cannot
+  # reach, restarts at once instead of stalling the update for nothing.
+  update-countdown.sh: |
+    #!/bin/sh
+    set -u
+    players_online() {
+      [ -n "$(ls -A /var/run/valheim-status/players/online 2>/dev/null)" ] ||
+        /usr/local/bin/valheim-status 2>/dev/null | grep -q '"player_count": [1-9]'
+    }
+    for minutes_left in 30 25 20 15 10 5; do
+      players_online || exit 0
+      python3 /etc/valheim-hooks/rcon-broadcast.py \
+        "Valheim will be restarted in $minutes_left minutes for server update" || exit 0
+      sleep 300
+    done
+  # Run via `make broadcast`. Speaks Source RCON to the ValheimRcon plugin in
+  # this pod; its showMessage puts the text center-screen for everyone online.
+  rcon-broadcast.py: |
+    #!/usr/bin/env python3
+    import os
+    import socket
+    import struct
+    import sys
+
+    LOGIN, COMMAND = 3, 2
+
+    def send_packet(connection, packet_type, payload):
+        body = struct.pack('<ii', 1, packet_type) + payload.encode() + b'\x00\x00'
+        connection.sendall(struct.pack('<i', len(body)) + body)
+
+    def read_packet(connection):
+        (length,) = struct.unpack('<i', connection.recv(4))
+        body = b''
+        while len(body) < length:
+            chunk = connection.recv(length - len(body))
+            if not chunk:
+                sys.exit('RCON connection closed early')
+            body += chunk
+        (request_id,) = struct.unpack('<i', body[:4])
+        return request_id, body[8:-2].decode(errors='replace')
+
+    message = ' '.join(sys.argv[1:]).strip()
+    if not message:
+        sys.exit('usage: rcon-broadcast.py <message>')
+    connection = socket.create_connection(('127.0.0.1', int(os.environ['VALHEIM_RCON_PORT'])), timeout=10)
+    send_packet(connection, LOGIN, os.environ['VALHEIM_RCON_PASSWORD'])
+    request_id, answer = read_packet(connection)
+    if request_id == -1:
+        sys.exit('RCON login failed: ' + answer)
+    send_packet(connection, COMMAND, 'showMessage ' + message)
+    request_id, answer = read_packet(connection)
+    print(answer)
   {{- include "game-server.sharedHookScripts" . | nindent 2 }}
 
   notify.sh: |

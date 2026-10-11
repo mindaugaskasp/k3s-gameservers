@@ -33,6 +33,7 @@ service:
 # Secret with key SERVER_PASS. Never commit a real password.
 secrets:
   serverPassword: ""
+  rconPassword: ""
 secretRef: ""
 
 # secretRef, if set, must hold key DISCORD_WEBHOOK_URL.
@@ -81,6 +82,12 @@ mods:
   # BepInEx is pulled unpinned, so a game update can outrun it: drop mods
   # after an update until `make approve-mods` confirms they still work.
   requireApprovedBuild: true
+
+# The ValheimRcon plugin (needs mods on and its DLL in /config/bepinex/plugins).
+# The port stays pod-internal: no Service or NodePort ever exposes it.
+rcon:
+  enabled: false
+  port: 2459
 
 persistence:
   enabled: true

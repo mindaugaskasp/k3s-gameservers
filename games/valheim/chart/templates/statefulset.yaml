@@ -81,6 +81,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "game-server.secretName" . }}
                   key: SERVER_PASS
+            {{- if .Values.rcon.enabled }}
+            # Read by write-rcon-config.sh and rcon-broadcast.py; the port is pod-internal.
+            - name: VALHEIM_RCON_PORT
+              value: {{ .Values.rcon.port | quote }}
+            - name: VALHEIM_RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "game-server.secretName" . }}
+                  key: RCON_PASSWORD
+            {{- end }}
             - name: UPDATE_CRON
               value: {{ .Values.updates.cron | quote }}
             - name: UPDATE_IF_IDLE
@@ -131,9 +141,14 @@ spec:
             # mod-guard.sh is sourced, not executed: it must clear DOORSTOP_ENABLED in the
             # server script's own shell to fall back to an unmodded start.
             - name: PRE_SERVER_RUN_HOOK
-              value: {{ printf "python3 /etc/valheim-hooks/create-seeded-world.py%s" (ternary "; . /etc/valheim-hooks/mod-guard.sh" "" (and .Values.mods.enabled .Values.mods.failSafe)) | quote }}
+              value: {{ printf "python3 /etc/valheim-hooks/create-seeded-world.py%s%s" (ternary "; /etc/valheim-hooks/write-rcon-config.sh" "" .Values.rcon.enabled) (ternary "; . /etc/valheim-hooks/mod-guard.sh" "" (and .Values.mods.enabled .Values.mods.failSafe)) | quote }}
             - name: POST_SERVER_SHUTDOWN_HOOK
               value: "/etc/valheim-hooks/notify.sh down"
+            {{- if .Values.rcon.enabled }}
+            # Runs only on the updater's own restarts, never on a pod stop.
+            - name: PRE_RESTART_HOOK
+              value: "/etc/valheim-hooks/update-countdown.sh"
+            {{- end }}
             - name: POST_RESTART_HOOK
               value: "/etc/valheim-hooks/notify.sh updated"
             # Who's online, for valheim_player_online: see player-event.sh.
