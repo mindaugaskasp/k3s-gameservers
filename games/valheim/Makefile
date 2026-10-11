@@ -71,3 +71,7 @@ update-mods:
 broadcast:
 	@test -n "$(MESSAGE)" || { echo "MESSAGE is not set" >&2; exit 1; }
 	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- python3 /etc/valheim-hooks/rcon-broadcast.py "$(MESSAGE)"
+
+## Broadcast in a colour (any Unity colour name), e.g. make broadcast-color-red MESSAGE="..."
+broadcast-color-%:
+	@$(MAKE) --no-print-directory broadcast MESSAGE="<color=$*>$(MESSAGE)</color>"
