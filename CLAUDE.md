@@ -54,3 +54,28 @@ Hard rules for code, docs and comments.
 - **Docs:** aim for 60 lines per Markdown file, never more than 100; split by topic.
   This file is exempt: rules live in one place, however long that makes it.
 - **Check:** `wc -l *.md docs/*.md games/*/*.md games/*/status-metrics/*.md` (ignoring CLAUDE.md)
+
+## Production safety
+
+A change is DONE only after every step below has passed, in order. Until then it
+is "implemented, not verified", and must be reported in exactly those words.
+Walk the list explicitly before claiming completion; never skip a step because
+the change "obviously" works.
+
+1. **Validate offline first**: `make lint` and `make template` for every chart
+   touched, syntax-check every script a ConfigMap carries (`bash -n`, a Python
+   `compile()`), and dry-run new logic against a stub where the cluster is not
+   needed.
+2. **Nobody online**: `game_server_players` must read 0 before any deploy,
+   restart or scale that rolls a pod. The Makefile gate is a backstop, not the
+   check. A config-only change still goes through `make deploy`, which gates.
+3. **Deploy through make**, never raw helm or kubectl apply: the Makefiles
+   carry the env, the secrets and the gates.
+4. **Verify on the cluster**: the pod is Ready without new restarts, and the
+   changed behaviour is exercised for real (run the command, read the log line,
+   query the metric). A path that cannot be exercised yet (a scaled-down game,
+   a hook that fires on the next update) is named as untested in the report.
+5. **Nothing sensitive leaves the host**: `git diff` the push for IPs,
+   hostnames, passwords and tokens; secrets exist only in gitignored `.env`.
+6. **Records**: README and docs/architecture.md updated within budget, and
+   memory updated after any live-game change.

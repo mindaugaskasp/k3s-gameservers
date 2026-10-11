@@ -56,8 +56,7 @@ data:
   backup-gate.sh: |
     #!/bin/sh
     players=/var/run/valheim-status/players
-    if [ -n "$(ls -A "$players/online" 2>/dev/null)" ] ||
-      /usr/local/bin/valheim-status 2>/dev/null | grep -q '"player_count": [1-9]'; then
+    if /etc/valheim-hooks/players-online.sh; then
       mkdir -p "$players" && touch "$players/last-activity"; exit 0
     fi
     [ -f "$players/last-activity" ] || exit 1
@@ -150,12 +149,8 @@ data:
   update-countdown.sh: |
     #!/bin/sh
     set -u
-    players_online() {
-      [ -n "$(ls -A /var/run/valheim-status/players/online 2>/dev/null)" ] ||
-        /usr/local/bin/valheim-status 2>/dev/null | grep -q '"player_count": [1-9]'
-    }
     for minutes_left in 30 25 20 15 10 5; do
-      players_online || exit 0
+      /etc/valheim-hooks/players-online.sh || exit 0
       python3 /etc/valheim-hooks/rcon-broadcast.py --fadetime 10 \
         "Valheim will be restarted in $minutes_left minutes for server update" || exit 0
       sleep 300
@@ -163,60 +158,12 @@ data:
   # Run via `make broadcast`. Speaks Source RCON to the ValheimRcon plugin in
   # this pod; its showMessage puts the text center-screen for everyone online.
   rcon-broadcast.py: |
-    #!/usr/bin/env python3
-    import argparse
-    import os
-    import socket
-    import struct
-    import sys
-    import time
-
-    LOGIN, COMMAND = 3, 2
-    # The HUD fades a center message after about 4 seconds and the game's RPC
-    # takes no duration, so a longer fade time means resending before it fades.
-    REFRESH_SECONDS = 3
-
-    def read_arguments():
-        parser = argparse.ArgumentParser(description='Center-screen message to everyone online.')
-        parser.add_argument('--size', type=int, help='text size; the game default is about 24')
-        parser.add_argument('--fadetime', type=float, help='keep the message on screen this many seconds')
-        parser.add_argument('message', nargs='+')
-        return parser.parse_args()
-
-    def send_packet(connection, packet_type, payload):
-        body = struct.pack('<ii', 1, packet_type) + payload.encode() + b'\x00\x00'
-        connection.sendall(struct.pack('<i', len(body)) + body)
-
-    def read_packet(connection):
-        (length,) = struct.unpack('<i', connection.recv(4))
-        body = b''
-        while len(body) < length:
-            chunk = connection.recv(length - len(body))
-            if not chunk:
-                sys.exit('RCON connection closed early')
-            body += chunk
-        (request_id,) = struct.unpack('<i', body[:4])
-        return request_id, body[8:-2].decode(errors='replace')
-
-    def show_message(connection, text):
-        send_packet(connection, COMMAND, 'showMessage ' + text)
-        return read_packet(connection)
-
-    arguments = read_arguments()
-    message = ' '.join(arguments.message).strip()
-    if arguments.size:
-        message = '<size=' + str(arguments.size) + '>' + message + '</size>'
-    connection = socket.create_connection(('127.0.0.1', int(os.environ['VALHEIM_RCON_PORT'])), timeout=10)
-    send_packet(connection, LOGIN, os.environ['VALHEIM_RCON_PASSWORD'])
-    request_id, answer = read_packet(connection)
-    if request_id == -1:
-        sys.exit('RCON login failed: ' + answer)
-    request_id, answer = show_message(connection, message)
-    print(answer)
-    fade_deadline = time.monotonic() + (arguments.fadetime or 0)
-    while time.monotonic() < fade_deadline - REFRESH_SECONDS:
-        time.sleep(REFRESH_SECONDS)
-        show_message(connection, message)
+    {{- .Files.Get "files/rcon-broadcast.py" | nindent 4 }}
+  # Exit 0 when anyone is on, from the log-tracked list or the status endpoint.
+  players-online.sh: |
+    #!/bin/sh
+    [ -n "$(ls -A /var/run/valheim-status/players/online 2>/dev/null)" ] ||
+      /usr/local/bin/valheim-status 2>/dev/null | grep -q '"player_count": [1-9]'
   {{- include "game-server.sharedHookScripts" . | nindent 2 }}
 
   notify.sh: |

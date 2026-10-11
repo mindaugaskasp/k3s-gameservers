@@ -71,8 +71,8 @@ update-mods:
 ##   SIZE is the text size (game default ~24); FADETIME keeps the message up that many seconds
 broadcast:
 	@test -n "$(MESSAGE)" || { echo "MESSAGE is not set" >&2; exit 1; }
-	kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- python3 /etc/valheim-hooks/rcon-broadcast.py \
-		$(if $(SIZE),--size $(SIZE)) $(if $(FADETIME),--fadetime $(FADETIME)) "$(MESSAGE)"
+	NAMESPACE=$(NAMESPACE) POD=$(RELEASE)-0 ./broadcast.sh "$(MESSAGE)" \
+		$(if $(SIZE),--size $(SIZE)) $(if $(FADETIME),--fadetime $(FADETIME))
 
 ## Broadcast in a colour (any Unity colour name), e.g. make broadcast-color-red MESSAGE="..."
 broadcast-color-%:

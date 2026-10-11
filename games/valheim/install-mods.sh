@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Puts the plugin DLLs of every mods.json package (its pinned "version", else the
-# latest Thunderstore release) in the pod's /config/bepinex/plugins. DLLs the server
-# already has are kept as they are unless --update is given.
-# Run via `make install-mods` / `make update-mods`.
+# Puts each mods.json package's plugin DLLs (pinned "version", else the latest
+# Thunderstore release) in the pod's /config/bepinex/plugins; --update also
+# replaces DLLs the server already has. Run: make install-mods / make update-mods.
 set -euo pipefail
 
 NAMESPACE=${NAMESPACE:-games}
 POD=${POD:-valheim-0}
 mode=${1:-install}
+mode=${mode#--}
 mods_file=$(dirname "$0")/mods.json
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT
@@ -28,7 +28,7 @@ read_latest_version() {
 copy_plugin_dll() {
   local dll_name
   dll_name=$(basename "$1")
-  if [ "$mode" != --update ] && printf '%s\n' "$installed_dlls" | grep -qx "$dll_name"; then
+  if [ "$mode" != update ] && printf '%s\n' "$installed_dlls" | grep -qx "$dll_name"; then
     echo "  $dll_name is already installed; make update-mods replaces it"
     return
   fi

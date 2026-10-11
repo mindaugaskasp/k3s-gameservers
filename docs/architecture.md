@@ -26,6 +26,8 @@ A single-node k3s cluster runs three namespaces:
 - **World seed:** Valheim's server has no seed option; `create-seeded-world.py` writes a new world's metadata first.
 - **Admin-only query:** Palworld answers no public query; its exporter asks the server's REST API with the admin password.
 - **Nameless players:** Satisfactory's HTTPS API counts players without naming them, so its per-player stats stay empty.
+- **In-game broadcasts:** Valheim's ValheimRcon plugin (from `mods.json`, `make install-mods`) answers
+  `make broadcast` and the update countdown inside the pod; a NetworkPolicy blocks its port from other pods.
 
 ## Shared game pieces
 
