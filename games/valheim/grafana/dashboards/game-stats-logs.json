@@ -486,6 +486,35 @@
         "type": "prometheus",
         "uid": "ffyierrb4yl8gd"
       }
+    },
+    {
+      "id": 13,
+      "title": "RCON commands and logins",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{namespace=\"games\", pod=~\"valheim-.*\", container=\"gameserver\"} |~ \"Command completed:|Login success|Login failed|Unauthorized access|Rejected connection|Start listening rcon\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
     }
   ]
 }
