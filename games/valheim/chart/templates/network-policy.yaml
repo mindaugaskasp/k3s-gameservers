@@ -1,0 +1,32 @@
+{{- if .Values.rcon.enabled }}
+# Admits only the ports below, so no other pod can reach the RCON port.
+# `make broadcast` is untouched: same-pod loopback traffic bypasses the CNI.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "game-server.fullname" . }}-rcon-lockdown
+  labels:
+    {{- include "game-server.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "game-server.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: {{ .Values.server.port }}
+          protocol: UDP
+        - port: {{ add .Values.server.port 1 }}
+          protocol: UDP
+        - port: {{ add .Values.server.port 2 }}
+          protocol: UDP
+        {{- if .Values.status.enabled }}
+        - port: {{ .Values.status.port }}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.statusMetrics.enabled }}
+        - port: {{ .Values.statusMetrics.port }}
+          protocol: TCP
+        {{- end }}
+{{- end }}
