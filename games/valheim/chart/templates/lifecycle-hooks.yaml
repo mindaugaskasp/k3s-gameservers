@@ -164,12 +164,24 @@ data:
   # this pod; its showMessage puts the text center-screen for everyone online.
   rcon-broadcast.py: |
     #!/usr/bin/env python3
+    import argparse
     import os
     import socket
     import struct
     import sys
+    import time
 
     LOGIN, COMMAND = 3, 2
+    # The HUD fades a center message after about 4 seconds and the game's RPC
+    # takes no duration, so a longer fade time means resending before it fades.
+    REFRESH_SECONDS = 3
+
+    def read_arguments():
+        parser = argparse.ArgumentParser(description='Center-screen message to everyone online.')
+        parser.add_argument('--size', type=int, help='text size; the game default is about 24')
+        parser.add_argument('--fadetime', type=float, help='keep the message on screen this many seconds')
+        parser.add_argument('message', nargs='+')
+        return parser.parse_args()
 
     def send_packet(connection, packet_type, payload):
         body = struct.pack('<ii', 1, packet_type) + payload.encode() + b'\x00\x00'
@@ -186,17 +198,25 @@ data:
         (request_id,) = struct.unpack('<i', body[:4])
         return request_id, body[8:-2].decode(errors='replace')
 
-    message = ' '.join(sys.argv[1:]).strip()
-    if not message:
-        sys.exit('usage: rcon-broadcast.py <message>')
+    def show_message(connection, text):
+        send_packet(connection, COMMAND, 'showMessage ' + text)
+        return read_packet(connection)
+
+    arguments = read_arguments()
+    message = ' '.join(arguments.message).strip()
+    if arguments.size:
+        message = '<size=' + str(arguments.size) + '>' + message + '</size>'
     connection = socket.create_connection(('127.0.0.1', int(os.environ['VALHEIM_RCON_PORT'])), timeout=10)
     send_packet(connection, LOGIN, os.environ['VALHEIM_RCON_PASSWORD'])
     request_id, answer = read_packet(connection)
     if request_id == -1:
         sys.exit('RCON login failed: ' + answer)
-    send_packet(connection, COMMAND, 'showMessage ' + message)
-    request_id, answer = read_packet(connection)
+    request_id, answer = show_message(connection, message)
     print(answer)
+    fade_deadline = time.monotonic() + (arguments.fadetime or 0)
+    while time.monotonic() < fade_deadline - REFRESH_SECONDS:
+        time.sleep(REFRESH_SECONDS)
+        show_message(connection, message)
   {{- include "game-server.sharedHookScripts" . | nindent 2 }}
 
   notify.sh: |

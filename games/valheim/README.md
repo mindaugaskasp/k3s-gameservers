@@ -62,7 +62,9 @@ With the [ValheimRcon](https://thunderstore.io/c/valheim/p/Tristan/ValheimRcon/)
 game before a restart or update:
 
 ```sh
-make broadcast MESSAGE="Server restarts in 10 minutes"
+make broadcast MESSAGE="Server restarts in 10 minutes"   # also SIZE=28, FADETIME=15
+make broadcast-color-red MESSAGE="Restarting NOW"        # any Unity colour name
+./broadcast.sh "Hello, world" --size 28 --fadetime 15    # positional text
 ```
 
 A game update restarts the server by itself: `update-countdown.sh` then counts down
