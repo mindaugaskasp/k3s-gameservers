@@ -23,7 +23,7 @@ spec:
         {{- include "game-server.volumeFoldersInitContainer" (list "minecraft" "backups" "database/sqlite") | nindent 8 }}
       containers:
         - name: gameserver
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}{{ with .Values.image.digest }}@{{ . }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: game
@@ -112,7 +112,7 @@ spec:
             - name: status-share
               mountPath: /var/run/minecraft-status
         - name: backup
-          image: itzg/mc-backup:latest
+          image: itzg/mc-backup:latest@sha256:c5f2c369bbe47d0b712601bf44af5927e67a18cb5816dc378efb45eb993dab0a
           imagePullPolicy: IfNotPresent
           # https://github.com/itzg/docker-mc-backup#environment-variables
           env:

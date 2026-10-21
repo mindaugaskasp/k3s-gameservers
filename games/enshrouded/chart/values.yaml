@@ -2,7 +2,9 @@ image:
   # Windows-only game binary; the image runs it under Proton. `stable-wine` is
   # the Wine build. https://github.com/mornedhels/enshrouded-server#image-tags
   repository: mornedhels/enshrouded-server
-  tag: latest
+  tag: "latest"
+  # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
+  digest: "sha256:689dcb30037b0c63e6929b2fe5951eaf8eca52a43792b2764440baeb012b2aa1"
   pullPolicy: IfNotPresent
 
 server:

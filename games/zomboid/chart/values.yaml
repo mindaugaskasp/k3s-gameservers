@@ -1,6 +1,8 @@
 image:
   repository: terule/pz-dedicated-server
-  tag: latest
+  tag: "latest"
+  # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
+  digest: "sha256:f5e39eeb549e3a975b049ea02d206f528b80b78343cb3418c0bcf7152ca9d55a"
   pullPolicy: IfNotPresent
 
 server:

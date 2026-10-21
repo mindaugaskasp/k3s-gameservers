@@ -24,7 +24,7 @@ spec:
         {{- include "game-server.volumeFoldersInitContainer" (list "server" "backups" "database/sqlite") | nindent 8 }}
       containers:
         - name: gameserver
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}{{ with .Values.image.digest }}@{{ . }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: game

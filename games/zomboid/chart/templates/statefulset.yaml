@@ -35,7 +35,7 @@ spec:
       # game reads the ini. No-op on a brand-new volume until the game has written one.
       initContainers:
         - name: ini-config
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}{{ with .Values.image.digest }}@{{ . }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/sh", "-c"]
           args:
@@ -83,7 +83,7 @@ spec:
               subPath: config
       containers:
         - name: gameserver
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}{{ with .Values.image.digest }}@{{ . }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: game
@@ -206,7 +206,7 @@ spec:
         # New files appear per server start with a timestamp prefix; old ones get
         # moved to logs_<date>/. Files present at sidecar start aren't replayed.
         - name: game-logs
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}{{ with .Values.image.digest }}@{{ . }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:

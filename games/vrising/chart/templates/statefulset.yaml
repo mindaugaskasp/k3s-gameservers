@@ -25,7 +25,7 @@ spec:
         {{- include "game-server.volumeFoldersInitContainer" (list "backups" "database/sqlite") | nindent 8 }}
       containers:
         - name: gameserver
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}{{ with .Values.image.digest }}@{{ . }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           # start.sh ships with Windows line endings, which bash cannot run.
           # https://github.com/TrueOsiris/docker-vrising#updates

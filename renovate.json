@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "docker:pinDigests"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "ignorePaths": ["**/chart/charts/**"],
+  "kubernetes": {
+    "managerFilePatterns": ["/^platform/.+\\.yaml$/", "/^game-server/[^/]+\\.yaml$/"]
+  },
+  "customManagers": [
+    {
+      "description": "Game images: repository, tag and digest are three separate keys in a chart's values.yaml.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^games/[^/]+/chart/values\\.yaml$/"],
+      "matchStrings": [
+        "repository:\\s*(?<depName>\\S+)\\s*\\n(?:\\s*#[^\\n]*\\n)*\\s*tag:\\s*\"?(?<currentValue>[^\"\\n]+?)\"?\\s*\\n(?:\\s*#[^\\n]*\\n)*\\s*digest:\\s*\"(?<currentDigest>sha256:[a-f0-9]+)\""
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "Helm helpers name their images directly, and .tpl is not parseable YAML.",
+      "customType": "regex",
+      "managerFilePatterns": ["/\\.tpl$/"],
+      "matchStrings": [
+        "image:\\s*(?<depName>[^\\s:@]+):(?<currentValue>[^\\s@]+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "The CrowdSec chart version the install script passes to helm.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^platform/crowdsec/install\\.sh$/"],
+      "matchStrings": ["CHART_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "crowdsec",
+      "registryUrlTemplate": "https://crowdsecurity.github.io/helm-charts",
+      "datasourceTemplate": "helm"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  },
+  "packageRules": [
+    {
+      "description": "Images in a chart's values.yaml carry a digest, which this manager keeps whole; helm-values would rewrite the tag alone and leave the digest stale.",
+      "matchManagers": ["helm-values"],
+      "enabled": false
+    },
+    {
+      "description": "One PR for the digests, which move far more often than the tags.",
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "groupName": "image digests"
+    },
+    {
+      "description": "A game server image rolls a game pod, so each one is reviewed on its own.",
+      "matchFileNames": ["games/*/chart/values.yaml"],
+      "groupName": null,
+      "addLabels": ["game-server"]
+    }
+  ]
+}

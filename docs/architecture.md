@@ -50,6 +50,10 @@ which is why the NodePort range is widened ([platform.md](platform.md#k3s)).
 Valheim's RCON port has no Service at all: `make broadcast` reaches it inside the pod.
 HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).
 
+## Images
+
+Every image is pinned by digest and Renovate opens the bumps: [images.md](images.md).
+
 ## Monitoring
 
 How each game reports players, stats and dashboards: [game-monitoring.md](game-monitoring.md).

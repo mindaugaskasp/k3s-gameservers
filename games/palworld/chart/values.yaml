@@ -2,7 +2,9 @@ image:
   # Installs and updates the game with steamcmd on boot, saves over RCON on stop and
   # runs its own backup cron. https://github.com/thijsvanloef/palworld-server-docker
   repository: thijsvanloef/palworld-server-docker
-  tag: latest
+  tag: "latest"
+  # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
+  digest: "sha256:a308e2eaa494f2df0448a59cb22f820ba679bd57729880528c48981a49c08870"
   pullPolicy: IfNotPresent
 
 server:

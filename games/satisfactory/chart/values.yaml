@@ -2,7 +2,9 @@ image:
   # Installs and updates the game with steamcmd on boot and stops it cleanly on SIGINT.
   # https://github.com/wolveix/satisfactory-server
   repository: wolveix/satisfactory-server
-  tag: latest
+  tag: "latest"
+  # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
+  digest: "sha256:ac252dba41653eb21c6feed94b577f98fa152f5792b1aeff2ce11fe364355137"
   pullPolicy: IfNotPresent
 
 server:

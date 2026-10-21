@@ -2,7 +2,9 @@ image:
   # Windows-only game binary; the image runs it under Wine and updates it with steamcmd on every start.
   # https://github.com/TrueOsiris/docker-vrising
   repository: trueosiris/vrising
-  tag: latest
+  tag: "latest"
+  # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
+  digest: "sha256:9356f98ad56139cccf4cfc7a62331d02e4216e8156d990792f5050252405bc7d"
   pullPolicy: IfNotPresent
 
 # What each setting does: https://github.com/StunlockStudios/vrising-dedicated-server-instructions/blob/master/1.1.x-pc/INSTRUCTIONS.md
