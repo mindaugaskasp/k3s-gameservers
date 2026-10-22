@@ -3,7 +3,7 @@ saved/ (saves, blueprints, server settings) every backups.intervalMinutes, keepi
 backups.maxCount. */ -}}
 {{- define "satisfactory.backupContainer" -}}
 - name: backup
-  image: docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  image: docker.io/library/alpine:3.24@sha256:71e9b7bae160ba167fa17414401b94cbcdaf3c32feeab9298bd794a2a0614c35
   command: ["sh", "-c"]
   args:
     - |
