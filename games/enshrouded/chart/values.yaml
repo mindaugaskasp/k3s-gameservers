@@ -4,7 +4,7 @@ image:
   repository: mornedhels/enshrouded-server
   tag: "latest"
   # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
-  digest: "sha256:689dcb30037b0c63e6929b2fe5951eaf8eca52a43792b2764440baeb012b2aa1"
+  digest: "sha256:160d469d7a2dbed3a8dac2b1904df387302bfa0f524a26344582e1b76ca46fe4"
   pullPolicy: IfNotPresent
 
 server:
