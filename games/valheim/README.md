@@ -16,7 +16,14 @@
   (`files/backup-prune.sh`). Ages are play time in `backups/.play-clock`, so
   idle months age nothing; if the index is bad, pruning stops, deletes
   nothing, and the dashboard's "Cleanup index" goes red.
-- **Restoring:** `make restore-backup` stops the server, unpacks the archive and starts it again.
+- **Names:** stamped in `backups.timezone` (`VALHEIM_BACKUP_TIMEZONE`), `UTC+3` by
+  default; written as `UTC+3` or an IANA name like `Europe/Vilnius`, which follows
+  summer time. Logs, the cron and the file times stay UTC.
+- **Restoring:** `make restore-backup` picks the archive from an fzf list (Tab moves, Enter
+  restores; it offers to install fzf if missing), then stops the server, unpacks and starts it.
+  It refuses while players are online; to warn them instead, pick the archive and then wait out a
+  countdown that Ctrl + C cancels:
+  `./restore-with-warning.sh --force-with-message="Restoring soon, please leave" --time=10m`.
 
 ## Who's online
 

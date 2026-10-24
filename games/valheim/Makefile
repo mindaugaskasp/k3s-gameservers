@@ -5,6 +5,7 @@ GAME_DATA_PATH := /config
 GAME_BACKUP_PATH := /config/backups
 TEMPLATE_SECRET_FLAGS := --set-string secrets.serverPassword=REDACTED
 RESTORE_REQUIRED_ARCHIVE_ENTRY := config/worlds_local/
+BROADCAST_COMMAND := ./broadcast.sh
 include ../../game-server/make/game.mk
 
 .PHONY: deploy secrets-check mods-status approve-mods broadcast install-mods update-mods
@@ -24,6 +25,7 @@ secrets-check:
 ##   VALHEIM_DISCORD_WEBHOOK   optional, turns on Discord alerts
 ##   VALHEIM_CONNECT_HOST      optional, the public host name shown to players
 ##   VALHEIM_ADMIN_STEAM_IDS   optional, space-separated Steam IDs written to adminlist.txt
+##   VALHEIM_BACKUP_TIMEZONE   optional, stamps backup names in it; UTC+3 by default
 ##   VALHEIM_RCON_PASSWORD     optional, turns on the ValheimRcon plugin for `make broadcast`
 deploy: secrets-check chart-dependencies
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
@@ -35,6 +37,7 @@ deploy: secrets-check chart-dependencies
 	set_discord_alerts "$$VALHEIM_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$VALHEIM_CONNECT_HOST"; \
 	set_value_if_given server.adminSteamIds "$$VALHEIM_ADMIN_STEAM_IDS"; \
+	set_value_if_given backups.timezone "$$VALHEIM_BACKUP_TIMEZONE"; \
 	if [ -n "$$VALHEIM_RCON_PASSWORD" ]; then helm_flags+=(--set rcon.enabled=true); set_value secrets.rconPassword "$$VALHEIM_RCON_PASSWORD"; fi; \
 	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
 

@@ -30,6 +30,9 @@ RESTORE_REQUIRED_ARCHIVE_ENTRY ?=
 # Dashboards from game-server/grafana/ shipped beside grafana/dashboards/, and the name they show.
 SHARED_DASHBOARDS ?= process-health game-stats-logs
 GAME_TITLE ?= $(RELEASE)
+# Sends one message to everyone online, e.g. a game's ./broadcast.sh; empty means
+# the game cannot reach players, so restore-backup's RESTORE_WARNING is refused.
+BROADCAST_COMMAND ?=
 # Run after scale-down-zero and scale-up, e.g. to pause the game's own CronJobs.
 AFTER_SCALE_DOWN_ZERO ?= true
 AFTER_SCALE_UP ?= true

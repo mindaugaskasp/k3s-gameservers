@@ -119,6 +119,9 @@ spec:
               value: "true" # backup-gate.sh does the idle check
             - name: BACKUPS_ZIP
               value: {{ .Values.backups.zip | quote }}
+            # Read by backup-rename.sh alone, so the container clock stays UTC.
+            - name: BACKUP_TIMEZONE
+              value: {{ .Values.backups.timezone | quote }}
             - name: STATUS_HTTP
               value: {{ .Values.status.enabled | quote }}
             - name: STATUS_HTTP_PORT

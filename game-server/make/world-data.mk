@@ -70,20 +70,11 @@ install-sync-timer:
 	systemctl list-timers game-data-sync@$(GAME_FOLDER).timer --no-pager
 
 ## Replace the live world with a backup from data-backups/, then start the server
-##   Lists the backups, asks for a number, then asks you to type the game name to confirm.
-##   Run make sync or make download-backups first.
+##   Pick from the fzf list: Tab moves, Enter restores; FORCE=1 ignores players online.
+##   RESTORE_WARNING='--force-with-message="text" --time=10m' warns them; Ctrl + C cancels.
 restore-backup:
-	@mapfile -t backups < <(find $(BACKUP_DIR) -name '$(BACKUP_FILE_PATTERN)' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-); \
-	test $${#backups[@]} -gt 0 || { echo "no backups in $(BACKUP_DIR)/ -- run 'make sync' or 'make download-backups' first" >&2; exit 1; }; \
-	echo "Available backups (newest first):"; \
-	for backup_index in "$${!backups[@]}"; do \
-		printf "  %2d) %-34s %s  %s\n" "$$((backup_index + 1))" "$${backups[$$backup_index]#$(BACKUP_DIR)/}" \
-			"$$(date -r "$${backups[$$backup_index]}" '+%Y-%m-%d %H:%M')" "$$(du -h "$${backups[$$backup_index]}" | cut -f1)"; \
-	done; \
-	read -r -p "Select a backup to restore (number): " selected_number; \
-	selected_index=$$((selected_number - 1)); \
-	[ "$$selected_index" -ge 0 ] 2>/dev/null && [ "$$selected_index" -lt $${#backups[@]} ] || { echo "invalid selection" >&2; exit 1; }; \
-	$(MAKE) _restore-run BACKUP="$${backups[$$selected_index]}"
+	@selected_backup=$$($(GAME_SERVER_DIR)/choose-backup.sh $(BACKUP_DIR) '$(BACKUP_FILE_PATTERN)') || exit 1; \
+	$(MAKE) _restore-run BACKUP="$$selected_backup" RESTORE_WARNING='$(RESTORE_WARNING)'
 
 RESTORE_HELPER_POD = sed 's/__RELEASE__/$(RELEASE)/g' $(GAME_SERVER_DIR)/restore-helper-pod.yaml
 
@@ -107,6 +98,12 @@ _restore-run:
 		|| { echo "$(BACKUP) has no $(RESTORE_REQUIRED_ARCHIVE_ENTRY) in it -- refusing" >&2; exit 1; }
 	@echo "This REPLACES the live world of '$(RELEASE)' with $(BACKUP)."
 	@read -r -p "Type $(RELEASE) to confirm: " a; [ "$$a" = "$(RELEASE)" ] || { echo "aborted" >&2; exit 1; }
+	@if [ -n "$(if $(strip $(RESTORE_WARNING)),warn,)" ]; then \
+		test -n "$(BROADCAST_COMMAND)" || { echo "$(RELEASE) cannot message players, so it has no RESTORE_WARNING" >&2; exit 1; }; \
+		BROADCAST_COMMAND="$(BROADCAST_COMMAND)" $(GAME_SERVER_DIR)/warn-players-and-wait.sh $(RESTORE_WARNING); \
+	else \
+		$(MAKE) --no-print-directory check-no-players; \
+	fi
 	@$(MAKE) --no-print-directory start-volume-helper
 	kubectl -n $(NAMESPACE) cp "$(BACKUP)" $(RELEASE)-restore-helper:/tmp/restore-backup
 	kubectl -n $(NAMESPACE) exec -i $(RELEASE)-restore-helper -- sh < restore-backup.sh

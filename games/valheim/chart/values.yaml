@@ -67,6 +67,9 @@ backups:
   recentDays: 3
   backupArchiveWindowDays: [7, 14, 21, 28, 48]
   zip: true
+  # Timezone the archive names are stamped in, as UTC+3 or an IANA name like
+  # Europe/Vilnius, which follows summer time; logs and the cron stay UTC.
+  timezone: "UTC+3"
 
 status:
   enabled: true
