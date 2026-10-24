@@ -56,7 +56,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: cleanup
-              image: docker.io/alpine/kubectl:1.37.1@sha256:61357a3aa3bf10fba0428a5c2b6a8dad42b1c2aabbc7848e6e74e219ca8c027a # match the k3s minor version
+              image: docker.io/alpine/kubectl:1.37.1@sha256:835d306d435cf73884a7cd6d200aa9882e6f1fcb1f35ce619bb4f578e7c9f16e # match the k3s minor version
               command: ["/bin/sh", "-c"]
               args:
                 - |
