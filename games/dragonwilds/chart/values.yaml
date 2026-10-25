@@ -4,7 +4,7 @@ image:
   repository: ghcr.io/runescape/rsdw-dedicated
   tag: "latest"
   # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
-  digest: "sha256:ee5364301ba3042cf608bfcfcae967dd1729702cea461fe663639646f3bcfa01"
+  digest: "sha256:bb43ab5f903b9a2ff14be4bce43b036765e4fefd800ce82b284d97ea4fefa9ea"
   pullPolicy: IfNotPresent
 
 # What each setting does: https://dragonwilds.runescape.wiki/w/Dedicated_Servers
