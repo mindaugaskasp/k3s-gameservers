@@ -9,3 +9,5 @@ User=__USER__
 WorkingDirectory=__REPO__
 Environment=KUBECONFIG=__HOME__/.kube/config
 ExecStart=/usr/bin/make -s offsite-backup
+# A run that outlives this cannot block the next night's; the script times each step out first.
+TimeoutStartSec=6h

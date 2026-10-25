@@ -25,6 +25,12 @@ openssl enc -d -aes-256-cbc -pbkdf2 -in bundle.enc | tar -xz
 Each run pushes its result and last 40 output lines to Loki (`LOKI_URL`, root `.env`); Grafana
 alerts on a failure or on no success for 26 hours.
 
+Drive counts API calls per minute, so a run that renames or re-uploads many archives can hit
+`403 rateLimitExceeded`. Uploads are paced (`OFFSITE_BACKUP_CALLS_PER_SECOND`, 4) and stop on a
+quota wall rather than retrying for hours, and each step is bounded by
+`OFFSITE_BACKUP_STEP_TIMEOUT` (2h) so a stall is reported to Loki instead of hanging silently.
+Renaming archives makes the remote treat every one as new, which costs a full re-upload.
+
 ## Setup (Google Drive)
 
 Over SSH, connect with `-L 53682:localhost:53682` first: after login Google redirects

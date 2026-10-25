@@ -10,6 +10,13 @@ remote=${OFFSITE_BACKUP_REMOTE:?set OFFSITE_BACKUP_REMOTE in the root .env, see 
 keep_replaced_days=${OFFSITE_BACKUP_KEEP_REPLACED_DAYS:-7}
 # rclone --bwlimit format. A full-speed upload can starve game traffic and the host's NIC.
 upload_rate_limit=${OFFSITE_BACKUP_BANDWIDTH_LIMIT:-20M}
+# Drive answers 403 rateLimitExceeded once a run makes too many API calls a minute, which
+# renaming many archives does. These pace the calls, fail fast on a quota wall instead of
+# retrying for hours, and bound a stalled step so its failure still reaches Loki.
+drive_calls_per_second=${OFFSITE_BACKUP_CALLS_PER_SECOND:-4}
+upload_step_timeout=${OFFSITE_BACKUP_STEP_TIMEOUT:-2h}
+rclone_pacing_flags=(--tpslimit "$drive_calls_per_second" --transfers 2 --checkers 4
+  --drive-pacer-min-sleep 100ms --drive-stop-on-upload-limit)
 run_started_at=$(date -u +%Y%m%d-%H%M%S)
 any_step_failed=0
 
@@ -90,8 +97,8 @@ for game_dir in games/*/; do
   for synced_folder in data data-backups; do
     # An empty folder would mirror as "delete everything" on the remote.
     [ -n "$(ls -A "$game_dir$synced_folder" 2>/dev/null)" ] || continue
-    if rclone sync "$game_dir$synced_folder" "$remote/$game/$synced_folder" \
-      --bwlimit "$upload_rate_limit" \
+    if timeout "$upload_step_timeout" rclone sync "$game_dir$synced_folder" "$remote/$game/$synced_folder" \
+      --bwlimit "$upload_rate_limit" "${rclone_pacing_flags[@]}" \
       --backup-dir "$remote/$game/replaced/$run_started_at/$synced_folder"; then
       echo "Uploaded $game_dir$synced_folder -> $remote/$game/$synced_folder"
       uploaded_folders+="$synced_folder "
