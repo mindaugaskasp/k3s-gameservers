@@ -1,13 +1,18 @@
 # Off-host backups
 
+First time on a host: [offsite-backup-setup.md](offsite-backup-setup.md).
+
 `make offsite-backup` (repo root) runs `make sync` for every running game, then
 [`rclone copy`](https://rclone.org/commands/rclone_copy/)s its backup archives flat into
-`<OFFSITE_BACKUP_REMOTE>/<game>/` (root `.env`) and its world tree into `<game>/data/`.
+`<OFFSITE_BACKUP_REMOTE>/<game>/` (root `.env`) and its world tree as one compressed
+bundle into `<game>/data-bundles/`.
 The archives keep their `<date>-<time>-game-day-<n>` names, the host's `archive/` tier
-lands among them, and dotfiles stay off the remote.
-**No run ever deletes on the remote**, so pruning on the host or the pod leaves the
-off-host copy alone and what to keep there is yours to decide. An empty local folder
-is skipped.
+lands among them, and dotfiles stay off the remote. The newest archive of every
+`OFFSITE_BACKUP_ARCHIVE_WINDOW_HOURS` (24) goes up, since a server that archives every few
+minutes repeats a world it saves far less often; 0 uploads every archive the host holds.
+**Only the bundle folders are ever pruned**, to the newest `OFFSITE_BACKUP_BUNDLES_KEPT`
+(14), so pruning on the host or the pod leaves the off-host archives alone. An empty
+local folder is skipped.
 Uploads are capped at 20 MiB/s, about 170 Mbit/s (`OFFSITE_BACKUP_BANDWIDTH_LIMIT`,
 [`--bwlimit`](https://rclone.org/docs/#bwlimit-bandwidth-spec) format) so a run
 cannot saturate the host's uplink.
@@ -27,46 +32,23 @@ openssl enc -d -aes-256-cbc -pbkdf2 -in bundle.enc | tar -xz
 Each run pushes its result and last 40 output lines to Loki (`LOKI_URL`, root `.env`); Grafana
 alerts on a failure or on no success for 26 hours.
 
-Drive counts API calls per minute, so a run that renames or re-uploads many archives can hit
-`403 rateLimitExceeded`. Uploads are paced (`OFFSITE_BACKUP_CALLS_PER_SECOND`, 4) and stop on a
-quota wall rather than retrying for hours, and each step is bounded by
-`OFFSITE_BACKUP_STEP_TIMEOUT` (4h) so a stall is reported to Loki instead of hanging silently.
-`<game>/data/` carries the world and the server's config — the player database, mods and
+Drive counts API calls per minute, so a run that touches many files can hit
+`403 rateLimitExceeded`; one call per file is why the world goes up as a bundle and the
+archives are thinned. Uploads are also paced (`OFFSITE_BACKUP_CALLS_PER_SECOND`, 4) and stop
+on a quota wall rather than retrying for hours, and each step is bounded by
+`OFFSITE_BACKUP_STEP_TIMEOUT` (4h) so a stall reaches Loki instead of hanging silently.
+The bundle carries the world and the server's config — the player database, mods and
 admin lists no archive holds — minus what the game rebuilds itself and the world a restore
-set aside (`OFFSITE_BACKUP_DATA_EXCLUDES`, `cache/** *.replaced-*/**`).
+set aside (`OFFSITE_BACKUP_DATA_EXCLUDES`, `cache *.replaced-*`).
 Renaming archives makes the remote treat every one as new, which costs a full re-upload.
-
-## Setup (Google Drive)
-
-Over SSH, connect with `-L 53682:localhost:53682` first: after login Google redirects
-your browser to `127.0.0.1:53682`, and the tunnel carries that to rclone on the host. Then:
-
-```sh
-make setup-offsite-backup
-```
-
-Each step is skipped once done, so it is safe to re-run:
-
-1. Adds `OFFSITE_BACKUP_REMOTE=gdrive:k3s-gameservers-backups` to the root `.env`.
-2. Installs rclone with apt.
-3. Creates the `gdrive` remote with scope `drive.file` (the token only sees
-   files rclone made): open the printed `127.0.0.1:53682` link locally and log in.
-4. Runs `make offsite-backup`, then installs the nightly systemd timer.
-
-No tunnel possible: `rclone config` by hand with the
-[remote setup](https://rclone.org/remote_setup/) steps, then re-run.
-Last run: `journalctl -u offsite-backup --since today`.
-
-The rclone token lives in `~/.config/rclone/rclone.conf`; keep it `600`.
-For encryption at rest, wrap the remote in [crypt](https://rclone.org/crypt/)
-and point `OFFSITE_BACKUP_REMOTE` at the crypt remote.
 
 ## Restore drill
 
 `make restore-drill` (repo root; a timer runs it on the 1st and 15th) downloads each
-backed-up game's newest archive and verifies it opens and holds the world
-(`make verify-offsite-backup` per game), without touching any live game. Results go
-to Loki; Grafana alerts when no drill has succeeded for 20 days.
+backed-up game's newest archive and newest world bundle and verifies both open and hold
+the world (`make verify-offsite-backup verify-offsite-data-bundle` per game), without
+touching any live game. Results go to Loki; Grafana alerts when no drill has succeeded
+for 20 days.
 
 ## Restore
 
@@ -78,6 +60,15 @@ rclone copy gdrive:k3s-gameservers-backups/valheim games/valheim/data-backups \
 cd games/valheim && make restore-backup
 ```
 
-Folders from before the flat layout (`<game>/data-backups/`, its `archive/`, and
+Reach for the world bundle when the player database, the mods or the admin lists are
+what is missing; unpack it and put the files back with `make start-volume-helper`:
+
+```sh
+rclone lsf gdrive:k3s-gameservers-backups/valheim/data-bundles   # pick the newest
+rclone copyto gdrive:k3s-gameservers-backups/valheim/data-bundles/<name> bundle.tar.gz
+tar -xzf bundle.tar.gz -C games/valheim
+```
+
+Folders from before this layout (`<game>/data/`, `<game>/data-backups/` and
 `<game>/replaced/`) are left in place; delete them on the remote when you no longer
 want them.

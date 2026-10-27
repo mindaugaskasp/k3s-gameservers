@@ -22,6 +22,8 @@ STATUS_KINDS ?= statefulset,pod,pvc,svc
 SYNC_DATA_EXCLUDES ?= backups
 # Empty: data-backups/ mirrors the server's. A number: keeps what was synced for that many days.
 BACKUP_SYNC_RETENTION_DAYS ?=
+# The rclone destination, from the environment or the root .env.
+OFFSITE_REMOTE = $(or $(OFFSITE_BACKUP_REMOTE),$(shell sed -n 's/^OFFSITE_BACKUP_REMOTE=//p' $(REPO_ROOT)/.env 2>/dev/null | tail -1))
 # The game's backup files, and how to list what an archive holds.
 BACKUP_FILE_PATTERN ?= *.zip
 BACKUP_ARCHIVE_LIST_COMMAND ?= unzip -l
@@ -49,6 +51,7 @@ LOAD_ENV_FOR_HELM = set -a; [ -f .env ] && . ./.env; set +a; . $(GAME_SERVER_DIR
 
 .PHONY: help init-env lint template status logs logs-metrics restart scale-down-zero scale-up shell check-no-players \
 	players backups sync sync-data sync-backups download-backups install-sync-timer restore-backup verify-offsite-backup \
+	verify-offsite-data-bundle print-variable \
 	_restore-run start-volume-helper stop-volume-helper port-forward-metrics dashboards uninstall build-metrics-image push-metrics-image \
 	read-player-db reset-player-stats chart-dependencies
 
@@ -68,6 +71,11 @@ check-no-players:
 		| awk '/^game_server_players[{ ]/{print int($$2); exit}'); \
 	[ -n "$$players" ] || { echo "player count unreadable; stop the server first or re-run with FORCE=1" >&2; exit 1; }; \
 	[ "$$players" -eq 0 ] || { echo "$$players player(s) online -- refusing; re-run with FORCE=1 to kick them" >&2; exit 1; }
+
+## Print one of this game's make variables, for the scripts that need it
+##   e.g. make print-variable NAME=BACKUP_FILE_PATTERN
+print-variable:
+	@echo '$($(NAME))'
 
 ## Check the Helm chart and values.override.yaml with helm lint
 lint: chart-dependencies
