@@ -14,7 +14,13 @@ upload_rate_limit=${OFFSITE_BACKUP_BANDWIDTH_LIMIT:-20M}
 # renaming many archives does. These pace the calls, fail fast on a quota wall instead of
 # retrying for hours, and bound a stalled step so its failure still reaches Loki.
 drive_calls_per_second=${OFFSITE_BACKUP_CALLS_PER_SECOND:-4}
-upload_step_timeout=${OFFSITE_BACKUP_STEP_TIMEOUT:-2h}
+upload_step_timeout=${OFFSITE_BACKUP_STEP_TIMEOUT:-4h}
+# Left out of <game>/data: what the game rebuilds by itself, and the world a restore
+# set aside. The world and the server's config go up; the archives carry the world too,
+# but only data/ has the player database, the mods and the admin lists.
+read -r -a data_tree_excludes <<< "${OFFSITE_BACKUP_DATA_EXCLUDES:-cache/** *.replaced-*/**}"
+data_exclude_flags=()
+for excluded in "${data_tree_excludes[@]}"; do data_exclude_flags+=(--exclude "$excluded"); done
 rclone_pacing_flags=(--tpslimit "$drive_calls_per_second" --transfers 2 --checkers 4
   --drive-pacer-min-sleep 100ms --drive-stop-on-upload-limit)
 run_started_at=$(date -u +%Y%m%d-%H%M%S)
@@ -103,9 +109,9 @@ for game_dir in games/*/; do
       failed_folders+="$archive_folder "
     fi
   done
-  # The world tree: player stats, mods and lists that no archive carries.
+  # The world tree and the server's config: player stats, mods and lists no archive carries.
   if [ -n "$(ls -A "${game_dir}data" 2>/dev/null)" ]; then
-    if upload_to_remote "${game_dir}data" "$remote/$game/data"; then
+    if upload_to_remote "${game_dir}data" "$remote/$game/data" "${data_exclude_flags[@]}"; then
       echo "Uploaded ${game_dir}data -> $remote/$game/data"
       uploaded_folders+="data "
     else

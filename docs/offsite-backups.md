@@ -30,7 +30,10 @@ alerts on a failure or on no success for 26 hours.
 Drive counts API calls per minute, so a run that renames or re-uploads many archives can hit
 `403 rateLimitExceeded`. Uploads are paced (`OFFSITE_BACKUP_CALLS_PER_SECOND`, 4) and stop on a
 quota wall rather than retrying for hours, and each step is bounded by
-`OFFSITE_BACKUP_STEP_TIMEOUT` (2h) so a stall is reported to Loki instead of hanging silently.
+`OFFSITE_BACKUP_STEP_TIMEOUT` (4h) so a stall is reported to Loki instead of hanging silently.
+`<game>/data/` carries the world and the server's config — the player database, mods and
+admin lists no archive holds — minus what the game rebuilds itself and the world a restore
+set aside (`OFFSITE_BACKUP_DATA_EXCLUDES`, `cache/** *.replaced-*/**`).
 Renaming archives makes the remote treat every one as new, which costs a full re-upload.
 
 ## Setup (Google Drive)
