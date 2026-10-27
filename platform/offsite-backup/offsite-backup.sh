@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Pulls each running game's world and backups (make sync), then mirrors games/<game>/data* to
-# OFFSITE_BACKUP_REMOTE/<game>/. Files it deletes or overwrites move to <game>/replaced/<run time>/.
-# Also uploads the gitignored config files as an encrypted bundle; see docs/offsite-backups.md.
+# Pulls each running game's world and backups (make sync), then copies the backup archives
+# flat into OFFSITE_BACKUP_REMOTE/<game>/ and the world tree into <game>/data/. Nothing on the
+# remote is ever deleted; what to keep there is yours. Config files go up as an encrypted
+# bundle; see docs/offsite-backups.md.
 set -euo pipefail
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 remote=${OFFSITE_BACKUP_REMOTE:?set OFFSITE_BACKUP_REMOTE in the root .env, see docs/offsite-backups.md}
-keep_replaced_days=${OFFSITE_BACKUP_KEEP_REPLACED_DAYS:-7}
 # rclone --bwlimit format. A full-speed upload can starve game traffic and the host's NIC.
 upload_rate_limit=${OFFSITE_BACKUP_BANDWIDTH_LIMIT:-20M}
 # Drive answers 403 rateLimitExceeded once a run makes too many API calls a minute, which
@@ -18,6 +18,14 @@ upload_step_timeout=${OFFSITE_BACKUP_STEP_TIMEOUT:-2h}
 rclone_pacing_flags=(--tpslimit "$drive_calls_per_second" --transfers 2 --checkers 4
   --drive-pacer-min-sleep 100ms --drive-stop-on-upload-limit)
 run_started_at=$(date -u +%Y%m%d-%H%M%S)
+
+# One upload step. copy never deletes on the remote, and timeout bounds a stall so the
+# step still reports its failure instead of hanging the run.
+upload_to_remote() {
+  local source=$1 destination=$2; shift 2
+  timeout "$upload_step_timeout" rclone copy "$source" "$destination" \
+    --bwlimit "$upload_rate_limit" "${rclone_pacing_flags[@]}" "$@"
+}
 any_step_failed=0
 
 # Kept to send with the run's result, so Grafana shows what a failed run printed.
@@ -73,18 +81,7 @@ backup_config_bundle() {
     any_step_failed=1
   fi
   rm -rf "$work_folder"
-  # Aged by the timestamp in the name, like the replaced/ folders.
-  for old_bundle in $(rclone lsf "$remote/config-bundles" --files-only 2>/dev/null); do
-    old_bundle_stamp=${old_bundle#config-bundle-}
-    old_bundle_stamp=${old_bundle_stamp%.tar.gz.enc}
-    if [[ "$old_bundle_stamp" < "$purge_before" ]]; then
-      rclone deletefile "$remote/config-bundles/$old_bundle" --drive-use-trash=false || any_step_failed=1
-    fi
-  done
 }
-
-# Aged by run folder name, not file time: a moved file keeps its original, older mtime.
-purge_before=$(date -u -d "-${keep_replaced_days} days" +%Y%m%d-%H%M%S)
 
 for game_dir in games/*/; do
   game=$(basename "$game_dir")
@@ -94,24 +91,28 @@ for game_dir in games/*/; do
   if [ "${ready_replicas:-0}" -gt 0 ]; then
     make -s -C "$game_dir" sync || { echo "$game: sync failed, uploading its last synced copy" >&2; any_step_failed=1; }
   fi
-  for synced_folder in data data-backups; do
-    # An empty folder would mirror as "delete everything" on the remote.
-    [ -n "$(ls -A "$game_dir$synced_folder" 2>/dev/null)" ] || continue
-    if timeout "$upload_step_timeout" rclone sync "$game_dir$synced_folder" "$remote/$game/$synced_folder" \
-      --bwlimit "$upload_rate_limit" "${rclone_pacing_flags[@]}" \
-      --backup-dir "$remote/$game/replaced/$run_started_at/$synced_folder"; then
-      echo "Uploaded $game_dir$synced_folder -> $remote/$game/$synced_folder"
-      uploaded_folders+="$synced_folder "
+  # Archives land flat in <game>/, the host's archive/ tier among them; their names
+  # carry the date, and dotfiles like .play-clock stay off the remote.
+  for archive_folder in data-backups data-backups/archive; do
+    [ -n "$(ls -A "$game_dir$archive_folder" 2>/dev/null)" ] || continue
+    if upload_to_remote "$game_dir$archive_folder" "$remote/$game" --max-depth 1 --exclude ".*"; then
+      echo "Uploaded $game_dir$archive_folder -> $remote/$game"
+      uploaded_folders+="$archive_folder "
     else
       any_step_failed=1
-      failed_folders+="$synced_folder "
+      failed_folders+="$archive_folder "
     fi
   done
-  for replaced_run_folder in $(rclone lsf "$remote/$game/replaced" --dirs-only 2>/dev/null); do
-    if [[ "${replaced_run_folder%/}" < "$purge_before" ]]; then
-      rclone purge "$remote/$game/replaced/${replaced_run_folder%/}" --drive-use-trash=false || any_step_failed=1
+  # The world tree: player stats, mods and lists that no archive carries.
+  if [ -n "$(ls -A "${game_dir}data" 2>/dev/null)" ]; then
+    if upload_to_remote "${game_dir}data" "$remote/$game/data"; then
+      echo "Uploaded ${game_dir}data -> $remote/$game/data"
+      uploaded_folders+="data "
+    else
+      any_step_failed=1
+      failed_folders+="data "
     fi
-  done
+  fi
   [ -z "$uploaded_folders$failed_folders" ] || report_game_result "$game" "$uploaded_folders" "$failed_folders"
 done
 

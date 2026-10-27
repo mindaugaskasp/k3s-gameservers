@@ -1,11 +1,13 @@
 # Off-host backups
 
-`make offsite-backup` (repo root) runs `make sync` for every running game,
-then [`rclone sync`](https://rclone.org/commands/rclone_sync/)s each
-`games/<game>/data` and `data-backups` to `<OFFSITE_BACKUP_REMOTE>/<game>/` (root `.env`).
-Files a run deletes or overwrites move to `<game>/replaced/<run time>/`
-and each run's folder is purged after 7 days (`OFFSITE_BACKUP_KEEP_REPLACED_DAYS`).
-An empty local folder is skipped, never mirrored as a wipe.
+`make offsite-backup` (repo root) runs `make sync` for every running game, then
+[`rclone copy`](https://rclone.org/commands/rclone_copy/)s its backup archives flat into
+`<OFFSITE_BACKUP_REMOTE>/<game>/` (root `.env`) and its world tree into `<game>/data/`.
+The archives keep their `<date>-<time>-game-day-<n>` names, the host's `archive/` tier
+lands among them, and dotfiles stay off the remote.
+**No run ever deletes on the remote**, so pruning on the host or the pod leaves the
+off-host copy alone and what to keep there is yours to decide. An empty local folder
+is skipped.
 Uploads are capped at 20 MiB/s, about 170 Mbit/s (`OFFSITE_BACKUP_BANDWIDTH_LIMIT`,
 [`--bwlimit`](https://rclone.org/docs/#bwlimit-bandwidth-spec) format) so a run
 cannot saturate the host's uplink.
@@ -14,8 +16,8 @@ With `OFFSITE_BACKUP_CONFIG_PASSWORD` set (root `.env`; keep a copy in a passwor
 manager, or the bundle is unreadable exactly when it is needed), each run also uploads
 what a rebuilt machine cannot regenerate — the gitignored env files (`repo/`), the SSH
 keys, git identity and rclone login (`home/`, maps onto `$HOME`) and the manually
-installed packages (`system/`) — to `config-bundles/`, timestamped and kept for the
-same 7 days as `replaced/`. Unpack the newest:
+installed packages (`system/`) — to `config-bundles/`, timestamped and kept. Unpack
+the newest:
 
 ```sh
 rclone lsf gdrive:k3s-gameservers-backups/config-bundles   # pick the newest
@@ -68,9 +70,11 @@ to Loki; Grafana alerts when no drill has succeeded for 20 days.
 Pull a copy back, then use the game's normal restore:
 
 ```sh
-rclone copy gdrive:k3s-gameservers-backups/valheim/data-backups \
-  games/valheim/data-backups
+rclone copy gdrive:k3s-gameservers-backups/valheim games/valheim/data-backups \
+  --max-depth 1 --include "*.zip"
 cd games/valheim && make restore-backup
 ```
 
-Older versions of a replaced file: `rclone lsf -R gdrive:k3s-gameservers-backups/valheim/replaced`.
+Folders from before the flat layout (`<game>/data-backups/`, its `archive/`, and
+`<game>/replaced/`) are left in place; delete them on the remote when you no longer
+want them.
