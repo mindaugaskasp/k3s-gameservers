@@ -19,9 +19,11 @@ for game_dir in games/*/; do
   # is skipped instead of failing the drill.
   archive_pattern=$(make -s -C "$game_dir" print-variable NAME=BACKUP_FILE_PATTERN)
   verify_targets=""
-  [ -z "$(rclone lsf "$remote/$game" --include "$archive_pattern" 2>/dev/null)" ] \
+  # --files-only: a folder on the remote is listed whatever --include says, and an
+  # old layout's folder is not an archive to verify.
+  [ -z "$(rclone lsf "$remote/$game" --files-only --include "$archive_pattern" 2>/dev/null)" ] \
     || verify_targets+="verify-offsite-backup "
-  [ -z "$(rclone lsf "$remote/$game/data-bundles" 2>/dev/null)" ] \
+  [ -z "$(rclone lsf "$remote/$game/data-bundles" --files-only 2>/dev/null)" ] \
     || verify_targets+="verify-offsite-data-bundle "
   [ -n "$verify_targets" ] || { echo "$game: nothing on the remote, skipped"; continue; }
   if verify_output=$(make -s -C "$game_dir" $verify_targets 2>&1); then
