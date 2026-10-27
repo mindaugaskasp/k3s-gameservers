@@ -3,7 +3,8 @@
 server:
   public: true
   crossplay: false
-  extraArgs: "-modifier resources more -modifier deathPenalty casual -modifier portals casual"
+  # -setkey fire: fire spreads and damages wood outside the Ashlands too.
+  extraArgs: "-modifier resources more -modifier deathPenalty casual -modifier portals casual -setkey fire"
 
 mods:
   enabled: true
