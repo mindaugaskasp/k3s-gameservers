@@ -4,7 +4,9 @@ server:
   public: true
   crossplay: false
   # -setkey fire: fire spreads and damages wood outside the Ashlands too.
-  extraArgs: "-modifier resources more -modifier deathPenalty casual -modifier portals casual -setkey fire"
+  # -saveinterval 600: the world reaches disk every 10 minutes, as often as it is backed up,
+  # so a restore lands within a save of the archive's own time. The game's default is 1800.
+  extraArgs: "-modifier resources more -modifier deathPenalty casual -modifier portals casual -setkey fire -saveinterval 600"
 
 mods:
   enabled: true
