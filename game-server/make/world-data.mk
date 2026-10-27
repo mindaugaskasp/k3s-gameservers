@@ -5,25 +5,16 @@
 ## Copy the world, config and backups from the pod into data/ and data-backups/
 sync: sync-data sync-backups
 
+# Both mirror the pod, so a world snapshot the server pruned stops being synced and
+# uploaded here as well.
 sync-data:
-	@mkdir -p $(DATA_DIR)
-	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
-		tar cf - -C $(GAME_DATA_PATH) $(foreach folder,$(SYNC_DATA_EXCLUDES),--exclude=./$(folder)) . \
-		| tar xf - -C $(DATA_DIR)
-	@echo "Synced $(GAME_DATA_PATH) -> $(DATA_DIR)/"
+	@$(GAME_SERVER_DIR)/sync-folder-from-pod.sh $(NAMESPACE) $(RELEASE)-0 \
+		$(GAME_DATA_PATH) $(DATA_DIR) $(SYNC_DATA_EXCLUDES)
 
-# A mirror is swapped in only once complete and only if the server still has backups,
-# so a failed pull keeps the old copy.
 sync-backups:
 ifeq ($(BACKUP_SYNC_RETENTION_DAYS),)
-	@rm -rf $(BACKUP_DIR).new && mkdir -p $(BACKUP_DIR).new
-	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
-		tar cf - -C $(GAME_BACKUP_PATH) . | tar xf - -C $(BACKUP_DIR).new
-	@ls $(BACKUP_DIR).new/$(BACKUP_FILE_PATTERN) >/dev/null 2>&1 || { \
-		echo "server has no backups; keeping $(BACKUP_DIR)/ unchanged" >&2; rm -rf $(BACKUP_DIR).new; exit 1; }
-	@rm -rf $(BACKUP_DIR).old; if [ -d $(BACKUP_DIR) ]; then mv $(BACKUP_DIR) $(BACKUP_DIR).old; fi
-	@mv $(BACKUP_DIR).new $(BACKUP_DIR) && rm -rf $(BACKUP_DIR).old
-	@echo "Synced $(GAME_BACKUP_PATH) -> $(BACKUP_DIR)/"
+	@REQUIRED_FILE_PATTERN='$(BACKUP_FILE_PATTERN)' $(GAME_SERVER_DIR)/sync-folder-from-pod.sh \
+		$(NAMESPACE) $(RELEASE)-0 $(GAME_BACKUP_PATH) $(BACKUP_DIR)
 else
 	@mkdir -p $(BACKUP_DIR)
 	@kubectl -n $(NAMESPACE) exec $(RELEASE)-0 -c gameserver -- \
@@ -41,23 +32,17 @@ download-backups:
 	$(MAKE) -C $(REPO_ROOT) copy-to-host \
 		FILE=$(VM_REPO_DIR)/games/$(GAME_FOLDER)/$(BACKUP_DIR)/. DEST=$(BACKUP_DIR)
 
-## Download the newest off-host backup and verify it opens and holds the world
+## Download the newest off-host archive and verify it opens and holds the world
 ##   OFFSITE_BACKUP_REMOTE=remote:path   rclone source, or set it in the root .env
-# `lsf --format tp` prints "time;path" with ISO times, so a plain sort ends newest-last.
 verify-offsite-backup:
-	@remote="$${OFFSITE_BACKUP_REMOTE:-$$(sed -n 's/^OFFSITE_BACKUP_REMOTE=//p' $(REPO_ROOT)/.env 2>/dev/null | tail -1)}"; \
-	test -n "$$remote" || { echo "OFFSITE_BACKUP_REMOTE is not set (env or root .env)" >&2; exit 1; }; \
-	newest_backup=$$(rclone lsf "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)" -R --files-only --format tp 2>/dev/null \
-		| sort | cut -d';' -f2- | while read -r backup_path; do \
-			case "$${backup_path##*/}" in $(BACKUP_FILE_PATTERN)) echo "$$backup_path";; esac; done | tail -1); \
-	test -n "$$newest_backup" || { echo "no off-host backups for $(GAME_FOLDER)" >&2; exit 1; }; \
-	download_folder=$$(mktemp -d); trap 'rm -rf "$$download_folder"' EXIT; \
-	downloaded_backup="$$download_folder/$${newest_backup##*/}"; \
-	rclone copyto "$$remote/$(GAME_FOLDER)/$(BACKUP_DIR)/$$newest_backup" "$$downloaded_backup"; \
-	$(BACKUP_ARCHIVE_LIST_COMMAND) "$$downloaded_backup" >/dev/null || { echo "$$newest_backup does not open" >&2; exit 1; }; \
-	[ -z "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" ] || $(BACKUP_ARCHIVE_LIST_COMMAND) "$$downloaded_backup" | grep -- "$(RESTORE_REQUIRED_ARCHIVE_ENTRY)" >/dev/null \
-		|| { echo "$$newest_backup has no $(RESTORE_REQUIRED_ARCHIVE_ENTRY) in it" >&2; exit 1; }; \
-	echo "$(GAME_FOLDER): $$newest_backup downloads and opens"
+	@FILE_PATTERN='$(BACKUP_FILE_PATTERN)' LIST_COMMAND='$(BACKUP_ARCHIVE_LIST_COMMAND)' \
+		REQUIRED_ENTRY='$(RESTORE_REQUIRED_ARCHIVE_ENTRY)' $(GAME_SERVER_DIR)/verify-offsite-copy.sh \
+		"$(OFFSITE_REMOTE)" $(GAME_FOLDER) $(GAME_FOLDER)
+
+## Download the newest off-host world bundle and verify it opens
+##   OFFSITE_BACKUP_REMOTE=remote:path   rclone source, or set it in the root .env
+verify-offsite-data-bundle:
+	@$(GAME_SERVER_DIR)/verify-offsite-copy.sh "$(OFFSITE_REMOTE)" $(GAME_FOLDER)/data-bundles $(GAME_FOLDER)
 
 ## Run make sync every hour with a systemd timer (on the k3s host; asks for sudo)
 install-sync-timer:

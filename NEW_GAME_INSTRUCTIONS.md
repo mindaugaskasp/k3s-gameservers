@@ -56,7 +56,7 @@ A small program running beside the game that counts players and collects stats f
 - [ ] Discord posts when the server starts and stops; `make scale-down-zero` then `make scale-up` keep the world
 - [ ] A backup appears (`make backups`), `make sync` copies it off, `make restore-backup` brings it back
 - [ ] **Off-host copy, like Valheim:** while the game runs, `make offsite-backup` (repo root; also runs nightly)
-      uploads its `data` and `data-backups`; check both show under `<game>/` on the remote ([offsite-backups.md](docs/offsite-backups.md))
+      uploads its archives and a world bundle; check both show under `<game>/` on the remote ([offsite-backups.md](docs/offsite-backups.md))
 - [ ] Its memory reservation stops two games running at once ([sizing](docs/architecture.md#sizing))
 
 ## 7. Website (`k3s-gameservers-web`)

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Pulls each running game's world and backups (make sync), then copies the backup archives
-# flat into OFFSITE_BACKUP_REMOTE/<game>/ and the world tree into <game>/data/. Nothing on the
-# remote is ever deleted; what to keep there is yours. Config files go up as an encrypted
-# bundle; see docs/offsite-backups.md.
+# Pulls each running game's world and backups (make sync), then copies one backup archive
+# per window flat into OFFSITE_BACKUP_REMOTE/<game>/ and the world tree as one compressed
+# bundle in <game>/data-bundles/. Only the bundle folders are pruned, to the newest few;
+# the archives are never deleted. Config files go up as an encrypted bundle too; see
+# docs/offsite-backups.md.
 set -euo pipefail
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
@@ -15,12 +16,18 @@ upload_rate_limit=${OFFSITE_BACKUP_BANDWIDTH_LIMIT:-20M}
 # retrying for hours, and bound a stalled step so its failure still reaches Loki.
 drive_calls_per_second=${OFFSITE_BACKUP_CALLS_PER_SECOND:-4}
 upload_step_timeout=${OFFSITE_BACKUP_STEP_TIMEOUT:-4h}
-# Left out of <game>/data: what the game rebuilds by itself, and the world a restore
+# Left out of the world bundle: what the game rebuilds by itself, and the world a restore
 # set aside. The world and the server's config go up; the archives carry the world too,
 # but only data/ has the player database, the mods and the admin lists.
-read -r -a data_tree_excludes <<< "${OFFSITE_BACKUP_DATA_EXCLUDES:-cache/** *.replaced-*/**}"
-data_exclude_flags=()
-for excluded in "${data_tree_excludes[@]}"; do data_exclude_flags+=(--exclude "$excluded"); done
+read -r -a data_tree_excludes <<< "${OFFSITE_BACKUP_DATA_EXCLUDES:-cache *.replaced-*}"
+bundle_exclude_flags=()
+for excluded in "${data_tree_excludes[@]}"; do bundle_exclude_flags+=(--exclude "data/$excluded"); done
+# One archive per this many whole hours goes off-host; 0 uploads every archive the host
+# holds. A server that archives every few minutes repeats a world it saves far less
+# often, and every extra file is another Drive call.
+archive_window_hours=${OFFSITE_BACKUP_ARCHIVE_WINDOW_HOURS:-24}
+# How many world bundles and config bundles to keep on the remote, newest first.
+bundles_kept=${OFFSITE_BACKUP_BUNDLES_KEPT:-14}
 rclone_pacing_flags=(--tpslimit "$drive_calls_per_second" --transfers 2 --checkers 4
   --drive-pacer-min-sleep 100ms --drive-stop-on-upload-limit)
 run_started_at=$(date -u +%Y%m%d-%H%M%S)
@@ -33,6 +40,48 @@ upload_to_remote() {
     --bwlimit "$upload_rate_limit" "${rclone_pacing_flags[@]}" "$@"
 }
 any_step_failed=0
+
+# The newest archive in each window, as names rclone --files-from reads. The server's own
+# retention decides what is here; this only thins what a run uploads.
+newest_archive_per_window() {
+  local archive_folder=$1 archive_pattern=$2
+  [ "$archive_window_hours" -gt 0 ] \
+    || { find "$archive_folder" -maxdepth 1 -type f -name "$archive_pattern" -printf "%P\n"; return 0; }
+  find "$archive_folder" -maxdepth 1 -type f -name "$archive_pattern" -printf "%T@ %P\n" | sort -rn \
+    | awk -v window_seconds=$((archive_window_hours * 3600)) \
+        '{ window = int($1 / window_seconds); sub(/^[^ ]+ /, ""); if (!uploaded[window]++) print }'
+}
+
+# The world tree as one file, so a tree of thousands of small world chunks costs one
+# upload instead of one Drive call per file.
+upload_data_bundle() {
+  local game=$1 game_dir=$2 bundle_folder upload_result=1
+  bundle_folder=$(mktemp -d)
+  if tar -czf "$bundle_folder/$game-data-$run_started_at.tar.gz" \
+    -C "$game_dir" "${bundle_exclude_flags[@]}" data; then
+    upload_to_remote "$bundle_folder" "$remote/$game/data-bundles" && upload_result=0
+  fi
+  rm -rf "$bundle_folder"
+  return "$upload_result"
+}
+
+# Keeps the newest bundles in one folder this script writes, and nothing else on the remote.
+# lsf --format tp prints "time;path", so a plain sort ends newest-last.
+prune_remote_bundles() {
+  local bundle_folder=$1 outdated_bundles
+  [ "$bundles_kept" -gt 0 ] || return 0
+  outdated_bundles=$(rclone lsf "$bundle_folder" --files-only --format tp 2>/dev/null \
+    | sort | cut -d';' -f2- | head -n "-$bundles_kept" || true)
+  [ -n "$outdated_bundles" ] || return 0
+  # A delete that fails is said out loud but never fails the run: the backup itself is up.
+  while read -r outdated_bundle; do
+    if rclone deletefile "$bundle_folder/$outdated_bundle"; then
+      echo "Deleted $bundle_folder/$outdated_bundle"
+    else
+      echo "could not delete $bundle_folder/$outdated_bundle" >&2
+    fi
+  done <<< "$outdated_bundles"
+}
 
 # Kept to send with the run's result, so Grafana shows what a failed run printed.
 run_output_file=$(mktemp)
@@ -83,6 +132,7 @@ backup_config_bundle() {
     -pass env:OFFSITE_BACKUP_CONFIG_PASSWORD -in "$work_folder/bundle.tar.gz" -out "$work_folder/bundle.tar.gz.enc"
   if rclone copyto "$work_folder/bundle.tar.gz.enc" "$remote/config-bundles/config-bundle-$run_started_at.tar.gz.enc"; then
     echo "Uploaded config bundle -> $remote/config-bundles/config-bundle-$run_started_at.tar.gz.enc"
+    prune_remote_bundles "$remote/config-bundles"
   else
     any_step_failed=1
   fi
@@ -97,26 +147,42 @@ for game_dir in games/*/; do
   if [ "${ready_replicas:-0}" -gt 0 ]; then
     make -s -C "$game_dir" sync || { echo "$game: sync failed, uploading its last synced copy" >&2; any_step_failed=1; }
   fi
-  # Archives land flat in <game>/, the host's archive/ tier among them; their names
-  # carry the date, and dotfiles like .play-clock stay off the remote.
-  for archive_folder in data-backups data-backups/archive; do
-    [ -n "$(ls -A "$game_dir$archive_folder" 2>/dev/null)" ] || continue
-    if upload_to_remote "$game_dir$archive_folder" "$remote/$game" --max-depth 1 --exclude ".*"; then
-      echo "Uploaded $game_dir$archive_folder -> $remote/$game"
-      uploaded_folders+="$archive_folder "
+  # Archives land flat in <game>/: one per window from data-backups, all of the host's
+  # already thinned archive/ tier. Only the game's own archives go up, so a server's
+  # bookkeeping files stay here, and their names carry the date.
+  archive_pattern=$(make -s -C "$game_dir" print-variable NAME=BACKUP_FILE_PATTERN)
+  selected_archives=""
+  if [ -d "${game_dir}data-backups" ]; then
+    selected_archives=$(newest_archive_per_window "${game_dir}data-backups" "$archive_pattern") \
+      || { any_step_failed=1; failed_folders+="data-backups "; }
+  fi
+  if [ -n "$selected_archives" ]; then
+    if upload_to_remote "${game_dir}data-backups" "$remote/$game" --files-from - <<< "$selected_archives"; then
+      echo "Uploaded ${game_dir}data-backups -> $remote/$game"
+      uploaded_folders+="data-backups "
     else
       any_step_failed=1
-      failed_folders+="$archive_folder "
+      failed_folders+="data-backups "
     fi
-  done
+  fi
+  if [ -n "$(ls -A "${game_dir}data-backups/archive" 2>/dev/null)" ]; then
+    if upload_to_remote "${game_dir}data-backups/archive" "$remote/$game" --max-depth 1 --include "$archive_pattern"; then
+      echo "Uploaded ${game_dir}data-backups/archive -> $remote/$game"
+      uploaded_folders+="data-backups/archive "
+    else
+      any_step_failed=1
+      failed_folders+="data-backups/archive "
+    fi
+  fi
   # The world tree and the server's config: player stats, mods and lists no archive carries.
   if [ -n "$(ls -A "${game_dir}data" 2>/dev/null)" ]; then
-    if upload_to_remote "${game_dir}data" "$remote/$game/data" "${data_exclude_flags[@]}"; then
-      echo "Uploaded ${game_dir}data -> $remote/$game/data"
-      uploaded_folders+="data "
+    if upload_data_bundle "$game" "$game_dir"; then
+      echo "Uploaded ${game_dir}data -> $remote/$game/data-bundles/$game-data-$run_started_at.tar.gz"
+      uploaded_folders+="data-bundle "
+      prune_remote_bundles "$remote/$game/data-bundles"
     else
       any_step_failed=1
-      failed_folders+="data "
+      failed_folders+="data-bundle "
     fi
   fi
   [ -z "$uploaded_folders$failed_folders" ] || report_game_result "$game" "$uploaded_folders" "$failed_folders"
