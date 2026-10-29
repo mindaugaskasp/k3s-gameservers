@@ -1,6 +1,6 @@
 # One image per game: this folder, the part every game shares, plus the game's own
 # games/<game>/status-metrics, passed in as the "game" build context (game-server/make/metrics-image.mk).
-FROM docker.io/library/node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85
+FROM docker.io/library/node:26-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94
 ARG GAME_DIR
 WORKDIR /app
 # The sqlite3 CLI, for `make read-player-db`.
