@@ -5,7 +5,7 @@ set -euo pipefail
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}" # /etc/rancher/k3s/k3s.yaml is root-only
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
-CHART_VERSION=0.24.2
+CHART_VERSION=0.24.3
 
 kubectl create namespace crowdsec --dry-run=client -o yaml | kubectl apply -f -
 if ! kubectl -n crowdsec get secret bouncer-key >/dev/null 2>&1; then
