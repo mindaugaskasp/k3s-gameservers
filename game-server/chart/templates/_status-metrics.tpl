@@ -72,7 +72,7 @@ spec:
 on the volume (the sidecar's database, a backup folder) to that user. Called with a list of paths. */ -}}
 {{- define "game-server.volumeFoldersInitContainer" -}}
 - name: volume-folders
-  image: docker.io/library/alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+  image: docker.io/library/alpine:3.24@sha256:3f4d6b32e26703c6082839234f43769d5046b3ac7c910033911d1e71d8cd630a
   command: ["sh", "-c", {{ printf "for folder in %s; do mkdir -p /volume/$folder && chown 1000:1000 /volume/$folder; done" (join " " .) | quote }}]
   volumeMounts:
     - name: data
