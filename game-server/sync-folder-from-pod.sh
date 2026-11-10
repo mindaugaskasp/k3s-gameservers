@@ -13,11 +13,12 @@ for excluded_folder in "$@"; do exclude_flags+=(--exclude "./$excluded_folder");
 
 rm -rf "$local_folder.new"
 mkdir -p "$local_folder.new"
+# A pull that dies part-way leaves no staging folder behind to be mistaken for a mirror.
+trap 'rm -rf "$local_folder.new"' EXIT
 kubectl -n "$namespace" exec "$pod" -c gameserver -- \
   tar cf - -C "$pod_folder" "${exclude_flags[@]}" . | tar xf - -C "$local_folder.new"
 if [ -n "$required_file_pattern" ] && ! ls "$local_folder.new"/$required_file_pattern >/dev/null 2>&1; then
   echo "$pod_folder holds nothing matching '$required_file_pattern'; keeping $local_folder/ unchanged" >&2
-  rm -rf "$local_folder.new"
   exit 1
 fi
 rm -rf "$local_folder.old"

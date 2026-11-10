@@ -19,7 +19,7 @@ make init-env        # creates .env from .env.example and shows which values are
 ## 2. Start and claim
 
 ```sh
-make push-metrics-image && make deploy
+make deploy
 make status          # the first start downloads the game; wait until the pod is ready
 ```
 

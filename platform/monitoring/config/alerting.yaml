@@ -55,7 +55,7 @@ groups:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: ffyierrb4yl8gd
-            model: { expr: 'max by (device) (container_fs_usage_bytes{id="/"} / container_fs_limit_bytes{id="/"})', instant: true, refId: A }
+            model: { expr: 'max by (device) (container_fs_usage_bytes{id="/", device!~"/dev/loop.*"} / container_fs_limit_bytes{id="/", device!~"/dev/loop.*"})', instant: true, refId: A }
           - refId: B
             datasourceUid: __expr__
             model: { type: reduce, expression: A, reducer: last, refId: B }
@@ -67,9 +67,9 @@ groups:
         execErrState: Error
         annotations:
           summary: 'Host disk {{ .Labels.device }} is {{ humanizePercentage .Values.B.Value }} full'
-          description: Game worlds, backups and images all live on it; past 90% the kubelet starts evicting pods.
+          description: Game worlds, backups and images all live on it; the kubelet starts evicting pods once it fills.
           logs_datasource: ffyierrb4yl8gd
-          logs_query: 'container_fs_usage_bytes{id="/"} / container_fs_limit_bytes{id="/"}'
+          logs_query: 'container_fs_usage_bytes{id="/", device!~"/dev/loop.*"} / container_fs_limit_bytes{id="/", device!~"/dev/loop.*"}'
 
       - uid: container-restarting
         title: Container restarting repeatedly

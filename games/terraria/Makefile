@@ -26,13 +26,13 @@ secrets-check:
 ##   TERRARIA_CONNECT_HOST      optional, the public host name
 ##   TERRARIA_DISCORD_WEBHOOK   optional, turns on Discord alerts
 ##   Run make push-game-image first when image/ changed.
-deploy: secrets-check chart-dependencies
+deploy: secrets-check chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.serverPassword "$$TERRARIA_SERVER_PASSWORD"; \
 	set_value_if_given server.connectHost "$$TERRARIA_CONNECT_HOST"; \
 	set_discord_alerts "$$TERRARIA_DISCORD_WEBHOOK"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"
 
 ## Build the game image (image/: ryshe/terraria plus curl) on the newest upstream and push it
 ##   Then make deploy; to take a new upstream release under the same tag, also make restart.

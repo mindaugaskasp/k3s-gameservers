@@ -25,7 +25,7 @@ Sandbox rules (zombie count, day length, loot): [sandbox-settings.md](sandbox-se
 ## 3. Start and join
 
 ```sh
-make push-metrics-image && make deploy
+make deploy
 make logs            # wait for "SERVER STARTED"
 ```
 

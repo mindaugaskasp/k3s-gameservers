@@ -31,7 +31,7 @@ Set these in `.env`; an empty one keeps what `values.override.yaml` says:
 ## 3. Start and join
 
 ```sh
-make push-metrics-image && make deploy
+make deploy
 make status          # the first start downloads the game; wait until the pod is ready
 ```
 

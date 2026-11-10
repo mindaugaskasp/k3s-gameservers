@@ -18,7 +18,7 @@ include ../../game-server/make/game.mk
 ##   VRISING_SERVER_NAME, VRISING_DESCRIPTION, VRISING_MAX_PLAYERS, VRISING_GAME_MODE,
 ##   VRISING_DIFFICULTY, VRISING_GAME_SETTINGS, VRISING_ADMIN_STEAM_IDS, VRISING_CONNECT_HOST
 ##   VRISING_DISCORD_WEBHOOK   turns on Discord alerts
-deploy: chart-dependencies
+deploy: chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.serverPassword "$$VRISING_SERVER_PASSWORD"; \
@@ -31,4 +31,4 @@ deploy: chart-dependencies
 	set_value_if_given server.connectHost "$$VRISING_CONNECT_HOST"; \
 	set_discord_alerts "$$VRISING_DISCORD_WEBHOOK"; \
 	set_game_settings "$$VRISING_GAME_SETTINGS"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"

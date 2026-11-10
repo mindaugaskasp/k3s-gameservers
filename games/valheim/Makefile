@@ -27,7 +27,7 @@ secrets-check:
 ##   VALHEIM_ADMIN_STEAM_IDS   optional, space-separated Steam IDs written to adminlist.txt
 ##   VALHEIM_BACKUP_TIMEZONE   optional, stamps backup names in it; UTC+3 by default
 ##   VALHEIM_RCON_PASSWORD     optional, turns on the ValheimRcon plugin for `make broadcast`
-deploy: secrets-check chart-dependencies
+deploy: secrets-check chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.serverPassword "$$VALHEIM_SERVER_PASSWORD"; \
@@ -39,7 +39,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.adminSteamIds "$$VALHEIM_ADMIN_STEAM_IDS"; \
 	set_value_if_given backups.timezone "$$VALHEIM_BACKUP_TIMEZONE"; \
 	if [ -n "$$VALHEIM_RCON_PASSWORD" ]; then helm_flags+=(--set rcon.enabled=true); set_value secrets.rconPassword "$$VALHEIM_RCON_PASSWORD"; fi; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"
 
 ## Show whether mods loaded, why not if they did not, and which plugins are installed
 mods-status:

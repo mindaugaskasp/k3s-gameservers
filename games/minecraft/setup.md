@@ -23,7 +23,7 @@ make init-env        # creates .env from .env.example and shows which values are
 ## 3. Start and join
 
 ```sh
-make push-metrics-image && make deploy
+make deploy
 make status          # the first start downloads Paper and generates the world
 ```
 
