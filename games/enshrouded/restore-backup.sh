@@ -1,7 +1,7 @@
 #!/bin/sh
 # Run by `make restore-backup` in the restore helper pod, with the volume at /data and the backup
-# at /tmp/restore-backup. The zip holds the newest save file plus its index, both restored into
-# savegame/. The game install and backups/ are left alone.
+# at /tmp/restore-backup. The zip holds the world save, restored into a fresh savegame/.
+# The game install and backups/ are left alone.
 set -e
 cd /data
 keep=".replaced-$(date +%Y%m%d-%H%M%S)"

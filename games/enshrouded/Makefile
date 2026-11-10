@@ -7,7 +7,8 @@ TEMPLATE_SECRET_FLAGS := --set-string secrets.rolePasswords.ADMIN_PASS=REDACTED
 # server/ is the steamcmd install, which the updater can always fetch again.
 SYNC_DATA_EXCLUDES := server backups
 BACKUP_SYNC_RETENTION_DAYS := 5
-RESTORE_REQUIRED_ARCHIVE_ENTRY := -index
+# The save file the game migrated to in build 26319703; archives before it held -index blobs.
+RESTORE_REQUIRED_ARCHIVE_ENTRY := .ksd
 include ../../game-server/make/game.mk
 
 .PHONY: deploy secrets-check force-update backup-now
