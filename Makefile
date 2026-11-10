@@ -64,7 +64,7 @@ grafana-password:
 ##   Runs, in order: k3s, crowdsec, firewall, registry, monitoring, maintenance, dashboards
 ##   Needs platform/site.env: copy platform/site.env.example, then edit.
 setup: check-site-env k3s crowdsec firewall registry monitoring maintenance dashboards
-	@echo "Platform ready. Deploy a game: cd games/<game> && make push-metrics-image deploy"
+	@echo "Platform ready. Deploy a game: cd games/<game> && make deploy"
 
 check-site-env:
 	@test -f platform/site.env || { \

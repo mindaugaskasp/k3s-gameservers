@@ -41,6 +41,8 @@ A single-node k3s cluster runs three namespaces:
   `world-data.mk` holds its sync, download and restore targets; `helm-values-from-env.sh` turns `.env` into Helm flags.
 - **`status-metrics/`:** the exporter's shared core ([status-metrics.md](status-metrics.md)).
 - **`systemd/`, `restore-helper-pod.yaml`:** the hourly sync timer and the restore pod, one per game instance.
+- **`upgrade-release.sh`:** every game's `deploy`; runs the `helm upgrade` and puts the StatefulSet back
+  to the replica count it had, which `--atomic`'s rollback would otherwise take from an older revision.
 - **`warn-players-and-wait.sh`:** `restore-backup`'s `RESTORE_WARNING` path; broadcasts through the game's
   `BROADCAST_COMMAND`, counts the delay down, and leaves the world alone if it is interrupted.
 - **`choose-backup.sh`:** `restore-backup`'s picker; an fzf list (installed on demand) that prints the

@@ -46,6 +46,9 @@ HELM_RELEASE_FLAGS = $(RELEASE) $(CHART) $(addprefix -f ,$(VALUE_FILES)) -n $(NA
 	--set-string statusMetrics.image.tag=$(STATUS_METRICS_TAG)
 # --atomic rolls a failed release back by itself; 15m covers a first start's server download.
 HELM_UPGRADE_FLAGS = $(HELM_RELEASE_FLAGS) --atomic --timeout 15m
+# What a game's deploy runs in place of `helm upgrade --install`, so a rollback cannot
+# leave the game on an older revision's replica count.
+UPGRADE_RELEASE = $(GAME_SERVER_DIR)/upgrade-release.sh $(NAMESPACE) $(RELEASE) $(HELM_UPGRADE_FLAGS)
 # A deploy recipe's first line: loads .env and the helpers that turn it into helm_flags.
 LOAD_ENV_FOR_HELM = set -a; [ -f .env ] && . ./.env; set +a; . $(GAME_SERVER_DIR)/make/helm-values-from-env.sh
 
@@ -90,7 +93,8 @@ build-metrics-image:
 	podman build --memory=512m $(STATUS_METRICS_BUILD_FLAGS) -t $(STATUS_METRICS_IMAGE) $(STATUS_METRICS_DIR)
 
 ## Build the status-metrics image and push it to the in-cluster registry
-##   The pod picks it up on its next start.
+##   The pod picks it up on its next start. Every deploy runs this, so the tag the
+##   chart asks for is always one the registry holds.
 push-metrics-image: build-metrics-image
 	podman push $(STATUS_METRICS_IMAGE)
 

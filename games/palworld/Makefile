@@ -22,7 +22,7 @@ secrets-check:
 ##   PALWORLD_SERVER_PASSWORD  optional, the password players join with; empty lets anyone join
 ##   PALWORLD_SERVER_NAME, PALWORLD_SLOT_COUNT, PALWORLD_GAME_SETTINGS, PALWORLD_CONNECT_HOST
 ##   PALWORLD_DISCORD_WEBHOOK  optional, turns on Discord alerts
-deploy: secrets-check chart-dependencies
+deploy: secrets-check chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.adminPassword "$$PALWORLD_ADMIN_PASSWORD"; \
@@ -32,7 +32,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.name "$$PALWORLD_SERVER_NAME"; \
 	set_value_if_given server.slotCount "$$PALWORLD_SLOT_COUNT"; \
 	set_game_settings "$$PALWORLD_GAME_SETTINGS"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"
 
 ## Take a game backup right now
 backup-now:

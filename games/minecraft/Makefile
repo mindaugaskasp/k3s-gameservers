@@ -25,7 +25,7 @@ secrets-check:
 ##   MINECRAFT_WHITELIST        optional, comma-separated player names; empty lets anyone join
 ##   MINECRAFT_DISCORD_WEBHOOK  optional, turns on Discord alerts
 ##   MINECRAFT_CONNECT_HOST     optional, the public host name shown in alerts
-deploy: secrets-check chart-dependencies
+deploy: secrets-check chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.rconPassword "$$MINECRAFT_RCON_PASSWORD"; \
@@ -33,7 +33,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.whitelist "$$MINECRAFT_WHITELIST"; \
 	set_discord_alerts "$$MINECRAFT_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$MINECRAFT_CONNECT_HOST"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"
 
 ## Run one server command over RCON
 ##   CMD="command"   e.g. make console CMD="list"

@@ -31,7 +31,7 @@ secrets-check:
 ##   ZOMBOID_SERVER_PASSWORD   optional, the password players join with
 ##   ZOMBOID_DISCORD_WEBHOOK   optional, turns on Discord alerts
 ##   ZOMBOID_CONNECT_HOST      optional, the public host name shown to players
-deploy: secrets-check chart-dependencies
+deploy: secrets-check chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.adminPassword "$$ZOMBOID_ADMIN_PASSWORD"; \
@@ -41,7 +41,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given secrets.serverPassword "$$ZOMBOID_SERVER_PASSWORD"; \
 	set_discord_alerts "$$ZOMBOID_DISCORD_WEBHOOK"; \
 	set_value_if_given server.connectHost "$$ZOMBOID_CONNECT_HOST"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"
 
 # No update restarts while the game is scaled to 0.
 suspend-update-cron:

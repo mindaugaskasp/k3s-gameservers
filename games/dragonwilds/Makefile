@@ -27,7 +27,7 @@ secrets-check:
 ##   DRAGONWILDS_SERVER_PASSWORD  optional, the password players join with; empty lets anyone join
 ##   DRAGONWILDS_SERVER_NAME, DRAGONWILDS_ADMINS, DRAGONWILDS_CONNECT_HOST
 ##   DRAGONWILDS_DISCORD_WEBHOOK  optional, turns on Discord alerts
-deploy: secrets-check chart-dependencies
+deploy: secrets-check chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value server.ownerId "$$DRAGONWILDS_OWNER_ID"; \
@@ -38,4 +38,4 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.admins "$$DRAGONWILDS_ADMINS"; \
 	set_value_if_given server.connectHost "$$DRAGONWILDS_CONNECT_HOST"; \
 	set_discord_alerts "$$DRAGONWILDS_DISCORD_WEBHOOK"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"

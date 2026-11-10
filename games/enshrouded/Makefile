@@ -21,7 +21,7 @@ secrets-check:
 ##   Reads .env (see .env.example):
 ##   ENSHROUDED_ADMIN_PASSWORD   required
 ##   Server name, slots, chat, difficulty and the rest are optional .env overrides.
-deploy: secrets-check chart-dependencies
+deploy: secrets-check chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.rolePasswords.ADMIN_PASS "$$ENSHROUDED_ADMIN_PASSWORD"; \
@@ -34,7 +34,7 @@ deploy: secrets-check chart-dependencies
 	set_value_if_given server.voiceChat "$$ENSHROUDED_VOICE_CHAT"; \
 	set_value_if_given gameSettings.PRESET "$$ENSHROUDED_DIFFICULTY"; \
 	set_game_settings "$$ENSHROUDED_GAME_SETTINGS"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"
 
 ## Run steamcmd now, even if the installed build looks current
 force-update:

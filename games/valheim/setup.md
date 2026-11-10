@@ -27,7 +27,7 @@ server start; leave it empty to keep the list already on the server.
 ## 3. Start and join
 
 ```sh
-make push-metrics-image && make deploy
+make deploy
 make logs            # wait for "Game server connected"
 ```
 

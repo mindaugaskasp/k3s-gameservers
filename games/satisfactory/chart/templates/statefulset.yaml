@@ -7,7 +7,8 @@ metadata:
     {{- include "game-server.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "game-server.fullname" . }}
-  # Keep the live replica count so an upgrade never restarts a game scaled to 0.
+  # Render the live count so a successful upgrade leaves a game scaled to 0 alone;
+  # upgrade-release.sh puts it back when a rollback writes an older revision's count.
   {{- $live := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "game-server.fullname" .) }}
   replicas: {{ if $live }}{{ $live.spec.replicas }}{{ else }}1{{ end }}
   selector:

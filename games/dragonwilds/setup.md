@@ -26,7 +26,7 @@ Optional:
 ## 2. Start and join
 
 ```sh
-make push-metrics-image && make deploy
+make deploy
 make status          # the first start downloads the game; wait until the pod is ready
 ```
 

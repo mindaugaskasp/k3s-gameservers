@@ -23,7 +23,7 @@ changing the name later starts a new world and keeps the old file.
 ## 3. Start and join
 
 ```sh
-make push-game-image && make push-metrics-image && make deploy
+make push-game-image && make deploy
 make status          # the first start generates the world, which takes minutes
 ```
 

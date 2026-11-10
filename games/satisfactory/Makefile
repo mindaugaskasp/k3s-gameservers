@@ -18,7 +18,7 @@ include ../../game-server/make/game.mk
 ##   SATISFACTORY_API_TOKEN       optional, keeps the exporter's query working with a client-protection password
 ##   SATISFACTORY_SERVER_NAME, SATISFACTORY_SLOT_COUNT, SATISFACTORY_GAME_SETTINGS, SATISFACTORY_CONNECT_HOST
 ##   SATISFACTORY_DISCORD_WEBHOOK optional, turns on Discord alerts
-deploy: chart-dependencies
+deploy: chart-dependencies push-metrics-image
 	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@$(LOAD_ENV_FOR_HELM); \
 	set_value secrets.apiToken "$$SATISFACTORY_API_TOKEN"; \
@@ -27,4 +27,4 @@ deploy: chart-dependencies
 	set_value_if_given server.name "$$SATISFACTORY_SERVER_NAME"; \
 	set_value_if_given server.slotCount "$$SATISFACTORY_SLOT_COUNT"; \
 	set_game_settings "$$SATISFACTORY_GAME_SETTINGS"; \
-	helm upgrade --install $(HELM_UPGRADE_FLAGS) "$${helm_flags[@]}"
+	$(UPGRADE_RELEASE) "$${helm_flags[@]}"
