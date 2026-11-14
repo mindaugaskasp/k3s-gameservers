@@ -43,4 +43,4 @@ The image passes the port in a form the server ignores, so the chart passes `-Po
 
 gamedig has no Dragonwilds query, so the exporter reads the server log instead
 ([status-metrics/README.md](status-metrics/README.md)). The server logs its join password in plain
-text; the platform's log shipper redacts it before Loki.
+text; the infrastructure's log shipper redacts it before Loki.

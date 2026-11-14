@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 remote=${OFFSITE_BACKUP_REMOTE:?set OFFSITE_BACKUP_REMOTE in the root .env, see docs/offsite-backups.md}
-. platform/offsite-backup/report-to-loki.sh
+. infrastructure/offsite-backup/report-to-loki.sh
 any_game_failed=0
 
 run_output_file=$(mktemp)

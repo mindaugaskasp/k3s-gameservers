@@ -5,7 +5,7 @@
   "prConcurrentLimit": 5,
   "ignorePaths": ["**/chart/charts/**"],
   "kubernetes": {
-    "managerFilePatterns": ["/^platform/.+\\.yaml$/", "/^game-server/[^/]+\\.yaml$/"]
+    "managerFilePatterns": ["/^infrastructure/.+\\.yaml$/", "/^game-server/[^/]+\\.yaml$/"]
   },
   "customManagers": [
     {
@@ -29,7 +29,7 @@
     {
       "description": "The CrowdSec chart version the install script passes to helm.",
       "customType": "regex",
-      "managerFilePatterns": ["/^platform/crowdsec/install\\.sh$/"],
+      "managerFilePatterns": ["/^infrastructure/crowdsec/install\\.sh$/"],
       "matchStrings": ["CHART_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "crowdsec",
       "registryUrlTemplate": "https://crowdsecurity.github.io/helm-charts",

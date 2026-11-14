@@ -50,8 +50,8 @@ make -s offsite-backup
 
 for unit in offsite-backup restore-drill; do
   sed -e "s|__REPO__|$PWD|g" -e "s|__USER__|$(id -un)|g" -e "s|__HOME__|$HOME|g" \
-    "platform/offsite-backup/systemd/$unit.service" | sudo tee "/etc/systemd/system/$unit.service" >/dev/null
-  sudo cp "platform/offsite-backup/systemd/$unit.timer" "/etc/systemd/system/$unit.timer"
+    "infrastructure/offsite-backup/systemd/$unit.service" | sudo tee "/etc/systemd/system/$unit.service" >/dev/null
+  sudo cp "infrastructure/offsite-backup/systemd/$unit.timer" "/etc/systemd/system/$unit.timer"
 done
 sudo systemctl daemon-reload
 sudo systemctl enable --now offsite-backup.timer restore-drill.timer

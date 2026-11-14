@@ -9,7 +9,7 @@ Where the pins live:
 - **Game servers:** `repository`, `tag` and `digest` in `games/<game>/chart/values.yaml`.
   The chart renders `repository:tag@digest`.
 - **Helm helpers:** `_backup.tpl` and `_status-metrics.tpl` name their image inline.
-- **Platform:** `platform/**/*.yaml` and `game-server/restore-helper-pod.yaml`.
+- **Infrastructure:** `infrastructure/**/*.yaml` and `game-server/restore-helper-pod.yaml`.
 - **Built here:** the status-metrics and Terraria images are tagged by commit and
   pushed to the in-cluster registry, so they need no digest; their base images are pinned.
 
@@ -21,7 +21,7 @@ with steamcmd on every start, so the digest pins the wrapper, not the game build
 
 Renovate opens the PRs (`renovate.json`): grouped for digests, one per game server
 image, and its own for anything with a vulnerability alert. Merging a PR only changes
-git -- the cluster still needs `make deploy` from the game or platform folder, which
+git -- the cluster still needs `make deploy` from the game or infrastructure folder, which
 gates on nobody being online.
 
 To read a digest by hand:
@@ -34,5 +34,5 @@ curl -sI -H "Authorization: Bearer $token" -H 'Accept: application/vnd.oci.image
   "https://registry-1.docker.io/v2/$repo/manifests/$tag" | tr -d '\r' | sed -n 's/^docker-content-digest: //p'
 ```
 
-`grep -rn 'sha256:' games platform game-server --include='*.yaml' --include='*.tpl' --include=Dockerfile`
+`grep -rn 'sha256:' games infrastructure game-server --include='*.yaml' --include='*.tpl' --include=Dockerfile`
 lists every pin.

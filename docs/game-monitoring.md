@@ -1,6 +1,6 @@
 # Game monitoring
 
-How each game reports to the platform ([architecture.md](architecture.md), [platform.md](platform.md)).
+How each game reports to the infrastructure ([architecture.md](architecture.md), [infrastructure.md](infrastructure.md)).
 
 - **Player history:** `database/sqlite/<game>.db`, its own path on the volume.
   Game images chown their tree to `PUID` on each start, so every game runs as uid 1000,
@@ -15,8 +15,8 @@ How each game reports to the platform ([architecture.md](architecture.md), [plat
   what every game reports, separated by the `game` label.
 - **Prometheus:** plain manifests, LAN-only Ingress, 7 days of history.
   It scrapes the sidecars, kubelet, cAdvisor and cert-manager.
-- **Alerts:** Grafana rules in `platform/monitoring/config/alerting.yaml` post to Discord with links back to Grafana.
+- **Alerts:** Grafana rules in `infrastructure/monitoring/config/alerting.yaml` post to Discord with links back to Grafana.
 - **Dashboards:** `make dashboards` applies `games/<game>/grafana/dashboards/`
-  as a labeled ConfigMap ([platform.md](platform.md#reporting-from-an-app)).
+  as a labeled ConfigMap ([infrastructure.md](infrastructure.md#reporting-from-an-app)).
 - **[VPA](https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler)**
   (optional): `updateMode: "Off"`, so it only makes recommendations.
