@@ -3,11 +3,11 @@
 A single-node k3s cluster runs three namespaces:
 
 - `games`: one StatefulSet per game (`valheim`, `zomboid`, `enshrouded`, `minecraft`, `terraria`, `vrising`, `dragonwilds`, `palworld`, `satisfactory`)
-- `monitoring`, `registry`, `crowdsec`: the platform, see [platform.md](platform.md)
+- `monitoring`, `registry`, `crowdsec`: the infrastructure, see [infrastructure.md](infrastructure.md)
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
-  ([platform.md](platform.md)); timers copy worlds off-host nightly and verify they
+  ([infrastructure.md](infrastructure.md)); timers copy worlds off-host nightly and verify they
   restore twice a month ([offsite-backups.md](offsite-backups.md))
-- other namespaces: apps like servers-web, which only report to the platform
+- other namespaces: apps like servers-web, which only report to the infrastructure
 
 ## Workloads
 
@@ -56,7 +56,7 @@ A single-node k3s cluster runs three namespaces:
 ## Networking
 
 Game ports are NodePorts on the same numbers the router forwards ([table](../README.md#router-ports)),
-which is why the NodePort range is widened ([platform.md](platform.md#k3s)).
+which is why the NodePort range is widened ([infrastructure.md](infrastructure.md#k3s)).
 Valheim's RCON port has no Service at all: `make broadcast` reaches it inside the pod.
 HTTP goes through Traefik, where CrowdSec bans scanners ([crowdsec.md](crowdsec.md)).
 

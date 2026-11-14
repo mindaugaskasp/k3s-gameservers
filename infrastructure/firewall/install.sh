@@ -4,8 +4,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
-lan_cidr=$(sed -n 's/^LAN_CIDR=//p' platform/site.env 2>/dev/null)
-[ -n "$lan_cidr" ] || { echo "Missing LAN_CIDR in platform/site.env" >&2; exit 1; }
+lan_cidr=$(sed -n 's/^LAN_CIDR=//p' infrastructure/site.env 2>/dev/null)
+[ -n "$lan_cidr" ] || { echo "Missing LAN_CIDR in infrastructure/site.env" >&2; exit 1; }
 
 sudo ufw default deny incoming
 sudo ufw default allow outgoing

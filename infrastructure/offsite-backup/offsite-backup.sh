@@ -89,8 +89,8 @@ trap 'rm -f "$run_output_file"' EXIT
 exec 3>&1 4>&2 > >(tee "$run_output_file") 2>&1
 tee_pid=$!
 
-# The alerts in platform/monitoring/config/alerting.yaml read what these report.
-. platform/offsite-backup/report-to-loki.sh
+# The alerts in infrastructure/monitoring/config/alerting.yaml read what these report.
+. infrastructure/offsite-backup/report-to-loki.sh
 
 report_game_result() {
   local game=$1 uploaded_folders=${2% } failed_folders=${3% } remote_size
@@ -114,7 +114,7 @@ backup_config_bundle() {
     return 0
   fi
   work_folder=$(mktemp -d)
-  for config_file in .env platform/site.env games/*/.env; do
+  for config_file in .env infrastructure/site.env games/*/.env; do
     [ -f "$config_file" ] || continue
     mkdir -p "$work_folder/config/repo/$(dirname "$config_file")"
     cp "$config_file" "$work_folder/config/repo/$config_file"

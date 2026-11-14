@@ -4,5 +4,5 @@ set -euo pipefail
 export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}" # /etc/rancher/k3s/k3s.yaml is root-only
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
-kubectl apply -k platform/registry
+kubectl apply -k infrastructure/registry
 kubectl -n registry rollout status deploy/registry --timeout=180s

@@ -47,7 +47,7 @@ A small program running beside the game that counts players and collects stats f
 
 ## 5. Network
 
-- [ ] Pick ports inside the cluster's allowed range ([platform.md](docs/platform.md#k3s)) and forward them on the router
+- [ ] Pick ports inside the cluster's allowed range ([infrastructure.md](docs/infrastructure.md#k3s)) and forward them on the router
 
 ## 6. Test the running server
 

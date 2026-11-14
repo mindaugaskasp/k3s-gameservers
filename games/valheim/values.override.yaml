@@ -17,7 +17,7 @@ updates:
   ifIdle: false
 
 # updateMode stays "Off" (chart default) -- recommendations only, never
-# evictions. See docs/architecture.md and platform/vpa/install.sh.
+# evictions. See docs/architecture.md and infrastructure/vpa/install.sh.
 verticalPodAutoscaler:
   enabled: true
 

@@ -8,18 +8,18 @@ Each game scales independently (`make scale-up` / `make scale-down-zero`).
 
 ```
 games/<game>/      one game: chart/, status-metrics/, grafana/, Makefile, values.override.yaml, setup.md
-platform/<piece>/  the cluster (k3s, firewall, registry, monitoring, ...), each with its install.sh
+infrastructure/<piece>/  the cluster (k3s, firewall, registry, monitoring, ...), each with its install.sh
 game-server/       what every game shares: library chart, status-metrics core, make, systemd
-docs/              setup-nodes, platform, architecture and other topics
-Makefile           platform setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host (VM_HOST in .env)
+docs/              setup-nodes, infrastructure, architecture and other topics
+Makefile           infrastructure setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host (VM_HOST in .env)
 ```
 
 ## Setup
 
 1. Prepare the VM: [docs/setup-nodes.md](docs/setup-nodes.md).
-2. Install the platform (`make k3s`, `firewall`, `registry`, `monitoring`, `maintenance`, `dashboards`):
+2. Install the infrastructure (`make k3s`, `firewall`, `registry`, `monitoring`, `maintenance`, `dashboards`):
    ```sh
-   cp platform/site.env.example platform/site.env   # then edit
+   cp infrastructure/site.env.example infrastructure/site.env   # then edit
    make setup
    ```
 3. Set up a game (passwords, names, settings, joining, memory); read each script before running it:
@@ -60,7 +60,7 @@ Secrets and server names: gitignored `games/<game>/.env` (see `.env.example`).
 ## Docs
 
 - [docs/setup-nodes.md](docs/setup-nodes.md): VM settings (clock, disk, IP, sizing)
-- [docs/platform.md](docs/platform.md): k3s, registry, monitoring, how apps report
+- [docs/infrastructure.md](docs/infrastructure.md): k3s, registry, monitoring, how apps report
 - [docs/overview.md](docs/overview.md): one diagram of servers, stats, Grafana and the website
 - [docs/architecture.md](docs/architecture.md): games, networking, sizing
 - [NEW_GAME_INSTRUCTIONS.md](NEW_GAME_INSTRUCTIONS.md): adding a game, and what each game still lacks

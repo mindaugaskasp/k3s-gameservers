@@ -23,7 +23,7 @@ configMapGenerator:
     files: [config/dashboard-providers.yaml]
   - name: grafana-alerting
     files: [config/alerting.yaml]
-  # Host-specific values (gitignored platform/site.env); only feeds the replacements below, never applied.
+  # Host-specific values (gitignored infrastructure/site.env); only feeds the replacements below, never applied.
   - name: site
     envs: [../site.env]
     options:

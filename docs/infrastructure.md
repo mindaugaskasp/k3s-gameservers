@@ -1,9 +1,9 @@
-# Platform
+# Infrastructure
 
 This repo owns the cluster. Apps (e.g. servers-web) only deploy into their own namespace and report to it.
 
-Each piece is one `platform/<piece>/` folder, installed by its `install.sh` through the root `make <piece>`.
-Host values for all of them live in the gitignored `platform/site.env` (see `site.env.example`).
+Each piece is one `infrastructure/<piece>/` folder, installed by its `install.sh` through the root `make <piece>`.
+Host values for all of them live in the gitignored `infrastructure/site.env` (see `site.env.example`).
 
 | Piece | Folder | Install |
 |---|---|---|
@@ -14,11 +14,11 @@ Host values for all of them live in the gitignored `platform/site.env` (see `sit
 | CrowdSec, bans scanners at Traefik ([crowdsec.md](crowdsec.md)) | `crowdsec/` | `make crowdsec` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
 | Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make setup-offsite-backup` |
-| Vertical Pod Autoscaler, optional | `vpa/` | `platform/vpa/install.sh` |
+| Vertical Pod Autoscaler, optional | `vpa/` | `infrastructure/vpa/install.sh` |
 
 ## k3s
 
-`platform/k3s/install.sh` writes
+`infrastructure/k3s/install.sh` writes
 [`/etc/rancher/k3s/config.yaml`](https://docs.k3s.io/installation/configuration#configuration-file):
 `node-name` (default: short hostname), `write-kubeconfig-mode: "600"` and `service-node-port-range=2456-32767`.
 Re-running the installer rewrites flags, not this file. `kubectl` uses `~/.kube/config`.
@@ -32,15 +32,15 @@ so middlewares see real client IPs, and logs every request for CrowdSec.
 
 **After a reboot**, containerd can leave pods in `CreateContainerError`
 ("failed to reserve container name") that kubelet retries never clear.
-`platform/maintenance/` deletes such pods if a controller owns them, which recreates them.
+`infrastructure/maintenance/` deletes such pods if a controller owns them, which recreates them.
 
 ## Monitoring
 
-- **Host values** (Grafana/Loki/Prometheus hostnames, LAN CIDR) go in `platform/site.env`.
+- **Host values** (Grafana/Loki/Prometheus hostnames, LAN CIDR) go in `infrastructure/site.env`.
 - **Access:** Grafana, Prometheus and Loki's push path are LAN-only, via the
   `monitoring-lan-only@kubernetescrd` Traefik middleware.
 - **Admin password:** `make grafana-password`.
-- **Alerts:** `platform/monitoring/config/alerting.yaml` posts to Discord (`ALERTS_DISCORD_WEBHOOK_URL`): disk,
+- **Alerts:** `infrastructure/monitoring/config/alerting.yaml` posts to Discord (`ALERTS_DISCORD_WEBHOOK_URL`): disk,
   crash loops, silent games, certificates, off-host backups. Each links to Grafana, never a command.
 - **Logs:** Alloy ships every pod's stdout/stderr to Loki (31 days), any `Password[...]` value redacted. Loki has no auth.
 - **Datasources:** Loki (uid `loki`) and Prometheus (uid `ffyierrb4yl8gd`).
