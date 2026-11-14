@@ -38,7 +38,7 @@
         "calendar": {
           "__rl": true,
           "mode": "id",
-          "value": "primary"
+          "value": "GMAIL_ADDRESS"
         },
         "returnAll": true,
         "options": {
