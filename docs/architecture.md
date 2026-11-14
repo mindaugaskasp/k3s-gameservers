@@ -6,6 +6,8 @@ A single-node k3s cluster runs three namespaces:
 - `monitoring`, `registry`, `crowdsec`: the infrastructure, see [infrastructure.md](infrastructure.md)
 - `n8n`: workflow automation, LAN-only, so scheduled and event-driven chores live
   somewhere other than a host timer ([n8n.md](n8n.md))
+- kube-state-metrics runs in `monitoring`, so Kubernetes object state is queryable
+  alongside the game metrics instead of only through `kubectl`
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
   ([infrastructure.md](infrastructure.md)); timers copy worlds off-host nightly and verify they
   restore twice a month ([offsite-backups.md](offsite-backups.md))

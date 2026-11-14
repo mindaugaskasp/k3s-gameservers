@@ -58,6 +58,11 @@ data:
             target_label: instance
             replacement: ${1}.games.svc.cluster.local:${2}
 
+      # Kubernetes object state: pods that never scheduled, failed Jobs, PVCs, node conditions.
+      - job_name: kube-state-metrics
+        static_configs:
+          - targets: ["kube-state-metrics.monitoring.svc:8080"]
+
       # Certificate expiry for the infrastructure's alert rules.
       - job_name: cert-manager
         static_configs:
@@ -141,7 +146,8 @@ spec:
               cpu: 50m
               memory: 128Mi
             limits:
-              memory: 384Mi
+              # Raised for kube-state-metrics' series; the request is what schedules.
+              memory: 512Mi
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus
