@@ -1,0 +1,12 @@
+# LAN-only access; a Host rule alone doesn't stop internet clients.
+# Traefik won't read monitoring's copy from here: middleware refs are namespaced.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: lan-only
+spec:
+  ipAllowList:
+    sourceRange:
+      - LAN_CIDR # from infrastructure/site.env
+      # k3s pod CIDR: requests from the node itself arrive SNATed into it.
+      - 10.42.0.0/16

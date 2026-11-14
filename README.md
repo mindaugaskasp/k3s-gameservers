@@ -61,6 +61,7 @@ Secrets and server names: gitignored `games/<game>/.env` (see `.env.example`).
 
 - [docs/setup-nodes.md](docs/setup-nodes.md): VM settings (clock, disk, IP, sizing)
 - [docs/infrastructure.md](docs/infrastructure.md): k3s, registry, monitoring, how apps report
+- [docs/n8n.md](docs/n8n.md): workflow automation, its memory cap and known limits
 - [docs/overview.md](docs/overview.md): one diagram of servers, stats, Grafana and the website
 - [docs/architecture.md](docs/architecture.md): games, networking, sizing
 - [NEW_GAME_INSTRUCTIONS.md](NEW_GAME_INSTRUCTIONS.md): adding a game, and what each game still lacks

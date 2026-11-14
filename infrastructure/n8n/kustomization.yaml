@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: n8n
+
+resources:
+  - namespace.yaml
+  - middleware.yaml
+  - n8n.yaml
+
+configMapGenerator:
+  # Host-specific values (gitignored infrastructure/site.env); only feeds the replacements below, never applied.
+  - name: site
+    envs: [../site.env]
+    options:
+      annotations:
+        config.kubernetes.io/local-config: "true"
+
+replacements:
+  - source: {kind: ConfigMap, name: site, fieldPath: data.N8N_HOST}
+    targets:
+      - select: {kind: Ingress, name: n8n}
+        fieldPaths: [spec.rules.0.host]
+      - select: {kind: Deployment, name: n8n}
+        fieldPaths: ["spec.template.spec.containers.[name=n8n].env.[name=N8N_HOST].value"]
+      - select: {kind: Deployment, name: n8n}
+        fieldPaths:
+          - "spec.template.spec.containers.[name=n8n].env.[name=N8N_EDITOR_BASE_URL].value"
+          - "spec.template.spec.containers.[name=n8n].env.[name=N8N_WEBHOOK_URL].value"
+        options: {delimiter: "/", index: 2}
+  - source: {kind: ConfigMap, name: site, fieldPath: data.LAN_CIDR}
+    targets:
+      - select: {kind: Middleware, name: lan-only}
+        fieldPaths: [spec.ipAllowList.sourceRange.0]
