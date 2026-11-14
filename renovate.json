@@ -3,6 +3,8 @@
   "extends": ["config:recommended", "docker:pinDigests"],
   "labels": ["dependencies"],
   "prConcurrentLimit": 5,
+  "platformAutomerge": true,
+  "rebaseWhen": "behind-base-branch",
   "ignorePaths": ["**/chart/charts/**"],
   "kubernetes": {
     "managerFilePatterns": ["/^infrastructure/.+\\.yaml$/", "/^game-server/[^/]+\\.yaml$/"]
@@ -40,6 +42,16 @@
     "labels": ["security"]
   },
   "packageRules": [
+    {
+      "description": "Renovate merges its own routine bumps once the checks pass; GitHub's auto-merge waits for them.",
+      "matchUpdateTypes": ["digest", "pinDigest", "pin", "patch", "minor"],
+      "automerge": true
+    },
+    {
+      "description": "A major can change behaviour, so it waits for a person.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
     {
       "description": "Images in a chart's values.yaml carry a digest, which this manager keeps whole; helm-values would rewrite the tag alone and leave the digest stale.",
       "matchManagers": ["helm-values"],
