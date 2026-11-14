@@ -27,9 +27,17 @@ they are exported back into the repo.
 | `cluster-daily-digest` | every day 07:00 | one summary of cluster checks |
 | `weekly-calendar-overview` | Mondays 07:00 | the next 7 days of calendar commitments |
 
-Both email over Gmail SMTP. The digest's thresholds sit beside each check in its
-`Build checks` node; Grafana's alert rules stay the event-driven half, so the digest
-is the heartbeat and reports on a quiet day too.
+Both email over Gmail SMTP, as an HTML table with a plain-text part for clients that
+drop it. Grafana's alert rules stay the event-driven half, so the digest is the
+heartbeat and reports on a quiet day too.
+
+The digest's checks are of two kinds, set in its `Build checks` node. An `objects`
+check queries one series per offending object and the mail names it
+(`namespace/pod/container`, with the reason or count beside it); a `value` check
+returns one number compared against `warnAbove`/`warnBelow`. When anything is wrong
+it also books a 30-minute "Check cluster health" event an hour out, listing what
+failed. A branch that returns no items books nothing, so an all-clear run is silent.
+A problem that persists books one event per day, which is the intent.
 
 **Host values are substituted at import, not read at run time.** n8n blocks `$env`
 in nodes and expressions (`N8N_BLOCK_ENV_ACCESS_IN_NODE`), and unblocking it would

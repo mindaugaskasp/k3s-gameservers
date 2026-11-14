@@ -31,7 +31,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Each check is one Prometheus query plus the threshold that makes it a finding.\n// warnAbove/warnBelow are optional: a check with neither is context, never a finding.\nconst checks = [\n  { name: 'Pods that never scheduled', query: 'count(kube_pod_status_unschedulable == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Pods pending or failed', query: 'count(kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"} == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Containers stuck waiting', query: 'count(kube_pod_container_status_waiting_reason == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Container restarts (24h)', query: 'round(sum(increase(kube_pod_container_status_restarts_total[24h])) or vector(0))', warnAbove: 5 },\n  { name: 'Failed Jobs', query: 'count(kube_job_status_failed > 0) or vector(0)', warnAbove: 0 },\n  { name: 'Deployments missing replicas', query: 'count(kube_deployment_status_replicas_unavailable > 0) or vector(0)', warnAbove: 0 },\n  { name: 'DaemonSets unavailable', query: 'count(kube_daemonset_status_number_unavailable > 0) or vector(0)', warnAbove: 0 },\n  { name: 'PVCs not bound', query: 'count(kube_persistentvolumeclaim_status_phase{phase!=\"Bound\"} == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Nodes not Ready', query: 'count(kube_node_status_condition{condition=\"Ready\",status=\"true\"} == 0) or vector(0)', warnAbove: 0 },\n  { name: 'Nodes under pressure', query: 'count(kube_node_status_condition{condition=~\"MemoryPressure|DiskPressure|PIDPressure\",status=\"true\"} == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Memory requested of allocatable', query: 'round(100 * sum(kube_pod_container_resource_requests{resource=\"memory\"}) / sum(kube_node_status_allocatable{resource=\"memory\"}))', unit: '%', warnAbove: 90 },\n  { name: 'Root disk used', query: 'round(100 * max(container_fs_usage_bytes{id=\"/\",device!~\"/dev/loop.*\"} / container_fs_limit_bytes{id=\"/\",device!~\"/dev/loop.*\"}))', unit: '%', warnAbove: 85 },\n  { name: 'Soonest certificate expiry', query: 'round(min(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400)', unit: ' days', warnBelow: 14 },\n  { name: 'Players online', query: 'round(sum(game_server_players) or vector(0))' },\n];\n\nreturn checks.map((check) => ({ json: check }));\n"
+        "jsCode": "// Two kinds of check. \"objects\" queries return one series per offending object, so the\n// digest can name it; \"value\" queries return one number compared against a threshold.\nconst checks = [\n  { name: 'Pods that never scheduled', kind: 'objects', labels: ['namespace', 'pod'],\n    query: 'kube_pod_status_unschedulable == 1' },\n  { name: 'Pods pending or failed', kind: 'objects', labels: ['namespace', 'pod'], detailLabel: 'phase',\n    query: 'kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"} == 1' },\n  { name: 'Containers stuck waiting', kind: 'objects', labels: ['namespace', 'pod', 'container'], detailLabel: 'reason',\n    query: 'kube_pod_container_status_waiting_reason == 1' },\n  { name: 'Containers restarting', kind: 'objects', labels: ['namespace', 'pod', 'container'], detailSuffix: ' restarts in 24h',\n    query: 'sum by (namespace,pod,container) (increase(kube_pod_container_status_restarts_total[24h])) > 0' },\n  { name: 'Failed Jobs', kind: 'objects', labels: ['namespace', 'job_name'], detailSuffix: ' failed',\n    query: 'kube_job_status_failed > 0' },\n  { name: 'Deployments missing replicas', kind: 'objects', labels: ['namespace', 'deployment'], detailSuffix: ' unavailable',\n    query: 'kube_deployment_status_replicas_unavailable > 0' },\n  { name: 'StatefulSets missing replicas', kind: 'objects', labels: ['namespace', 'statefulset'], detailSuffix: ' not ready',\n    query: '(kube_statefulset_status_replicas - kube_statefulset_status_replicas_ready) > 0' },\n  { name: 'DaemonSets missing pods', kind: 'objects', labels: ['namespace', 'daemonset'], detailSuffix: ' unavailable',\n    query: 'kube_daemonset_status_number_unavailable > 0' },\n  { name: 'PVCs not bound', kind: 'objects', labels: ['namespace', 'persistentvolumeclaim'], detailLabel: 'phase',\n    query: 'kube_persistentvolumeclaim_status_phase{phase!=\"Bound\"} == 1' },\n  { name: 'Nodes not Ready', kind: 'objects', labels: ['node'],\n    query: 'kube_node_status_condition{condition=\"Ready\",status=\"true\"} == 0' },\n  { name: 'Nodes under pressure', kind: 'objects', labels: ['node'], detailLabel: 'condition',\n    query: 'kube_node_status_condition{condition=~\"MemoryPressure|DiskPressure|PIDPressure\",status=\"true\"} == 1' },\n  { name: 'Memory requested of allocatable', kind: 'value', unit: '%', warnAbove: 90,\n    query: 'round(100 * sum(kube_pod_container_resource_requests{resource=\"memory\"}) / sum(kube_node_status_allocatable{resource=\"memory\"}))' },\n  { name: 'Root disk used', kind: 'value', unit: '%', warnAbove: 85,\n    query: 'round(100 * max(container_fs_usage_bytes{id=\"/\",device!~\"/dev/loop.*\"} / container_fs_limit_bytes{id=\"/\",device!~\"/dev/loop.*\"}))' },\n  { name: 'Soonest certificate expiry', kind: 'value', unit: ' days', warnBelow: 14,\n    query: 'round(min(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400)' },\n  { name: 'Players online', kind: 'value',\n    query: 'round(sum(game_server_players) or vector(0))' },\n];\n\nreturn checks.map((check) => ({ json: check }));\n"
       },
       "id": "a1000000-0000-4000-8000-000000000002",
       "name": "Build checks",
@@ -75,7 +75,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const grafanaHost = 'GRAFANA_HOST';\n\n// Pairs each Prometheus answer with the check that asked it, by position.\nconst checks = $('Build checks').all().map((item) => item.json);\nconst answers = $input.all();\n\nconst lines = [];\nconst findings = [];\n\nfor (let index = 0; index < checks.length; index++) {\n  const check = checks[index];\n  const series = answers[index]?.json?.data?.result ?? [];\n\n  if (series.length === 0) {\n    findings.push(check.name);\n    lines.push('\\u26a0\\ufe0f ' + check.name + ': no data');\n    continue;\n  }\n\n  const value = Number(series[0].value[1]);\n  const reading = value + (check.unit ?? '');\n  const isFinding =\n    (check.warnAbove !== undefined && value > check.warnAbove) ||\n    (check.warnBelow !== undefined && value < check.warnBelow);\n\n  if (isFinding) findings.push(check.name + ': ' + reading);\n  lines.push((isFinding ? '\\u26a0\\ufe0f ' : '\\u2022 ') + check.name + ': ' + reading);\n}\n\nconst subject = findings.length\n  ? 'Cluster digest \\u2014 ' + findings.length + (findings.length === 1 ? ' finding' : ' findings')\n  : 'Cluster digest \\u2014 all clear';\n\nconst content = [\n  findings.length ? 'Needs a look:' : 'Nothing needs a look.',\n  findings.length ? findings.map((finding) => '  ' + finding).join('\\n') : '',\n  '',\n  'Every check:',\n  lines.join('\\n'),\n  '',\n  'Dashboards and alert history: http://' + grafanaHost + '/',\n].filter((part) => part !== '').join('\\n');\n\nreturn [{ json: { subject, content } }];\n"
+        "jsCode": "const grafanaHost = 'GRAFANA_HOST';\n\n// Pairs each Prometheus answer with the check that asked it, by position.\nconst checks = $('Build checks').all().map((item) => item.json);\nconst answers = $input.all();\n\nconst problems = [];   // one row per offending object\nconst summary = [];    // one row per check\nconst findings = [];    // short lines for the subject, the event and the text part\n\nfor (let index = 0; index < checks.length; index++) {\n  const check = checks[index];\n  const body = answers[index]?.json;\n  const series = body?.data?.result;\n\n  if (!Array.isArray(series)) {\n    summary.push({ name: check.name, result: 'no data', isFinding: true });\n    findings.push(check.name + ': no data');\n    continue;\n  }\n\n  if (check.kind === 'objects') {\n    if (series.length === 0) {\n      summary.push({ name: check.name, result: 'none', isFinding: false });\n      continue;\n    }\n    for (const entry of series) {\n      const object = (check.labels ?? [])\n        .map((label) => entry.metric[label])\n        .filter(Boolean)\n        .join('/');\n      const rounded = Math.round(Number(entry.value[1]) * 10) / 10;\n      const detail = check.detailLabel\n        ? (entry.metric[check.detailLabel] ?? '')\n        : check.detailSuffix\n          ? rounded + check.detailSuffix\n          : '';\n      problems.push({ object: object || '(unlabelled)', issue: check.name, detail });\n      findings.push(check.name + ': ' + (object || '(unlabelled)') + (detail ? ' (' + detail + ')' : ''));\n    }\n    summary.push({ name: check.name, result: String(series.length), isFinding: true });\n    continue;\n  }\n\n  if (series.length === 0) {\n    summary.push({ name: check.name, result: 'no data', isFinding: true });\n    findings.push(check.name + ': no data');\n    continue;\n  }\n  const value = Number(series[0].value[1]);\n  const reading = value + (check.unit ?? '');\n  const isFinding =\n    (check.warnAbove !== undefined && value > check.warnAbove) ||\n    (check.warnBelow !== undefined && value < check.warnBelow);\n  if (isFinding) findings.push(check.name + ': ' + reading);\n  summary.push({ name: check.name, result: reading, isFinding });\n}\n\nconst subject = problems.length || findings.length\n  ? 'Cluster digest \\u2014 ' + findings.length + (findings.length === 1 ? ' finding' : ' findings')\n  : 'Cluster digest \\u2014 all clear';\nconst grafanaUrl = 'http://' + grafanaHost + '/';\n\nfunction escapeHtml(text) {\n  const replacements = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' };\n  return String(text).replace(/[&<>\"']/g, (character) => replacements[character]);\n}\n\n// Inline styles only: mail clients strip stylesheets.\nconst tableStyle = 'border-collapse:collapse;font:14px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif';\nconst headStyle = 'text-align:left;padding:6px 10px;border-bottom:2px solid #d0d0d0;font-weight:600';\nconst cellStyle = 'padding:6px 10px;border-bottom:1px solid #ececec;vertical-align:top';\nconst warnStyle = cellStyle + ';background:#fff6e5';\nconst monoStyle = cellStyle + ';font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px';\n\nconst problemTable = problems.length\n  ? '<p style=\"margin:0 0 6px;font-weight:600\">What is wrong</p><table style=\"' + tableStyle + '\"><thead><tr>' +\n    '<th style=\"' + headStyle + '\">Object</th><th style=\"' + headStyle + '\">Issue</th>' +\n    '<th style=\"' + headStyle + '\">Detail</th></tr></thead><tbody>' +\n    problems.map((row) =>\n      '<tr><td style=\"' + monoStyle + ';background:#fff6e5\">' + escapeHtml(row.object) + '</td>' +\n      '<td style=\"' + warnStyle + '\">' + escapeHtml(row.issue) + '</td>' +\n      '<td style=\"' + warnStyle + '\">' + escapeHtml(row.detail) + '</td></tr>').join('') +\n    '</tbody></table>'\n  : '<p style=\"margin:0 0 6px\">No pod, deployment, StatefulSet, DaemonSet, Job, PVC or node is reporting a problem.</p>';\n\nconst summaryTable = '<p style=\"margin:16px 0 6px;font-weight:600\">Every check</p><table style=\"' + tableStyle + '\"><thead><tr>' +\n  '<th style=\"' + headStyle + '\">Check</th><th style=\"' + headStyle + ';text-align:right\">Result</th>' +\n  '</tr></thead><tbody>' +\n  summary.map((row) => {\n    const style = row.isFinding ? warnStyle : cellStyle;\n    return '<tr><td style=\"' + style + '\">' + escapeHtml(row.name) + '</td>' +\n           '<td style=\"' + style + ';text-align:right;white-space:nowrap\">' + escapeHtml(row.result) + '</td></tr>';\n  }).join('') + '</tbody></table>';\n\nconst html = '<div style=\"font:14px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#222\">' +\n  problemTable + summaryTable +\n  '<p style=\"margin:14px 0 0;font-size:13px\"><a href=\"' + grafanaUrl + '\">Dashboards and alert history</a></p></div>';\n\n// Plain-text fallback, for clients that drop the HTML part.\nconst content = [\n  problems.length ? 'What is wrong:' : 'Nothing is reporting a problem.',\n  ...problems.map((row) => '  ' + row.object + ' \\u2014 ' + row.issue + (row.detail ? ' (' + row.detail + ')' : '')),\n  '',\n  'Every check:',\n  ...summary.map((row) => (row.isFinding ? '  ! ' : '    ') + row.name + ': ' + row.result),\n  '',\n  'Dashboards and alert history: ' + grafanaUrl,\n].join('\\n');\n\nreturn [{ json: { subject, content, html, findings, findingCount: findings.length, problems } }];\n"
       },
       "id": "a1000000-0000-4000-8000-000000000004",
       "name": "Build digest",
@@ -91,9 +91,10 @@
         "fromEmail": "GMAIL_ADDRESS",
         "toEmail": "GMAIL_ADDRESS",
         "subject": "={{ $json.subject }}",
-        "emailFormat": "text",
+        "emailFormat": "both",
         "text": "={{ $json.content }}",
-        "options": {}
+        "options": {},
+        "html": "={{ $json.html }}"
       },
       "id": "a1000000-0000-4000-8000-000000000006",
       "name": "Email the digest",
@@ -107,6 +108,51 @@
         "smtp": {
           "id": "gmailsmtp",
           "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// A node that returns no items stops its branch, so an all-clear run books nothing.\nconst digest = $input.first().json;\nif (!digest.findingCount) return [];\n\nconst eventSummary =\n  'Check cluster health \\u2014 ' + digest.findingCount + (digest.findingCount === 1 ? ' finding' : ' findings');\n\nconst eventDescription = [\n  \"The daily digest could not clear these:\",\n  ...digest.findings.map((finding) => '\\u2022 ' + finding),\n  '',\n  'Dashboards and alert history: http://GRAFANA_HOST/',\n].join('\\n');\n\nreturn [{ json: { eventSummary, eventDescription } }];\n"
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Only when something is wrong",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GMAIL_ADDRESS"
+        },
+        "start": "={{ $now.plus(1, 'hour').toISO() }}",
+        "end": "={{ $now.plus(90, 'minutes').toISO() }}",
+        "additionalFields": {
+          "summary": "={{ $json.eventSummary }}",
+          "description": "={{ $json.eventDescription }}"
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Book a cluster check",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        940,
+        180
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "googlecalendar",
+          "name": "Google Calendar"
         }
       }
     }
@@ -150,6 +196,22 @@
         [
           {
             "node": "Email the digest",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Only when something is wrong",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only when something is wrong": {
+      "main": [
+        [
+          {
+            "node": "Book a cluster check",
             "type": "main",
             "index": 0
           }
