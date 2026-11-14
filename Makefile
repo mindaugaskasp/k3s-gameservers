@@ -28,7 +28,7 @@ $(foreach argument,$(wordlist 2,3,$(MAKECMDGOALS)),$(eval $(argument):;@:))
 endif
 
 .PHONY: help copy-to-vm copy-to-host check-vm-host grafana-password \
-	setup check-site-env k3s crowdsec firewall registry monitoring maintenance dashboards ban-ip unban-ip \
+	setup check-site-env k3s crowdsec firewall registry monitoring maintenance dashboards n8n ban-ip unban-ip \
 	offsite-backup restore-drill setup-offsite-backup
 
 check-vm-host:
@@ -92,6 +92,11 @@ registry:
 ##   Needs infrastructure/site.env, with ALERTS_DISCORD_WEBHOOK_URL set.
 monitoring: check-site-env
 	./infrastructure/monitoring/install.sh
+
+## Install or update n8n, LAN-only (on the VM)
+##   Needs infrastructure/site.env, with N8N_HOST set.
+n8n: check-site-env
+	./infrastructure/n8n/install.sh
 
 ## Install the CronJob that deletes pods stuck after a reboot (on the VM)
 maintenance:
