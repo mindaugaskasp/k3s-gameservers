@@ -10,7 +10,7 @@ Host values for all of them live in the gitignored `infrastructure/site.env` (se
 | k3s, Traefik config, registry mirror, clock drop-in | `k3s/` | `make k3s` |
 | Host firewall (ufw): SSH, LAN and pods in; game ports and 80/443 routed | `firewall/` | `make firewall` |
 | Image registry, localhost:30500 only | `registry/` | `make registry` |
-| Prometheus, Loki, Alloy, Grafana | `monitoring/` | `make monitoring` |
+| Prometheus, Loki, Alloy, Grafana, kube-state-metrics | `monitoring/` | `make monitoring` |
 | CrowdSec, bans scanners at Traefik ([crowdsec.md](crowdsec.md)) | `crowdsec/` | `make crowdsec` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
 | Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make setup-offsite-backup` |
@@ -45,6 +45,10 @@ so middlewares see real client IPs, and logs every request for CrowdSec.
   crash loops, silent games, certificates, off-host backups. Each links to Grafana, never a command.
 - **Logs:** Alloy ships every pod's stdout/stderr to Loki (31 days), any `Password[...]` value redacted. Loki has no auth.
 - **Datasources:** Loki (uid `loki`) and Prometheus (uid `ffyierrb4yl8gd`).
+- **Object state:** kube-state-metrics answers what kubelet and cadvisor can't —
+  pods that never scheduled, failed Jobs, PVC sizes, node conditions. Its `--resources`
+  flag lists what it collects; widening it needs the matching verbs in its ClusterRole.
+  A finished Job reads `phase="Succeeded"`, so filter on `Pending|Failed|Unknown`.
 
 ## Reporting from an app
 
