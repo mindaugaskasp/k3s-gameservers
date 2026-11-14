@@ -26,6 +26,7 @@ they are exported back into the repo.
 |---|---|---|
 | `cluster-daily-digest` | every day 07:00 | one summary of cluster checks |
 | `weekly-calendar-overview` | Mondays 07:00 | the next 7 days of calendar commitments |
+| `renovate-watcher` | every day 07:30 | open dependency PRs, worst state first |
 
 Both email over Gmail SMTP, as an HTML table with a plain-text part for clients that
 drop it. Grafana's alert rules stay the event-driven half, so the digest is the
@@ -45,6 +46,12 @@ expose `N8N_ENCRYPTION_KEY` to every workflow. So `make n8n-workflows` reads
 `infrastructure/site.env`, writes `GRAFANA_HOST`, `GMAIL_ADDRESS` and `N8N_TIMEZONE`
 into the workflows, and imports the secrets as encrypted n8n credentials. The repo's
 copies hold none of them.
+
+The watcher finds pull requests with one search, `label:dependencies` across
+`GITHUB_OWNER`, which both repos' `renovate.json` applies; private repositories need
+the token, as the anonymous API cannot see them. It then reads each PR's
+`mergeable_state`, so `dirty` reads as a conflict and `unstable` as failing checks.
+`GITHUB_TOKEN` only ever reads.
 
 ## Connecting Gmail and Google Calendar
 

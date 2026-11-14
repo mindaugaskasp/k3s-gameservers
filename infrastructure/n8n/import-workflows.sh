@@ -14,11 +14,13 @@ read_setting() { sed -n "s/^$1=//p" infrastructure/site.env; }
 grafana_host=$(read_setting GRAFANA_HOST)
 gmail_address=$(read_setting GMAIL_ADDRESS)
 timezone=$(read_setting N8N_TIMEZONE)
+github_owner=$(read_setting GITHUB_OWNER)
 gmail_app_password=$(read_setting GMAIL_APP_PASSWORD)
+github_token=$(read_setting GITHUB_TOKEN)
 google_client_id=$(read_setting GOOGLE_OAUTH_CLIENT_ID)
 google_client_secret=$(read_setting GOOGLE_OAUTH_CLIENT_SECRET)
 
-for required in grafana_host gmail_address timezone; do
+for required in grafana_host gmail_address timezone github_owner; do
   [ -n "${!required}" ] || { echo "Missing ${required^^} in infrastructure/site.env" >&2; exit 1; }
 done
 
@@ -40,6 +42,13 @@ if [ -n "$gmail_app_password" ]; then
     "$gmail_address" "$gmail_app_password")"
 else
   echo "No GMAIL_APP_PASSWORD in infrastructure/site.env: skipping the Gmail SMTP credential, so the email steps will fail until it is set" >&2
+fi
+
+if [ -n "$github_token" ]; then
+  import_credential "$(printf '[{"id":"githubtoken","name":"GitHub token","type":"httpHeaderAuth","data":{"name":"Authorization","value":"Bearer %s"}}]' \
+    "$github_token")"
+else
+  echo "No GITHUB_TOKEN in infrastructure/site.env: skipping the GitHub credential, so the Renovate watcher will fail until it is set" >&2
 fi
 
 # Only the client half can be imported; the token comes from the browser consent flow,
@@ -66,7 +75,8 @@ fi
 for workflow in infrastructure/n8n/workflows/*.json; do
   sed -e "s|GRAFANA_HOST|$grafana_host|g" \
       -e "s|GMAIL_ADDRESS|$gmail_address|g" \
-      -e "s|N8N_TIMEZONE|$timezone|g" "$workflow" \
+      -e "s|N8N_TIMEZONE|$timezone|g" \
+      -e "s|GITHUB_OWNER|$github_owner|g" "$workflow" \
     | kubectl -n n8n exec -i "$pod" -- sh -c 'cat > /tmp/workflow.json'
   kubectl -n n8n exec "$pod" -- $cli n8n import:workflow --input=/tmp/workflow.json
   kubectl -n n8n exec "$pod" -- rm -f /tmp/workflow.json
