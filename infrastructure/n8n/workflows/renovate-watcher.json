@@ -39,7 +39,7 @@
           "parameters": [
             {
               "name": "q",
-              "value": "is:open is:pr user:GITHUB_OWNER label:dependencies"
+              "value": "is:open is:pr user:GITHUB_OWNER author:app/renovate"
             },
             {
               "name": "per_page",

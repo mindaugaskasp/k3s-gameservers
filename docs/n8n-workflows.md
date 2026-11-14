@@ -35,9 +35,11 @@ expose `N8N_ENCRYPTION_KEY` to every workflow. So `make n8n-workflows` reads
 into the workflows, and imports the secrets as encrypted n8n credentials. The repo's
 copies hold none of them.
 
-The watcher finds pull requests with one search, `label:dependencies` across
-`GITHUB_OWNER`, which both repos' `renovate.json` applies; private repositories need
-the token, as the anonymous API cannot see them. It then reads each PR's
+The watcher finds pull requests with one search, `author:app/renovate` across
+`GITHUB_OWNER`: the bot is the marker, where a label only catches repositories whose
+config sets one. Private repositories need the token, as the anonymous API cannot
+see them, and a classic token needs the whole `repo` scope -- `repo:status` and
+`repo_deployment` alone return 404. It then reads each PR's
 `mergeable_state`, so `dirty` reads as a conflict and `unstable` as failing checks.
 `GITHUB_TOKEN` only ever reads.
 

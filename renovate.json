@@ -43,6 +43,12 @@
   },
   "packageRules": [
     {
+      "description": "n8n publishes 2.48 on its next channel while latest and stable both point at 2.47; following the tag keeps this on the released line.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["docker.io/n8nio/n8n"],
+      "followTag": "stable"
+    },
+    {
       "description": "Renovate merges its own routine bumps once the checks pass; GitHub's auto-merge waits for them.",
       "matchUpdateTypes": ["digest", "pinDigest", "pin", "patch", "minor"],
       "automerge": true
