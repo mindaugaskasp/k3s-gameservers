@@ -44,6 +44,9 @@ spec:
       labels:
         app.kubernetes.io/name: n8n
     spec:
+      # This Service is called n8n, so Kubernetes' service-link vars would inject
+      # N8N_PORT=tcp://<clusterIP>:80 over n8n's own listen-port setting.
+      enableServiceLinks: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

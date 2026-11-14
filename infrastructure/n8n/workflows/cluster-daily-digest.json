@@ -1,0 +1,158 @@
+{
+  "id": "clusterdailydigest",
+  "name": "Cluster daily digest",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Every day at 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Each check is one Prometheus query plus the threshold that makes it a finding.\n// warnAbove/warnBelow are optional: a check with neither is context, never a finding.\nconst checks = [\n  { name: 'Pods that never scheduled', query: 'count(kube_pod_status_unschedulable == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Pods pending or failed', query: 'count(kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"} == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Containers stuck waiting', query: 'count(kube_pod_container_status_waiting_reason == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Container restarts (24h)', query: 'round(sum(increase(kube_pod_container_status_restarts_total[24h])) or vector(0))', warnAbove: 5 },\n  { name: 'Failed Jobs', query: 'count(kube_job_status_failed > 0) or vector(0)', warnAbove: 0 },\n  { name: 'Deployments missing replicas', query: 'count(kube_deployment_status_replicas_unavailable > 0) or vector(0)', warnAbove: 0 },\n  { name: 'DaemonSets unavailable', query: 'count(kube_daemonset_status_number_unavailable > 0) or vector(0)', warnAbove: 0 },\n  { name: 'PVCs not bound', query: 'count(kube_persistentvolumeclaim_status_phase{phase!=\"Bound\"} == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Nodes not Ready', query: 'count(kube_node_status_condition{condition=\"Ready\",status=\"true\"} == 0) or vector(0)', warnAbove: 0 },\n  { name: 'Nodes under pressure', query: 'count(kube_node_status_condition{condition=~\"MemoryPressure|DiskPressure|PIDPressure\",status=\"true\"} == 1) or vector(0)', warnAbove: 0 },\n  { name: 'Memory requested of allocatable', query: 'round(100 * sum(kube_pod_container_resource_requests{resource=\"memory\"}) / sum(kube_node_status_allocatable{resource=\"memory\"}))', unit: '%', warnAbove: 90 },\n  { name: 'Root disk used', query: 'round(100 * max(container_fs_usage_bytes{id=\"/\",device!~\"/dev/loop.*\"} / container_fs_limit_bytes{id=\"/\",device!~\"/dev/loop.*\"}))', unit: '%', warnAbove: 85 },\n  { name: 'Soonest certificate expiry', query: 'round(min(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400)', unit: ' days', warnBelow: 14 },\n  { name: 'Players online', query: 'round(sum(game_server_players) or vector(0))' },\n];\n\nreturn checks.map((check) => ({ json: check }));\n"
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Build checks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        60,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://prometheus.monitoring.svc.cluster.local:9090/api/v1/query",
+        "sendQuery": true,
+        "specifyQuery": "keypair",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.query }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Query Prometheus",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const grafanaHost = 'GRAFANA_HOST';\n\n// Pairs each Prometheus answer with the check that asked it, by position.\nconst checks = $('Build checks').all().map((item) => item.json);\nconst answers = $input.all();\n\nconst lines = [];\nconst findings = [];\n\nfor (let index = 0; index < checks.length; index++) {\n  const check = checks[index];\n  const series = answers[index]?.json?.data?.result ?? [];\n\n  if (series.length === 0) {\n    findings.push(check.name);\n    lines.push('\\u26a0\\ufe0f ' + check.name + ': no data');\n    continue;\n  }\n\n  const value = Number(series[0].value[1]);\n  const reading = value + (check.unit ?? '');\n  const isFinding =\n    (check.warnAbove !== undefined && value > check.warnAbove) ||\n    (check.warnBelow !== undefined && value < check.warnBelow);\n\n  if (isFinding) findings.push(check.name + ': ' + reading);\n  lines.push((isFinding ? '\\u26a0\\ufe0f ' : '\\u2022 ') + check.name + ': ' + reading);\n}\n\nconst heading = findings.length\n  ? '**Cluster digest \\u2014 ' + findings.length + (findings.length === 1 ? ' finding' : ' findings') + '**'\n  : '**Cluster digest \\u2014 all clear**';\n\nconst content = [\n  heading,\n  lines.join('\\n'),\n  'Dashboards and alert history: http://' + grafanaHost + '/',\n].join('\\n');\n\nreturn [{ json: { content } }];\n"
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Build digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "resource": "message",
+        "operation": "send",
+        "content": "={{ $json.content }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Post to Discord",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "discordalertswebhook",
+          "name": "Discord alerts webhook"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every day at 07:00": {
+      "main": [
+        [
+          {
+            "node": "Build checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build checks": {
+      "main": [
+        [
+          {
+            "node": "Query Prometheus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Prometheus": {
+      "main": [
+        [
+          {
+            "node": "Build digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build digest": {
+      "main": [
+        [
+          {
+            "node": "Post to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

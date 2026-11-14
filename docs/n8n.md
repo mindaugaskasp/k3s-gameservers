@@ -15,6 +15,25 @@
   credential unreadable, so back them up together.
 - **Executions** prune themselves at n8n's defaults: 14 days or 10000 runs.
 
+## Workflows
+
+`infrastructure/n8n/workflows/*.json` is the source of truth; `make n8n-workflows`
+loads them, updating in place by their stable ids. They arrive inactive, so activate
+one in the editor after reading it. Editor changes live only in n8n's database until
+they are exported back into the repo.
+
+`cluster-daily-digest.json` asks Prometheus a list of checks every morning and posts
+one summary to Discord: scheduling, restarts, failed Jobs, PVCs, node conditions,
+memory requested, disk, certificate expiry. Thresholds sit beside each check in the
+`Build checks` node. Grafana's alert rules stay the event-driven half; this is the
+heartbeat, so a quiet day still reports.
+
+**Host values are substituted at import, not read at run time.** n8n blocks `$env`
+in nodes and expressions (`N8N_BLOCK_ENV_ACCESS_IN_NODE`), and unblocking it would
+expose `N8N_ENCRYPTION_KEY` to every workflow. So `make n8n-workflows` reads
+`infrastructure/site.env`, writes `GRAFANA_HOST` into the workflow, and imports the
+Discord webhook as an encrypted n8n credential. The repo's copies hold neither.
+
 ## Memory
 
 Node sizes its heap from the host's total RAM, not the container limit, so

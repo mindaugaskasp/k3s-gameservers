@@ -84,10 +84,12 @@ spec:
               containerPort: 8080
             - name: telemetry
               containerPort: 8081
+          # /livez answers on the metrics port only, /readyz on the telemetry port only;
+          # pointing either at the other port returns 404 and the container is killed.
           livenessProbe:
             httpGet:
               path: /livez
-              port: telemetry
+              port: metrics
           readinessProbe:
             httpGet:
               path: /readyz
