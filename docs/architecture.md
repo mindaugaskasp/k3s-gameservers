@@ -8,6 +8,8 @@ A single-node k3s cluster runs three namespaces:
   somewhere other than a host timer ([n8n.md](n8n.md))
 - kube-state-metrics runs in `monitoring`, so Kubernetes object state is queryable
   alongside the game metrics instead of only through `kubectl`
+- `.github/workflows/checks.yaml` renders every chart and kustomization on a pull
+  request without a cluster, which is what Renovate's auto-merge waits for
 - on the host: ufw lets only SSH, the LAN and pods in, routed game ports aside
   ([infrastructure.md](infrastructure.md)); timers copy worlds off-host nightly and verify they
   restore twice a month ([offsite-backups.md](offsite-backups.md))

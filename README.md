@@ -11,6 +11,7 @@ games/<game>/      one game: chart/, status-metrics/, grafana/, Makefile, values
 infrastructure/<piece>/  the cluster (k3s, firewall, registry, monitoring, ...), each with its install.sh
 game-server/       what every game shares: library chart, status-metrics core, make, systemd
 docs/              setup-nodes, infrastructure, architecture and other topics
+.github/workflows/ checks every pull request: chart lint and render, scripts, kustomizations, doc budget
 Makefile           infrastructure setup, dashboards, bans, off-host backups, copy-to-vm / copy-to-host (VM_HOST in .env)
 ```
 

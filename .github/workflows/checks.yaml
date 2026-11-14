@@ -1,0 +1,65 @@
+# Runs on every pull request, so Renovate's auto-merge has something to wait for.
+# Everything here works without a cluster: no kubeconfig, no secrets.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Full history: metrics-image.mk tags the sidecar by the last commit touching it.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v4
+      - uses: azure/setup-kubectl@v4
+
+      - name: Lint and render every game's chart
+        run: |
+          for makefile in games/*/Makefile; do
+            game=$(dirname "$makefile")
+            echo "::group::$game"
+            make -C "$game" lint
+            make -C "$game" template >/dev/null
+            echo "::endgroup::"
+          done
+
+      - name: Syntax-check every script
+        run: |
+          while read -r script; do
+            bash -n "$script" || { echo "::error file=$script::bash -n failed"; exit 1; }
+          done < <(git ls-files '*.sh')
+
+      - name: Render every kustomization
+        run: |
+          # site.env is gitignored; the example carries the keys the replacements need.
+          cp infrastructure/site.env.example infrastructure/site.env
+          for kustomization in infrastructure/*/kustomization.yaml; do
+            directory=$(dirname "$kustomization")
+            echo "::group::$directory"
+            kubectl kustomize --load-restrictor LoadRestrictionsNone "$directory" >/dev/null
+            echo "::endgroup::"
+          done
+
+      - name: Check the documentation budget
+        run: |
+          # CLAUDE.md sets 100 lines per Markdown file, and exempts itself.
+          status=0
+          while read -r document; do
+            lines=$(wc -l < "$document")
+            if [ "$lines" -gt 100 ]; then
+              echo "::error file=$document::$lines lines, over the 100-line budget"
+              status=1
+            fi
+          done < <(git ls-files '*.md' | grep -v '^CLAUDE.md$')
+          exit $status
