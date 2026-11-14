@@ -43,10 +43,22 @@ else
 fi
 
 # Only the client half can be imported; the token comes from the browser consent flow,
-# so open the credential in the editor and press "Connect my account" once.
-if [ -n "$google_client_id" ] && [ -n "$google_client_secret" ]; then
+# so open the credential in the editor and press "Connect my account" once. Importing it
+# again would replace that token with a stub holding no token at all, so it is written
+# once only -- change the client in site.env, delete the credential, then re-run.
+credential_exists() {
+  kubectl -n n8n exec "$pod" -- $cli n8n export:credentials --id="$1" --output=/tmp/probe.json >/dev/null 2>&1
+  local found=$?
+  kubectl -n n8n exec "$pod" -- rm -f /tmp/probe.json >/dev/null 2>&1 || true
+  return $found
+}
+
+if credential_exists googlecalendar; then
+  echo "Google Calendar credential already exists: leaving it alone so its token survives"
+elif [ -n "$google_client_id" ] && [ -n "$google_client_secret" ]; then
   import_credential "$(printf '[{"id":"googlecalendar","name":"Google Calendar","type":"googleCalendarOAuth2Api","data":{"clientId":"%s","clientSecret":"%s"}}]' \
     "$google_client_id" "$google_client_secret")"
+  echo "Google Calendar credential created: open it in the editor and press Connect my account"
 else
   echo "No GOOGLE_OAUTH_CLIENT_ID/SECRET in infrastructure/site.env: skipping the Google Calendar credential, so the calendar step will fail until it is connected" >&2
 fi
