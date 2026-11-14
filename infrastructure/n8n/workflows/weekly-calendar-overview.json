@@ -1,0 +1,140 @@
+{
+  "id": "weeklycalendaroverview",
+  "name": "Weekly calendar overview",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "N8N_TIMEZONE"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "c1000000-0000-4000-8000-000000000001",
+      "name": "Every Monday at 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "primary"
+        },
+        "returnAll": true,
+        "options": {
+          "singleEvents": true,
+          "orderBy": "startTime",
+          "timeMin": "={{ $now.startOf('day').toISO() }}",
+          "timeMax": "={{ $now.startOf('day').plus({ days: 7 }).toISO() }}"
+        }
+      },
+      "id": "c1000000-0000-4000-8000-000000000002",
+      "name": "Read the week's events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "googlecalendar",
+          "name": "Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const timezone = 'N8N_TIMEZONE';\n\n// Google returns cancelled instances of recurring events too; they are not commitments.\nconst events = $input\n  .all()\n  .map((item) => item.json)\n  .filter((event) => event && event.status !== 'cancelled' && (event.start?.dateTime || event.start?.date));\n\nconst isAllDay = (event) => !event.start?.dateTime && Boolean(event.start?.date);\n\nfunction formatInZone(date, options) {\n  try {\n    return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, ...options }).format(date);\n  } catch (error) {\n    return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', ...options }).format(date);\n  }\n}\n\n// en-CA gives YYYY-MM-DD, which sorts correctly as a plain string.\nfunction dayKey(date) {\n  try {\n    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);\n  } catch (error) {\n    return new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);\n  }\n}\n\n// An all-day event carries a bare date; midday UTC keeps it on its own day in any zone.\nconst startDate = (event) => new Date(isAllDay(event) ? event.start.date + 'T12:00:00Z' : event.start.dateTime);\n\nfunction bookedMinutes(event) {\n  if (isAllDay(event)) return 0;\n  const from = new Date(event.start.dateTime).getTime();\n  const to = new Date(event.end?.dateTime ?? event.start.dateTime).getTime();\n  return Math.max(0, Math.round((to - from) / 60000));\n}\n\nconst byDay = new Map();\nfor (const event of events) {\n  const key = dayKey(startDate(event));\n  if (!byDay.has(key)) byDay.set(key, []);\n  byDay.get(key).push(event);\n}\n\nconst today = new Date();\nconst days = [];\nfor (let offset = 0; offset < 7; offset++) {\n  days.push(dayKey(new Date(today.getTime() + offset * 86400000)));\n}\n\nconst lines = [];\nlet totalMinutes = 0;\nlet busiestDay = null;\n\nfor (const key of days) {\n  const dayEvents = (byDay.get(key) ?? []).sort((a, b) => startDate(a) - startDate(b));\n  const label = formatInZone(new Date(key + 'T12:00:00Z'), { weekday: 'long', day: 'numeric', month: 'short' });\n  const dayMinutes = dayEvents.reduce((sum, event) => sum + bookedMinutes(event), 0);\n  totalMinutes += dayMinutes;\n\n  if (dayEvents.length && (!busiestDay || dayMinutes > busiestDay.minutes)) {\n    busiestDay = { label, minutes: dayMinutes, count: dayEvents.length };\n  }\n\n  if (dayEvents.length === 0) {\n    lines.push(label + ': nothing scheduled');\n    continue;\n  }\n\n  lines.push(label + ': ' + dayEvents.length + (dayEvents.length === 1 ? ' commitment' : ' commitments'));\n  for (const event of dayEvents) {\n    const title = event.summary ?? '(no title)';\n    if (isAllDay(event)) {\n      lines.push('  all day  ' + title);\n      continue;\n    }\n    const from = formatInZone(new Date(event.start.dateTime), { hour: '2-digit', minute: '2-digit', hour12: false });\n    const to = event.end?.dateTime\n      ? formatInZone(new Date(event.end.dateTime), { hour: '2-digit', minute: '2-digit', hour12: false })\n      : '';\n    const where = event.location ? '  (' + event.location + ')' : '';\n    lines.push('  ' + from + (to ? '-' + to : '') + '  ' + title + where);\n  }\n}\n\nconst hours = Math.round((totalMinutes / 60) * 10) / 10;\nconst freeDays = days.filter((key) => (byDay.get(key) ?? []).length === 0).length;\n\nconst headline = events.length === 0\n  ? 'Nothing on the calendar for the next seven days.'\n  : events.length + (events.length === 1 ? ' commitment' : ' commitments') + ' over the next seven days, ' + hours + 'h booked.';\n\nconst content = [\n  headline,\n  busiestDay ? 'Busiest: ' + busiestDay.label + ' (' + busiestDay.count + ', ' + Math.round(busiestDay.minutes / 6) / 10 + 'h).' : '',\n  freeDays ? 'Clear days: ' + freeDays + '.' : '',\n  '',\n  lines.join('\\n'),\n].filter((part) => part !== '').join('\\n');\n\nconst subject = events.length === 0\n  ? 'Week ahead \\u2014 nothing scheduled'\n  : 'Week ahead \\u2014 ' + events.length + (events.length === 1 ? ' commitment' : ' commitments') + ', ' + hours + 'h';\n\nreturn [{ json: { subject, content } }];\n"
+      },
+      "id": "c1000000-0000-4000-8000-000000000003",
+      "name": "Summarise the week",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "GMAIL_ADDRESS",
+        "toEmail": "GMAIL_ADDRESS",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.content }}",
+        "options": {}
+      },
+      "id": "c1000000-0000-4000-8000-000000000004",
+      "name": "Email the overview",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        0
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "gmailsmtp",
+          "name": "Gmail SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Monday at 07:00": {
+      "main": [
+        [
+          {
+            "node": "Read the week's events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the week's events": {
+      "main": [
+        [
+          {
+            "node": "Summarise the week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise the week": {
+      "main": [
+        [
+          {
+            "node": "Email the overview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

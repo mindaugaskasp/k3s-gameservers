@@ -14,7 +14,7 @@ Host values for all of them live in the gitignored `infrastructure/site.env` (se
 | CrowdSec, bans scanners at Traefik ([crowdsec.md](crowdsec.md)) | `crowdsec/` | `make crowdsec` |
 | Stuck-pod cleanup CronJob (every 5 min) | `maintenance/` | `make maintenance` |
 | Off-host backups, rclone ([offsite-backups.md](offsite-backups.md)) | `offsite-backup/` | `make setup-offsite-backup` |
-| n8n workflow automation, LAN-only ([n8n.md](n8n.md)) | `n8n/` | `make n8n` |
+| n8n workflow automation, LAN-only ([n8n.md](n8n.md)) | `n8n/` | `make n8n`, `make n8n-workflows` |
 | Vertical Pod Autoscaler, optional | `vpa/` | `infrastructure/vpa/install.sh` |
 
 ## k3s

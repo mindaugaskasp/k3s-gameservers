@@ -121,7 +121,9 @@ spec:
               cpu: 100m
               memory: 256Mi
             limits:
-              memory: 768Mi
+              # The n8n CLI (make n8n-workflows) runs a second n8n inside this container,
+              # so the limit has to hold the server and that process at once.
+              memory: 1280Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

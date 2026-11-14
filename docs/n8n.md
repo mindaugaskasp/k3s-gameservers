@@ -22,23 +22,50 @@ loads them, updating in place by their stable ids. They arrive inactive, so acti
 one in the editor after reading it. Editor changes live only in n8n's database until
 they are exported back into the repo.
 
-`cluster-daily-digest.json` asks Prometheus a list of checks every morning and posts
-one summary to Discord: scheduling, restarts, failed Jobs, PVCs, node conditions,
-memory requested, disk, certificate expiry. Thresholds sit beside each check in the
-`Build checks` node. Grafana's alert rules stay the event-driven half; this is the
-heartbeat, so a quiet day still reports.
+| Workflow | Runs | Sends |
+|---|---|---|
+| `cluster-daily-digest` | every day 07:00 | one summary of cluster checks |
+| `weekly-calendar-overview` | Mondays 07:00 | the next 7 days of calendar commitments |
+
+Both email over Gmail SMTP. The digest's thresholds sit beside each check in its
+`Build checks` node; Grafana's alert rules stay the event-driven half, so the digest
+is the heartbeat and reports on a quiet day too.
 
 **Host values are substituted at import, not read at run time.** n8n blocks `$env`
 in nodes and expressions (`N8N_BLOCK_ENV_ACCESS_IN_NODE`), and unblocking it would
 expose `N8N_ENCRYPTION_KEY` to every workflow. So `make n8n-workflows` reads
-`infrastructure/site.env`, writes `GRAFANA_HOST` into the workflow, and imports the
-Discord webhook as an encrypted n8n credential. The repo's copies hold neither.
+`infrastructure/site.env`, writes `GRAFANA_HOST`, `GMAIL_ADDRESS` and `N8N_TIMEZONE`
+into the workflows, and imports the secrets as encrypted n8n credentials. The repo's
+copies hold none of them.
+
+## Connecting Gmail and Google Calendar
+
+1. **App password** for SMTP: Google account, 2-step verification on, then an app
+   password. Put it in `infrastructure/site.env` as `GMAIL_APP_PASSWORD` and re-run
+   `make n8n-workflows`.
+2. **OAuth client** for Calendar: a Google Cloud project, OAuth client of type Web
+   application, its id and secret in `site.env`
+   (`GOOGLE_OAUTH_CLIENT_ID`/`GOOGLE_OAUTH_CLIENT_SECRET`).
+3. **Grant the token.** Google refuses a redirect URI that is neither HTTPS nor
+   localhost, and this n8n is plain HTTP on the LAN. `localhost` is exempt
+   ([Google](https://developers.google.com/identity/protocols/oauth2/web-server)), so
+   grant it through a port-forward: set `N8N_EDITOR_BASE_URL` to
+   `http://localhost:5678/`, `kubectl -n n8n port-forward deploy/n8n 5678:5678`,
+   register `http://localhost:5678/rest/oauth2-credential/callback` on the client,
+   open the credential in the editor at `localhost:5678` and connect. Then put
+   `N8N_EDITOR_BASE_URL` back. Refreshes happen server-side, so the token keeps working.
+4. **Publish the OAuth app.** While its publishing status is Testing, Google expires
+   refresh tokens after 7 days, which breaks a weekly workflow.
 
 ## Memory
 
 Node sizes its heap from the host's total RAM, not the container limit, so
 `NODE_OPTIONS=--max-old-space-size` is set; without it the pod grows past its
-limit and the kernel kills it. It settles around 350 MiB, against a 768 MiB limit.
+limit and the kernel kills it. It settles around 350 MiB.
+
+The limit is larger than that because the n8n CLI (`make n8n-workflows`) starts a
+second n8n **inside the serving container**, so both count against one limit; import
+peaks around 560 MiB. The CLI's own heap is capped in `import-workflows.sh`.
 Boot runs database migrations and briefly uses more.
 
 ## Deprecation warnings

@@ -3,7 +3,8 @@
   "name": "Cluster daily digest",
   "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "N8N_TIMEZONE"
   },
   "nodes": [
     {
@@ -74,7 +75,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const grafanaHost = 'GRAFANA_HOST';\n\n// Pairs each Prometheus answer with the check that asked it, by position.\nconst checks = $('Build checks').all().map((item) => item.json);\nconst answers = $input.all();\n\nconst lines = [];\nconst findings = [];\n\nfor (let index = 0; index < checks.length; index++) {\n  const check = checks[index];\n  const series = answers[index]?.json?.data?.result ?? [];\n\n  if (series.length === 0) {\n    findings.push(check.name);\n    lines.push('\\u26a0\\ufe0f ' + check.name + ': no data');\n    continue;\n  }\n\n  const value = Number(series[0].value[1]);\n  const reading = value + (check.unit ?? '');\n  const isFinding =\n    (check.warnAbove !== undefined && value > check.warnAbove) ||\n    (check.warnBelow !== undefined && value < check.warnBelow);\n\n  if (isFinding) findings.push(check.name + ': ' + reading);\n  lines.push((isFinding ? '\\u26a0\\ufe0f ' : '\\u2022 ') + check.name + ': ' + reading);\n}\n\nconst heading = findings.length\n  ? '**Cluster digest \\u2014 ' + findings.length + (findings.length === 1 ? ' finding' : ' findings') + '**'\n  : '**Cluster digest \\u2014 all clear**';\n\nconst content = [\n  heading,\n  lines.join('\\n'),\n  'Dashboards and alert history: http://' + grafanaHost + '/',\n].join('\\n');\n\nreturn [{ json: { content } }];\n"
+        "jsCode": "const grafanaHost = 'GRAFANA_HOST';\n\n// Pairs each Prometheus answer with the check that asked it, by position.\nconst checks = $('Build checks').all().map((item) => item.json);\nconst answers = $input.all();\n\nconst lines = [];\nconst findings = [];\n\nfor (let index = 0; index < checks.length; index++) {\n  const check = checks[index];\n  const series = answers[index]?.json?.data?.result ?? [];\n\n  if (series.length === 0) {\n    findings.push(check.name);\n    lines.push('\\u26a0\\ufe0f ' + check.name + ': no data');\n    continue;\n  }\n\n  const value = Number(series[0].value[1]);\n  const reading = value + (check.unit ?? '');\n  const isFinding =\n    (check.warnAbove !== undefined && value > check.warnAbove) ||\n    (check.warnBelow !== undefined && value < check.warnBelow);\n\n  if (isFinding) findings.push(check.name + ': ' + reading);\n  lines.push((isFinding ? '\\u26a0\\ufe0f ' : '\\u2022 ') + check.name + ': ' + reading);\n}\n\nconst subject = findings.length\n  ? 'Cluster digest \\u2014 ' + findings.length + (findings.length === 1 ? ' finding' : ' findings')\n  : 'Cluster digest \\u2014 all clear';\n\nconst content = [\n  findings.length ? 'Needs a look:' : 'Nothing needs a look.',\n  findings.length ? findings.map((finding) => '  ' + finding).join('\\n') : '',\n  '',\n  'Every check:',\n  lines.join('\\n'),\n  '',\n  'Dashboards and alert history: http://' + grafanaHost + '/',\n].filter((part) => part !== '').join('\\n');\n\nreturn [{ json: { subject, content } }];\n"
       },
       "id": "a1000000-0000-4000-8000-000000000004",
       "name": "Build digest",
@@ -87,24 +88,25 @@
     },
     {
       "parameters": {
-        "authentication": "webhook",
-        "resource": "message",
-        "operation": "send",
-        "content": "={{ $json.content }}",
+        "fromEmail": "GMAIL_ADDRESS",
+        "toEmail": "GMAIL_ADDRESS",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.content }}",
         "options": {}
       },
-      "id": "a1000000-0000-4000-8000-000000000005",
-      "name": "Post to Discord",
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Email the digest",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
       "position": [
         720,
         0
       ],
       "credentials": {
-        "discordWebhookApi": {
-          "id": "discordalertswebhook",
-          "name": "Discord alerts webhook"
+        "smtp": {
+          "id": "gmailsmtp",
+          "name": "Gmail SMTP"
         }
       }
     }
@@ -147,7 +149,7 @@
       "main": [
         [
           {
-            "node": "Post to Discord",
+            "node": "Email the digest",
             "type": "main",
             "index": 0
           }
