@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
 
       - uses: azure/setup-helm@v4
-      - uses: azure/setup-kubectl@v4
+      - uses: azure/setup-kubectl@v5
 
       - name: Lint and render every game's chart
         run: |
