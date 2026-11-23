@@ -3,15 +3,15 @@
 const { ENSHROUDED_LOG_FILE } = require("./config");
 const { readNewLines } = require("../../../game-server/status-metrics/read-new-log-lines");
 
-// Formats from strings in the server binary (enshrouded_server.exe, build 23178631). The
-// load/save lines were seen in a real log; the join and leave lines not yet.
-const PLAYER_JOINED = /\] \[server\] (?:Machine '\d+': )?Player '(.+)' logged in/;
+// Formats from strings in the server binary (enshrouded_server.exe, build 23178631), since seen in a real log.
+// A login also logs "Machine '1': Player '0(0)' logged in", whose handle is no player name, so no Machine prefix matches.
+const PLAYER_JOINED = /\] \[server\] Player '(.+)' logged in/;
 const PLAYER_LEFT = /\] \[server\] Remove Player '(.+)'\s*$/;
 const ALL_PLAYERS_LEFT = /\] \[online\] Removing all peers/;
 const WORLD_BASE_COUNT = /\] \[savexxx\] (?:LOAD|SAVE) ([\d,]+) bases /;
-// A login is followed by one "\t - <permission>" line each; only the Admins role can kick and ban.
+// A login is followed by one "<timestamp> \t - <permission>" line each; only the Admins role can kick and ban.
 const PERMISSIONS_FOLLOW = /\] \[server\] Player '(.+)' logged in with Permissions:/;
-const PERMISSION = /^\s+- (\w+)\s*$/;
+const PERMISSION = /^\[[^\]]+\]\s+- (\w+)\s*$/;
 const GAME_MASTER_PERMISSION = /^cankickban$/i;
 
 function convertLineToEvent(line) {
