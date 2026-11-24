@@ -72,7 +72,23 @@ else
   echo "No GOOGLE_OAUTH_CLIENT_ID/SECRET in infrastructure/site.env: skipping the Google Calendar credential, so the calendar step will fail until it is connected" >&2
 fi
 
+# The repo's copies all carry "active": false, and an import writes that column, so a
+# re-import would silently stop a workflow that was running. Each one's state is read
+# first and restored after.
+is_active() {
+  kubectl -n n8n exec "$pod" -- $cli n8n export:workflow --id="$1" --output=/tmp/active.json >/dev/null 2>&1 || return 1
+  local active
+  # export:workflow writes compact JSON, so the field has no space after the colon.
+  active=$(kubectl -n n8n exec "$pod" -- grep -c -E '"active": *true' /tmp/active.json 2>/dev/null || true)
+  kubectl -n n8n exec "$pod" -- rm -f /tmp/active.json >/dev/null 2>&1 || true
+  [ "${active:-0}" != "0" ]
+}
+
 for workflow in infrastructure/n8n/workflows/*.json; do
+  id=$(sed -n 's/^  "id": "\([^"]*\)".*/\1/p' "$workflow" | head -1)
+  was_active=no
+  if [ -n "$id" ] && is_active "$id"; then was_active=yes; fi
+
   sed -e "s|GRAFANA_HOST|$grafana_host|g" \
       -e "s|GMAIL_ADDRESS|$gmail_address|g" \
       -e "s|N8N_TIMEZONE|$timezone|g" \
@@ -80,5 +96,11 @@ for workflow in infrastructure/n8n/workflows/*.json; do
     | kubectl -n n8n exec -i "$pod" -- sh -c 'cat > /tmp/workflow.json'
   kubectl -n n8n exec "$pod" -- $cli n8n import:workflow --input=/tmp/workflow.json
   kubectl -n n8n exec "$pod" -- rm -f /tmp/workflow.json
-  echo "imported $(basename "$workflow")"
+
+  if [ "$was_active" = yes ]; then
+    kubectl -n n8n exec "$pod" -- $cli n8n update:workflow --id="$id" --active=true >/dev/null
+    echo "imported $(basename "$workflow") (re-activated)"
+  else
+    echo "imported $(basename "$workflow")"
+  fi
 done

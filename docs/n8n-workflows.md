@@ -6,9 +6,11 @@ What each workflow does and how its credentials are granted. The service itself 
 ## Workflows
 
 `infrastructure/n8n/workflows/*.json` is the source of truth; `make n8n-workflows`
-loads them, updating in place by their stable ids. They arrive inactive, so activate
-one in the editor after reading it. Editor changes live only in n8n's database until
-they are exported back into the repo.
+loads them, updating in place by their stable ids. A first import arrives inactive, so
+activate it in the editor after reading it; the repo's copies all say `active: false`
+and an import writes that column, so the script reads each workflow's state first and
+switches it back on afterwards. Editor changes live only in n8n's database until they
+are exported back into the repo.
 
 | Workflow | Runs | Sends |
 |---|---|---|
@@ -42,6 +44,12 @@ see them, and a classic token needs the whole `repo` scope -- `repo:status` and
 `repo_deployment` alone return 404. It then reads each PR's
 `mergeable_state`, so `dirty` reads as a conflict and `unstable` as failing checks.
 `GITHUB_TOKEN` only ever reads.
+
+Renovate's onboarding pull requests ("Configure Renovate") are dropped before the
+report. They are offers to adopt Renovate in a repository that does not use it, not
+dependency updates, and Renovate never merges one itself, so they sat in the mail for
+a month. Restricting the Renovate app to the repositories that use it stops them being
+opened at all.
 
 ## Connecting Gmail and Google Calendar
 
