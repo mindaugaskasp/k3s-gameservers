@@ -18,8 +18,15 @@ configMapGenerator:
     files: [config/loki.yaml]
   - name: alloy-config
     files: [config/config.alloy]
+  # Labeled so the datasource sidecar collects this file like any other
+  # repo's, and unhashed because nothing mounts it by name any more -- a
+  # hashed generation left behind would be collected alongside the current one.
   - name: grafana-datasources
     files: [config/datasources.yaml]
+    options:
+      labels:
+        grafana_datasource: "1"
+      disableNameSuffixHash: true
   - name: grafana-dashboard-providers
     files: [config/dashboard-providers.yaml]
   - name: grafana-alerting

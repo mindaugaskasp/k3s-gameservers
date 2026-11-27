@@ -30,7 +30,8 @@ kind: ServiceAccount
 metadata:
   name: grafana
 ---
-# Dashboard sidecar: reads ConfigMaps labeled grafana_dashboard=1 in any namespace.
+# The sidecars read ConfigMaps labeled grafana_dashboard=1 and
+# grafana_datasource=1, in any namespace.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -80,6 +81,37 @@ spec:
         fsGroup: 472
         seccompProfile:
           type: RuntimeDefault
+      # Grafana reads provisioning once, at startup, so the files have to be
+      # there before it opens. METHOD=LIST writes them and exits.
+      initContainers:
+        - name: datasources-init
+          image: docker.io/kiwigrid/k8s-sidecar:2.14.3@sha256:52d311dcedd587421a236c4d6c621f05614c40a51386e955e0699dca97ec0880
+          env:
+            - name: METHOD
+              value: LIST
+            - name: LABEL
+              value: grafana_datasource
+            - name: LABEL_VALUE
+              value: "1"
+            - name: FOLDER
+              value: /etc/grafana/provisioning/datasources
+            - name: NAMESPACE
+              value: ALL
+            - name: RESOURCE
+              value: configmap
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
       containers:
         - name: grafana
           image: docker.io/grafana/grafana:13.3.2@sha256:81556409ba48b2b922e0adb69a2511337d8ba7578f11962eefa6149a2d815101
@@ -163,10 +195,56 @@ spec:
           volumeMounts:
             - name: dashboards
               mountPath: /etc/grafana/dashboards
-      volumes:
+        # A datasource added or changed after startup would otherwise wait for
+        # a Grafana restart. This one rewrites the file and POSTs to the
+        # provisioning reload API, which is why it needs the admin password.
         - name: datasources
-          configMap:
-            name: grafana-datasources
+          image: docker.io/kiwigrid/k8s-sidecar:2.14.3@sha256:52d311dcedd587421a236c4d6c621f05614c40a51386e955e0699dca97ec0880
+          env:
+            - name: LABEL
+              value: grafana_datasource
+            - name: LABEL_VALUE
+              value: "1"
+            - name: FOLDER
+              value: /etc/grafana/provisioning/datasources
+            - name: NAMESPACE
+              value: ALL
+            - name: RESOURCE
+              value: configmap
+            # Both sidecars share the pod's network namespace and the health
+            # server defaults to 8080, so the second one to start cannot bind.
+            - name: HEALTH_PORT
+              value: "8081"
+            - name: REQ_METHOD
+              value: POST
+            - name: REQ_URL
+              value: http://localhost:3000/api/admin/provisioning/datasources/reload
+            - name: REQ_USERNAME
+              value: admin
+            - name: REQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin
+                  key: password
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+      volumes:
+        # Filled by the two datasource sidecars below, from ConfigMaps labeled
+        # grafana_datasource=1 in any namespace -- including this repo's own.
+        # Nothing outside monitoring has to edit a file in here.
+        - name: datasources
+          emptyDir: {}
         - name: dashboard-providers
           configMap:
             name: grafana-dashboard-providers
