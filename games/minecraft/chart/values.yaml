@@ -3,7 +3,7 @@ image:
   repository: itzg/minecraft-server
   tag: "java25"
   # The digest is what actually runs; refresh it to take a newer build (docs/images.md).
-  digest: "sha256:11a4faa1439bc782c062e7bb882d2c8ce89ae7b5dbdd503bbfad82ac16d976c0"
+  digest: "sha256:f4375fbbc3e5f797c394856739ea664442d2b5c647470d2c9c7735a96406f8d3"
   pullPolicy: IfNotPresent
 
 # Each key maps to one of the image's env vars:
